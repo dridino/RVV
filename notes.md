@@ -1,4 +1,4 @@
-# RVV
+# Notes quotidiennes
 
 ## 09/05/2025
 
@@ -61,3 +61,46 @@ always @ (event) begin
     [multiple statements]
 end
 ```
+
+### Implémentation du PICO-RV32
+
+> Les 32 registres sont stockés dans la variable `cpuregs`, au même titre que les registres gérant les `IRQs`.
+
+### RVV
+
+#### ISA
+
+<https://storage.googleapis.com/shodan-public-artifacts/RVV-Specification-Docs/riscv-v-spec-1.0-frozen-for-public-review.pdf>
+
+#### Paramètres
+
+- `ELEN >= 8` : puissance de 2, la taille max des éléments des vecteurs
+- `VLEN >= ELEN` : puissance de 2 ($\le 2^{16} = 64 Kio$), la taille des vecteurs
+
+#### Registres
+
+- 32 registres vectoriels (`v0` - `v31`) de longueurs fixes `VLEN`.
+- 7 "unprivileged" CSRs :
+
+|Adress|Privilege|Name|Description|
+|---|---|---|---|
+|0x008|URW|`vstart`|Vector start position|
+|0x009|URW|`vxsat`|Fixed-Point Saturate Flag|
+|0x00A|URW|`vxrm`|Fixed-Point Rounding Mode|
+|0x00F|URW|`vcsr`|Vector control and status register|
+|0x020|URO|`vl`|Vector length|
+|0x021|URO|`vtype`|Vector data type register|
+|0x022|URO|`vlenb`|`VLEN/8` (vector register length in bytes)|
+
+`mstatus` register :
+
+![mstatus register](<https://five-embeddev.com/riscv-priv-isa-manual/Priv-v1.12/machine_05.svg>)
+
+Signification du champ `VS` dans le registre `mstatus` :
+
+- `0` : **OFF**, pas implémenté, erreur si tentative d'utilisation
+- `1` : **INITIAL**, implémenté, pas d'opération vectorielle réalisée depuis le dernier reset
+- `2` : **CLEAN**, implémenté, l'unité vectorielle a été init ou restaurée, pas d'opération vectorielle depuis
+- `3` : **DIRTY**, implémenté, l'état de l'unité vectorielle a subit des modifications depuis le dernier reset / restauration
+
+L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs`) depuis `mstatus.VS = INITIAL | CLEAN` fait passer `mstatus.VS` à `DIRTY`, et donc `mstatus.SD = 1`, sinon la valeur qui va bien. (`mstatus.SD` indique si une des unités vectorielle/flottante/XS)
