@@ -104,3 +104,64 @@ Signification du champ `VS` dans le registre `mstatus` :
 - `3` : **DIRTY**, implémenté, l'état de l'unité vectorielle a subit des modifications depuis le dernier reset / restauration
 
 L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs`) depuis `mstatus.VS = INITIAL | CLEAN` fait passer `mstatus.VS` à `DIRTY`, et donc `mstatus.SD = 1`, sinon la valeur qui va bien. (`mstatus.SD` indique si une des unités vectorielle/flottante/XS)
+
+## 12/05/2025
+
+### RVV
+
+#### Registre `vtype`
+
+Sur `XLEN = 32` bits, décrit comment doit être interprété le contenu des registres vecteurs et comment doit être traité les valeurs débordantes.
+
+- `(XLEN-1)` : `vill`, à 1 indique que la configuration demandée n'est pas supportée
+-  `(XLEN-2 : 8)` : `0`, reservé si différent de 0
+- `(7)` : `vma`, *vector mask agnostic*
+- `(6)` : `vta`, *vector tail agnostic*
+- `(5 : 3)` : `vsew(2:0)`, largeur des éléments (*SEW = selected element width*). (`0b000=8`, `0b001=16`, `0b010=32`, `0b011=64`, `0b1XX=réservé`)
+- `(2 : 0)` : `vlmul(2:0)`, nombre de vecteurs à considérer pour cette instruction. Peut être entier ou fractionnaire (toujours puissance de 2)
+
+##### LMUL
+
+La valeur de `VLMAX = LMUL*VLEN/SEW` représente le nombre max d'éléments qui peuvent être opéré par une seule instruction, comme indiqué dans la table suivante :
+
+![LMUL tableau](./md_ressources/lmul_tab.png)
+
+> Le numéro du registre de base `v` doit être multiple de `LMUL` (pour `LMUL > 1`), sinon c'est invalide
+
+##### VTA / VMA
+
+Les éléments de destination `tail` et `inactive` sont les éléments d'un registre qui ne reçoivent pas de valeur lors d'une instruction 
+
+![VTA/VMA tableau](./md_ressources/vta_vma.png)
+
+> Quoiqu'il arrive, les éléments masqués de la *queue* sont toujours traîtés comme *agnostique*, indépendamment de la valeur de `vta`.
+
+> `undisturbed` : la valeur contenue dans les éléments concernés ne change pas
+
+> `agnostic` : soit la valeur contenue dans les éléments concernés est conservée (comme `undistrubed`), soit elle est remplacée par des `1`, avec une combinaison aléatoire et pas nécessairement déterministe
+
+Configuration du registre `vtype` :
+
+```mips
+    ta   # Tail agnostic
+    tu   # Tail undisturbed
+    ma   # Mask agnostic
+    mu   # Mask undisturbed
+
+    vsetvli t0, a0, e32, m4, ta, ma   # Tail agnostic, mask agnostic
+    vsetvli t0, a0, e32, m4, tu, ma   # Tail undisturbed, mask agnostic
+    vsetvli t0, a0, e32, m4, ta, mu   # Tail agnostic, mask undisturbed
+    vsetvli t0, a0, e32, m4, tu, mu   # Tail undisturbed, mask undisturbed
+```
+
+##### vill
+
+Permet d'encoder que l'appel précédent à `vset{i}vl{i}` a tenté d'écrire une valeur non supportée dans `vtype`. Cela permet de brancher sur le bit de poids fort de `vtype` afin de savoir si on doit lever une exception ou non.
+
+Tous les bits de `vtype` doivent être vérifiés pour définir la valeur de `vill` et déterminer ou non si c'est compatible avec l'architecture plutôt que d'exécuter quelque chose d'erroné.
+
+Si `vill = 1`, toute tentative d'exécution d'instruction dépendant de `vtype` lèvera une `IllegalInstructionException`. Cela ne concerne donc pas les instructions `vset{i}vl{i}` et les lectures/écritures/moves de vecteurs complets.
+
+Si `vill = 1`, tous les autres bits de `vtype` doivent être mis à `0`.
+
+#### Registre `vl` : *Vector Length*
