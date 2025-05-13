@@ -75,7 +75,7 @@ end
 #### Paramètres
 
 - `ELEN >= 8` : puissance de 2, la taille max des éléments des vecteurs
-- `VLEN >= ELEN` : puissance de 2 ($\le 2^{16} = 64 Kio$), la taille des vecteurs
+- `VLEN >= ELEN` : puissance de 2 ($\le 2^{16} = 64$ Kib), la taille des vecteurs
 
 #### Registres
 
@@ -103,7 +103,7 @@ Signification du champ `VS` dans le registre `mstatus` :
 - `2` : **CLEAN**, implémenté, l'unité vectorielle a été init ou restaurée, pas d'opération vectorielle depuis
 - `3` : **DIRTY**, implémenté, l'état de l'unité vectorielle a subit des modifications depuis le dernier reset / restauration
 
-L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs`) depuis `mstatus.VS = INITIAL | CLEAN` fait passer `mstatus.VS` à `DIRTY`, et donc `mstatus.SD = 1`, sinon la valeur qui va bien. (`mstatus.SD` indique si une des unités vectorielle/flottante/XS)
+L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs`) depuis `mstatus.VS = INITIAL | CLEAN` fait passer `mstatus.VS` à `DIRTY`, et donc `mstatus.SD = 1`, sinon la valeur qui va bien. (`mstatus.SD` indique si une des unités vectorielle/flottante/XS est `DIRTY`)
 
 ## 12/05/2025
 
@@ -114,7 +114,7 @@ L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs
 Sur `XLEN = 32` bits, lecture seule, décrit comment doit être interprété le contenu des registres vecteurs et comment doit être traité les valeurs débordantes.
 
 - `(XLEN-1)` : `vill`, à 1 indique que la configuration demandée n'est pas supportée
--  `(XLEN-2 : 8)` : `0`, reservé si différent de 0
+- `(XLEN-2 : 8)` : `0`, reservé si différent de 0
 - `(7)` : `vma`, *vector mask agnostic*
 - `(6)` : `vta`, *vector tail agnostic*
 - `(5 : 3)` : `vsew(2:0)`, largeur des éléments (*SEW = selected element width*). (`0b000=8`, `0b001=16`, `0b010=32`, `0b011=64`, `0b1XX=réservé`)
@@ -124,15 +124,15 @@ Sur `XLEN = 32` bits, lecture seule, décrit comment doit être interprété le 
 
 La valeur de `VLMAX = LMUL*VLEN/SEW` représente le nombre max d'éléments qui peuvent être opéré par une seule instruction, comme indiqué dans la table suivante :
 
-![LMUL tableau](./md_ressources/lmul_tab.png)
+![LMUL tableau](./ressources/md_ressources/lmul_tab.png)
 
 > Le numéro du registre de base `v` doit être multiple de `LMUL` (pour `LMUL > 1`), sinon c'est invalide
 
 ##### VTA / VMA
 
-Les éléments de destination `tail` et `inactive` sont les éléments d'un registre qui ne reçoivent pas de valeur lors d'une instruction 
+Les éléments de destination `tail` et `inactive` sont les éléments d'un registre qui ne reçoivent pas de valeur lors d'une instruction
 
-![VTA/VMA tableau](./md_ressources/vta_vma.png)
+![VTA/VMA tableau](./ressources/md_ressources/vta_vma.png)
 
 > Quoiqu'il arrive, les éléments masqués de la *queue* sont toujours traîtés comme *agnostique*, indépendamment de la valeur de `vta`.
 
@@ -196,7 +196,7 @@ Spécifie l'indice du premier élément à être exécuté par une instruction v
 
 Registre **R/W** de longueur `XLEN` dont les 2 LSB détermine la méthode d'arrondi. Les autres sont mis à `0`. En notant `v` la valeur pré-arrondi et `d` le nombre de bits à arrondir on a :
 
-![vxrm tableau](./md_ressources/vxrm.png)
+![vxrm tableau](./ressources/md_ressources/vxrm.png)
 
 Les fonctions d'arrondi sont :
 
@@ -240,4 +240,21 @@ Les deux valeurs des registres précédents (`vxrm`, `vxsat`) peuvent aussi êtr
     wire result_nor   = ~|a;  // ~(1 | 0 | 1 | 0) = 0
     wire result_xnor1 = ~^a;  // ~(1 ^ 0 ^ 1 ^ 0) = 1
     wire result_xnor2 = ^~a;  // Same as above
+```
+
+## 13/05/2025
+
+### Implémentation `vadd.vv`
+
+#### Idée générale
+
+```mips
+vadd.vv vd, vs2, vs1, vm # vector-vector add
+```
+
+```c
+for (int i = 0; i < ((VLEN*LMUL)/SEW) - 1; i++) {
+    res_17 = vs1[SEW*(i+1) : SEW*i] + vs2[SEW*(i+1) : SEW*i];
+    vd[SEW*(i+1) : SEW*i] = res_17[SEW-1 : 0];
+}
 ```
