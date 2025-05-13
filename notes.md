@@ -111,7 +111,7 @@ L'exécution d'une instruction vectorielle changeant l'état (incluant les `CSRs
 
 #### Registre `vtype`
 
-Sur `XLEN = 32` bits, décrit comment doit être interprété le contenu des registres vecteurs et comment doit être traité les valeurs débordantes.
+Sur `XLEN = 32` bits, lecture seule, décrit comment doit être interprété le contenu des registres vecteurs et comment doit être traité les valeurs débordantes.
 
 - `(XLEN-1)` : `vill`, à 1 indique que la configuration demandée n'est pas supportée
 -  `(XLEN-2 : 8)` : `0`, reservé si différent de 0
@@ -165,3 +165,79 @@ Si `vill = 1`, toute tentative d'exécution d'instruction dépendant de `vtype` 
 Si `vill = 1`, tous les autres bits de `vtype` doivent être mis à `0`.
 
 #### Registre `vl` : *Vector Length*
+
+Registre de `XLEN = 32` bits, lecture seule.
+
+Le nombre d'éléments (`unsigned`) à MAJ avec le résultat d'une instruction vectorielle. Ne peut être modifié que par `vset{i}vl{i}` ou des *"fault-only-first vector load instruction variants"*. Ce nombre prend en compte la valeur de `LMUL`, i.e. avec `VLEN=32`, `LMUL=8`, `SEW=8` on a `VL=32` (4 éléments par vecteur, fois 8 vecteurs).
+
+#### Registre `vlenb` : *Vector Byte Length*
+
+Registre de `XLEN = 32` bits, lecture seule. Rien à voir avec `vl` juste au dessus.
+
+Vaut `VLEN/8`. Ca doit être une constante dans le design.
+
+#### Registre `vstart` : *Vector Start Index CSR*
+
+Spécifie l'indice du premier élément à être exécuté par une instruction vectorielle (cf 3.7)
+
+> `vstart` est remis à `0` à la fin de l'exécution de chaque instruction vectorielle, même `vset{i}vl{i}`.
+
+> `vstart` n'est pas modifié par une instruction qui lève une `IllegalInstructionException`
+
+> `vstart` doit avoir suffisamment de bits (pas plus) pour pouvoir indicer tous les éléments avec `LMUL` maximal et `SEW` minimal
+
+> `vstart` ne doit pas contenir de valeur plus grande que l'indice max d'un élément, recommandé de *trap* dans ces cas là
+
+> Normalement, `vstart` est seulement écrit par le matériel. Il peut être écrit par du *unprivileged code* mais c'est peu recommandé pour les applications et peut causer de forts ralentissements sur certaines implémentations. Néanmoins nécessaire pour des libs de *threading* au niveau utilisateur.
+
+> L'implémentation peut lever une `IllegalInstructionException` si la valeur de `vstart` n'est pas obtenable via une exécution à partir de `vstart=0`. Exemple : certaines implémentations n'interrompent pas les instructions vectorielles arithmétiques et traitent les IRQ après. Ainsi, quand l'implémentation exécute une instruction avec `vstart!=0` elle peut lever une exception
+
+#### Registre `vxrm` : *Vector fixed-point rounding mode*
+
+Registre **R/W** de longueur `XLEN` dont les 2 LSB détermine la méthode d'arrondi. Les autres sont mis à `0`. En notant `v` la valeur pré-arrondi et `d` le nombre de bits à arrondir on a :
+
+![vxrm tableau](./md_ressources/vxrm.png)
+
+Les fonctions d'arrondi sont :
+
+```c
+roundoff_unsigned(v,d) = (unsigned(v) >> d) + r
+roundoff_signed(v,d) = (signed(v) >> d) + r
+```
+
+#### Registre `vxsat` : *Vector fixed-point saturation flag*
+
+Registre **R/W** dont le LSB indique si une instruction *fixed-point* a dû saturer une sortie pour rentrer dans le format de destination. Les autres bits doivent être mis à `0`.
+
+Ce bit est cloné dans le registre `vcsr`.
+
+#### Registre `vcsr` : *Vector Control and Status*
+
+Les deux valeurs des registres précédents (`vxrm`, `vxsat`) peuvent aussi être accédées depuis `vcsr`.
+
+- `vcsr(2:1) = vxrm(1:0)`
+- `vcsr(0) = vxsat(0)`
+
+#### État de l'extension vectorielle au reset
+
+> `vtype` et `vl` doivent avoir des valeurs qui peuvent être lues et restaurées avec une seule instruction `vsetvl`. Il est recommandé de mettre `vtype.vill = 1` et le reste de `vtype` à 0, `vl` à `0`
+
+> `vstart`, `vxrm`, `vxsat` peuvent prendre des valeurs arbitraires au reset (car `vstart` recquiert quoiqu'il arrive une instruction `vset{i}vl{i}` et (`vxrm`, `vxsat`) doivent être initialisés clairement par le SW)
+
+> Les registres vectoriels peuvent avoir des valeurs arbitraires au reset
+
+### Verilog
+
+#### *Reduction operators*
+
+```Verilog
+    wire [3:0] a = 4'b1010;
+
+    wire result_and   = &a;   // 1 & 0 & 1 & 0 = 0
+    wire result_or    = |a;   // 1 | 0 | 1 | 0 = 1
+    wire result_xor   = ^a;   // 1 ^ 0 ^ 1 ^ 0 = 0
+    wire result_nand  = ~&a;  // ~(1 & 0 & 1 & 0) = 1
+    wire result_nor   = ~|a;  // ~(1 | 0 | 1 | 0) = 0
+    wire result_xnor1 = ~^a;  // ~(1 ^ 0 ^ 1 ^ 0) = 1
+    wire result_xnor2 = ^~a;  // Same as above
+```
