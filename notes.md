@@ -258,3 +258,21 @@ for (int i = 0; i < ((VLEN*LMUL)/SEW) - 1; i++) {
     vd[SEW*(i+1) : SEW*i] = res_17[SEW-1 : 0];
 }
 ```
+
+## 14/05
+
+### PicoRV32 - Simulation
+
+Pour générer un fichier `ram.hex` contenant le programme, exécuter `make all` depuis le dossier souhaité dans le répertoire `software` (depuis wsl)
+
+Pour générer un fichier `bootloader.hex`, exécuter `make all` depuis le répertoire `bootloader/bootloader/` (depuis wsl)
+
+Pour lancer la simulation (depuis windows) :
+
+- `cd DE1/sim_work`
+- `vlog  +acc -l comp.log -timescale "1ns/1ps" +define+IDEBUG +define+SIMULATION +incdir+../includes -f ../comp_file`
+- `vsim -L altera_mf soc_core_tb`
+
+#### Executer de l'assembleur
+
+Mettre les instructions en hexa au début du fichier du bootloader fonctionne. Compiler un fichier `.s` produit un binaire complexe pour rien et fonctionne pas, pourquoi ?
