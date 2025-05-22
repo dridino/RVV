@@ -275,4 +275,28 @@ Pour lancer la simulation (depuis windows) :
 
 #### Executer de l'assembleur
 
-Mettre les instructions en hexa au début du fichier du bootloader fonctionne. Compiler un fichier `.s` produit un binaire complexe pour rien et fonctionne pas, pourquoi ?
+Obligé de mettre les instructions à la main au début du bootloader ?
+
+## 16/05
+
+### PicoRV32
+
+<https://fprox.substack.com/p/how-to-read-risc-v-vector-assembly>
+
+## 19/05
+
+### PicoRV32
+
+Compilation de tests persos impossibles pour des instructions vectorielles 32 bits, la *toolchain* le supporte pas RVV. Voir une autre *toolchain* ?
+
+#### Implémentation RVV
+
+- Toujours 32 registres vectoriels ou utiliser la constante `ENABLE_REGS_16_31` ?
+- Le registre `mstatus` est présent dans l'architecture ?
+- supporter les instructions vectorielles flottantes sachant que les scalaires ne le sont pas ? -> pas de registre flottant par conséquent
+
+## 22/05
+
+### PICORV32
+
+> L'instruction `vset{i}vl{i}` s'exécute correctement, reste à voir les cas limites
