@@ -13,69 +13,134 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, a0, e16
-  vsetvli t0, a0, e32
-  vsetvli t0, a0, e8
+  # ---------------------------
+  # LMUL = 1
+  # ---------------------------
 
-  #-------------------------------------------------------------
-  # Arithmetic tests
-  #-------------------------------------------------------------
+  li a0, 32
+  
+  TEST_VSETVL(1, t0, 4, vsetvli t0, a0, e32);
+  TEST_VSETVL(2, t0, 8, vsetvli t0, a0, e16);
+  TEST_VSETVL(3, t0, 16, vsetvli t0, a0, e8);
+  TEST_VSETVL(51, t0, 4, li a1, 0b00010000; vsetvl t0, a0, a1);
+  TEST_VSETVL(52, t0, 8, li a1, 0b00001000; vsetvl t0, a0, a1);
+  TEST_VSETVL(53, t0, 16, li a1, 0b00000000; vsetvl t0, a0, a1);
 
-  /* TEST_RR_OP( 2,  sub, 0x00000000, 0x00000000, 0x00000000 );
-  TEST_RR_OP( 3,  sub, 0x00000000, 0x00000001, 0x00000001 );
-  TEST_RR_OP( 4,  sub, 0xfffffffc, 0x00000003, 0x00000007 );
 
-  TEST_RR_OP( 5,  sub, 0x00008000, 0x00000000, 0xffff8000 );
-  TEST_RR_OP( 6,  sub, 0x80000000, 0x80000000, 0x00000000 );
-  TEST_RR_OP( 7,  sub, 0x80008000, 0x80000000, 0xffff8000 );
+  # ---------------------------
+  # LMUL = 2
+  # ---------------------------
 
-  TEST_RR_OP( 8,  sub, 0xffff8001, 0x00000000, 0x00007fff );
-  TEST_RR_OP( 9,  sub, 0x7fffffff, 0x7fffffff, 0x00000000 );
-  TEST_RR_OP( 10, sub, 0x7fff8000, 0x7fffffff, 0x00007fff );
+  li a0, 32
+  
+  TEST_VSETVL(4, t0, 8, vsetvli t0, a0, e32, m2);
+  TEST_VSETVL(5, t0, 16, vsetvli t0, a0, e16, m2);
+  TEST_VSETVL(6, t0, 32, vsetvli t0, a0, e8, m2);
+  TEST_VSETVL(54, t0, 8, li a1, 0b00010001; vsetvl t0, a0, a1);
+  TEST_VSETVL(55, t0, 16, li a1, 0b00001001; vsetvl t0, a0, a1);
+  TEST_VSETVL(56, t0, 32, li a1, 0b00000001; vsetvl t0, a0, a1);
 
-  TEST_RR_OP( 11, sub, 0x7fff8001, 0x80000000, 0x00007fff );
-  TEST_RR_OP( 12, sub, 0x80007fff, 0x7fffffff, 0xffff8000 );
 
-  TEST_RR_OP( 13, sub, 0x00000001, 0x00000000, 0xffffffff );
-  TEST_RR_OP( 14, sub, 0xfffffffe, 0xffffffff, 0x00000001 );
-  TEST_RR_OP( 15, sub, 0x00000000, 0xffffffff, 0xffffffff );
+  # ---------------------------
+  # LMUL = 4
+  # ---------------------------
 
-  #-------------------------------------------------------------
-  # Source/Destination tests
-  #-------------------------------------------------------------
+  li a0, 64
 
-  TEST_RR_SRC1_EQ_DEST( 16, sub, 2, 13, 11 );
-  TEST_RR_SRC2_EQ_DEST( 17, sub, 3, 14, 11 );
-  TEST_RR_SRC12_EQ_DEST( 18, sub, 0, 13 );
+  TEST_VSETVL(7, t0, 16, vsetvli t0, a0, e32, m4);
+  TEST_VSETVL(8, t0, 32, vsetvli t0, a0, e16, m4);
+  TEST_VSETVL(9, t0, 64, vsetvli t0, a0, e8, m4);
+  TEST_VSETVL(57, t0, 16, li a1, 0b00010010; vsetvl t0, a0, a1);
+  TEST_VSETVL(58, t0, 32, li a1, 0b00001010; vsetvl t0, a0, a1);
+  TEST_VSETVL(59, t0, 64, li a1, 0b00000010; vsetvl t0, a0, a1);
 
-  #-------------------------------------------------------------
-  # Bypassing tests
-  #-------------------------------------------------------------
 
-  TEST_RR_DEST_BYPASS( 19, 0, sub, 2, 13, 11 );
-  TEST_RR_DEST_BYPASS( 20, 1, sub, 3, 14, 11 );
-  TEST_RR_DEST_BYPASS( 21, 2, sub, 4, 15, 11 );
+  # ---------------------------
+  # LMUL = 8
+  # ---------------------------
 
-  TEST_RR_SRC12_BYPASS( 22, 0, 0, sub, 2, 13, 11 );
-  TEST_RR_SRC12_BYPASS( 23, 0, 1, sub, 3, 14, 11 );
-  TEST_RR_SRC12_BYPASS( 24, 0, 2, sub, 4, 15, 11 );
-  TEST_RR_SRC12_BYPASS( 25, 1, 0, sub, 2, 13, 11 );
-  TEST_RR_SRC12_BYPASS( 26, 1, 1, sub, 3, 14, 11 );
-  TEST_RR_SRC12_BYPASS( 27, 2, 0, sub, 4, 15, 11 );
+  li a0, 128
+  
+  TEST_VSETVL(10, t0, 32, vsetvli t0, a0, e32, m8);
+  TEST_VSETVL(11, t0, 64, vsetvli t0, a0, e16, m8);
+  TEST_VSETVL(12, t0, 128, vsetvli t0, a0, e8, m8);
+  TEST_VSETVL(60, t0, 32, li a1, 0b00010011; vsetvl t0, a0, a1);
+  TEST_VSETVL(61, t0, 64, li a1, 0b00001011; vsetvl t0, a0, a1);
+  TEST_VSETVL(62, t0, 128, li a1, 0b00000011; vsetvl t0, a0, a1);
+  
 
-  TEST_RR_SRC21_BYPASS( 28, 0, 0, sub, 2, 13, 11 );
-  TEST_RR_SRC21_BYPASS( 29, 0, 1, sub, 3, 14, 11 );
-  TEST_RR_SRC21_BYPASS( 30, 0, 2, sub, 4, 15, 11 );
-  TEST_RR_SRC21_BYPASS( 31, 1, 0, sub, 2, 13, 11 );
-  TEST_RR_SRC21_BYPASS( 32, 1, 1, sub, 3, 14, 11 );
-  TEST_RR_SRC21_BYPASS( 33, 2, 0, sub, 4, 15, 11 );
+  # ---------------------------
+  # LMUL = 1/2
+  # ---------------------------
 
-  TEST_RR_ZEROSRC1( 34, sub, 15, -15 );
-  TEST_RR_ZEROSRC2( 35, sub, 32, 32 );
-  TEST_RR_ZEROSRC12( 36, sub, 0 );
-  TEST_RR_ZERODEST( 37, sub, 16, 30 ); */
+  li a0, 32
+  
+  TEST_VSETVL(13, t0, 2, vsetvli t0, a0, e32, mf2);
+  TEST_VSETVL(14, t0, 4, vsetvli t0, a0, e16, mf2);
+  TEST_VSETVL(15, t0, 8, vsetvli t0, a0, e8, mf2);
+  TEST_VSETVL(63, t0, 2, li a1, 0b00010111; vsetvl t0, a0, a1);
+  TEST_VSETVL(64, t0, 4, li a1, 0b00001111; vsetvl t0, a0, a1);
+  TEST_VSETVL(65, t0, 8, li a1, 0b00000111; vsetvl t0, a0, a1);
+  
 
-  // TEST_PASSFAIL
+  # ---------------------------
+  # LMUL = 1/4
+  # ---------------------------
+
+  li a0, 64
+  
+  TEST_VSETVL(16, t0, 1, vsetvli t0, a0, e32, mf4);  
+  TEST_VSETVL(17, t0, 2, vsetvli t0, a0, e16, mf4);
+  TEST_VSETVL(18, t0, 4, vsetvli t0, a0, e8, mf4);
+  TEST_VSETVL(66, t0, 1, li a1, 0b00010110; vsetvl t0, a0, a1);
+  TEST_VSETVL(67, t0, 2, li a1, 0b00001110; vsetvl t0, a0, a1);
+  TEST_VSETVL(68, t0, 4, li a1, 0b00000110; vsetvl t0, a0, a1);
+
+
+  # ---------------------------
+  # LMUL = 1/8
+  # ---------------------------
+
+  li a0, 128
+    
+  TEST_VSETVL(19, t0, 0, vsetvli t0, a0, e32, mf8);
+  TEST_VSETVL(20, t0, 1, vsetvli t0, a0, e16, mf8);
+  TEST_VSETVL(21, t0, 2, vsetvli t0, a0, e8, mf8);
+  TEST_VSETVL(69, t0, 0, li a1, 0b00010101; vsetvl t0, a0, a1);
+  TEST_VSETVL(70, t0, 1, li a1, 0b00001101; vsetvl t0, a0, a1);
+  TEST_VSETVL(71, t0, 2, li a1, 0b00000101; vsetvl t0, a0, a1);
+
+
+  # ---------------------------
+  # AVL limiting
+  # ---------------------------
+
+  li a0, 8
+
+  TEST_VSETVL(22, t0, 8, vsetvli t0, a0, e8);
+
+
+  # ---------------------------
+  # VSETIVLI
+  # ---------------------------
+  
+  TEST_VSETVL(23, t0, 4, vsetivli t0, 31, e32);
+  TEST_VSETVL(24, t0, 8, vsetivli t0, 31, e16);
+  TEST_VSETVL(25, t0, 16, vsetivli t0, 31, e8);
+  TEST_VSETVL(26, t0, 8, vsetivli t0, 31, e32, m2);
+  TEST_VSETVL(27, t0, 16, vsetivli t0, 31, e16, m2);
+  TEST_VSETVL(28, t0, 31, vsetivli t0, 31, e8, m2);
+
+
+  # ---------------------------
+  # special values for AVL
+  # ---------------------------
+
+  TEST_VSETVL(29, t0, 16, vsetvli t0, x0, e8);
+  TEST_VSETVL(30, t0, 8, vsetvli t0, x0, e16);
+  vsetvli x0, x0, e8 # should keep the same vl value
+
+  TEST_PASSFAIL
 
 RVTEST_CODE_END
 

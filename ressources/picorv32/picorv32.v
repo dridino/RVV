@@ -374,6 +374,7 @@ module picorv32 #(
 			ENABLE_RVV && pcpi_rvv_ready: begin
 				pcpi_int_wr = pcpi_rvv_wr;
 				pcpi_int_rd = pcpi_rvv_rd;
+				$display("FROM RVV : %b", pcpi_int_rd);
 			end
 		endcase
 	end
@@ -3141,9 +3142,11 @@ module picorv32_pcpi_rvv #(
 	reg instr_vsetvli, instr_vsetivli, instr_vsetvl;
 	wire instr_cfg = |{instr_vsetvli, instr_vsetivli, instr_vsetvl};
 
-	reg avl;
+	reg [31:0] avl;
 
-	wire [2:0] vsew = vtype[5:3];
+	wire 	   vma   = vtype[7];
+	wire 	   vta   = vtype[6];
+	wire [2:0] vsew  = vtype[5:3];
 	wire [2:0] vlmul = vtype[2:0];
 
 	wire [4:0] vs1 = pcpi_insn[19:15];
@@ -3210,8 +3213,6 @@ module picorv32_pcpi_rvv #(
 	end
 
 	always @(posedge clk) begin
-		$display("RVV_insn  : %b", pcpi_insn);
-		$display("RVV_vtype : %b", vtype);
 		pcpi_ready <= 0;
 		pcpi_wait <= 0;
 		pcpi_wr <= 0;
@@ -3235,25 +3236,47 @@ module picorv32_pcpi_rvv #(
 					vtype[6] = pcpi_insn[26]; // vta
 					vtype[5:3] = pcpi_insn[25:23]; // vsew
 					vtype[2:0] = pcpi_insn[22:20]; // vlmul
-
-					vlmax = vtype[2:0] * (VLEN / vtype[5:3]);
 				end else if (instr_vsetvl) begin
 					vtype = pcpi_rs2;
-
-					vlmax = vtype[2:0] * (VLEN / vtype[5:3]);
 				end
+				// +3 because vsew starts at 8
+				case (vtype[2:0])
+					3'b100: begin vtype[31] = 1; vlmax = 0; end
+					3'b101: vlmax = (VLEN >> (vtype[5:3]+3)) >> 3;
+					3'b110: vlmax = (VLEN >> (vtype[5:3]+3)) >> 2;
+					3'b111: vlmax = (VLEN >> (vtype[5:3]+3)) >> 1;
+					3'b000,
+					3'b001,
+					3'b010,
+					3'b011: vlmax = (VLEN >> (vtype[5:3]+3)) << vtype[2:0];
+				endcase;
 
-				if (instr_vsetvli || instr_vsetvl)
-					avl = pcpi_rs1;
-				else if (instr_vsetivli)
-					avl = {{27{1'b0}}, pcpi_insn[19:15]};
-				
-				vl = (avl <= vlmax) ? avl : vlmax;
-				
+				if (vlmax == 0) begin
+					vtype = 32'h8000_0000;
+					vl = 0;
+				end else begin
+					if (instr_vsetvli || instr_vsetvl) begin
+						if (pcpi_insn[19:15] != 0)
+							avl = pcpi_rs1;
+						else if (pcpi_insn[11:7] != 0)
+							avl = 32'hFFFF_FFFF;
+						else
+							avl = vl;
+					end else if (instr_vsetivli)
+						avl = {{27{1'b0}}, pcpi_insn[19:15]};
+					
+					vl = (avl <= vlmax) ? avl : vlmax;
+				end
 				pcpi_rd <= vl;
 				pcpi_wr <= 1;
 				pcpi_wait <= 0;
 				pcpi_ready <= 1;
+				$display("\n------------------");
+				$display("RVV_insn  : %b", pcpi_insn);
+				$display("RVV_vtype : %b", vtype);
+				$display("RVV_vlmax : %b", vlmax);
+				$display("RVV_tmp : %b", ($unsigned(-$signed(vtype[2:0]))));
+				$display("------------------");
 			end
 		end
 	end
