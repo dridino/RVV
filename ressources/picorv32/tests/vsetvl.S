@@ -1,10 +1,10 @@
 # See LICENSE for license details.
 
 #*****************************************************************************
-# sub.S
+# vsetvl.S
 #-----------------------------------------------------------------------------
 #
-# Test sub instruction.
+# Test vset{i}vl{i} instruction.
 #
 
 #include "riscv_test.h"

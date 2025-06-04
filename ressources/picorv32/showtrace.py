@@ -7,7 +7,7 @@ elf_filename = sys.argv[2]
 
 insns = dict()
 
-with subprocess.Popen(["riscv32-unknown-elf-objdump", "-d", elf_filename], stdout=subprocess.PIPE) as proc:
+with subprocess.Popen(["/home/user/rvv32/bin/riscv32-unknown-elf-objdump", "-d", elf_filename], stdout=subprocess.PIPE) as proc:
     while True:
         line = proc.stdout.readline().decode("ascii")
         if line == '': break
@@ -44,7 +44,7 @@ with open(trace_filename, "r") as f:
                     print("%s ** UNEXPECTED BRANCH DATA FOR INSN AT %08x! **" % (info, pc))
 
                 if is_addr and opname not in ["lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"]:
-                    print("%s ** UNEXPECTED ADDR DATA FOR INSN AT %08x! **" % (info, pc))
+                    print("%s ** UNEXPECTED ADDR DATA FOR INSN AT %08x! | data : %08x **" % (info, pc, raw_data))
 
                 opcode_fmt = "%08x" if (insn_opcode & 3) == 3 else "    %04x"
                 print(("%s | %08x | " + opcode_fmt + " | %s") % (info, pc, insn_opcode, insn_desc))

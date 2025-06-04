@@ -1,442 +1,38 @@
-iverilog -o testbench.vvp -DCOMPRESSED_ISA testbench.v picorv32.v
-chmod -x testbench.vvp
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -o firmware/start.o firmware/start.S
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/irq.o firmware/irq.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/print.o firmware/print.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/hello.o firmware/hello.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/sieve.o firmware/sieve.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/multest.o firmware/multest.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/stats.o firmware/stats.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imvc -Os --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/adrien.o firmware/adrien.c
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/vsetvl.o -DTEST_FUNC_NAME=vsetvl \
-	-DTEST_FUNC_TXT='"vsetvl"' -DTEST_FUNC_RET=vsetvl_ret tests/vsetvl.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/vload_vstore.o -DTEST_FUNC_NAME=vload_vstore \
+	-DTEST_FUNC_TXT='"vload_vstore"' -DTEST_FUNC_RET=vload_vstore_ret tests/vload_vstore.S
 ~/rvv32/bin/riscv32-unknown-elf-gcc -Os -mabi=ilp32 -march=rv32imvc -ffreestanding -nostdlib -o firmware/firmware.elf \
 	-Wl,--build-id=none,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
-	firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o firmware/adrien.o tests/vsetvl.o -lgcc
+	firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o firmware/adrien.o tests/vload_vstore.o -lgcc
 chmod -x firmware/firmware.elf
 ~/rvv32/bin/riscv32-unknown-elf-objcopy -O binary firmware/firmware.elf firmware/firmware.bin
 chmod -x firmware/firmware.bin
 python3 firmware/makehex.py firmware/firmware.bin 32768 > firmware/firmware.hex
 vvp -N testbench.vvp
-from RVV
 Yo depuis adrien
 hello world
-vsetvl..
-------------------
-RVV_insn  : 00000001000001010111001011010111
-RVV_vtype : 00000000000000000000000000010000
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 00000000100001010111001011010111
-RVV_vtype : 00000000000000000000000000001000
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 00000000000001010111001011010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010000
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001000
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 00000001000101010111001011010111
-RVV_vtype : 00000000000000000000000000010001
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 00000000100101010111001011010111
-RVV_vtype : 00000000000000000000000000001001
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 00000000000101010111001011010111
-RVV_vtype : 00000000000000000000000000000001
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010001
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001001
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000001
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 00000001001001010111001011010111
-RVV_vtype : 00000000000000000000000000010010
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 00000000101001010111001011010111
-RVV_vtype : 00000000000000000000000000001010
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 00000000001001010111001011010111
-RVV_vtype : 00000000000000000000000000000010
-RVV_vlmax : 00000000000000000000000001000000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000001000000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010010
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001010
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000010
-RVV_vlmax : 00000000000000000000000001000000
-RVV_tmp : 110
-------------------
-FROM RVV : 00000000000000000000000001000000
-
-------------------
-RVV_insn  : 00000001001101010111001011010111
-RVV_vtype : 00000000000000000000000000010011
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 00000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001011
-RVV_vlmax : 00000000000000000000000001000000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000001000000
-
-------------------
-RVV_insn  : 00000000001101010111001011010111
-RVV_vtype : 00000000000000000000000000000011
-RVV_vlmax : 00000000000000000000000010000000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000010000000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010011
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000000100000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001011
-RVV_vlmax : 00000000000000000000000001000000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000001000000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000011
-RVV_vlmax : 00000000000000000000000010000000
-RVV_tmp : 101
-------------------
-FROM RVV : 00000000000000000000000010000000
-
-------------------
-RVV_insn  : 00000001011101010111001011010111
-RVV_vtype : 00000000000000000000000000010111
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 00000000111101010111001011010111
-RVV_vtype : 00000000000000000000000000001111
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 00000000011101010111001011010111
-RVV_vtype : 00000000000000000000000000000111
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010111
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001111
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000111
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 001
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 00000001011001010111001011010111
-RVV_vtype : 00000000000000000000000000010110
-RVV_vlmax : 00000000000000000000000000000001
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000001
-
-------------------
-RVV_insn  : 00000000111001010111001011010111
-RVV_vtype : 00000000000000000000000000001110
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 00000000011001010111001011010111
-RVV_vtype : 00000000000000000000000000000110
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000010110
-RVV_vlmax : 00000000000000000000000000000001
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000001
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001110
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000110
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 010
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 00000001010101010111001011010111
-RVV_vtype : 10000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000000000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000000000
-
-------------------
-RVV_insn  : 00000000110101010111001011010111
-RVV_vtype : 00000000000000000000000000001101
-RVV_vlmax : 00000000000000000000000000000001
-RVV_tmp : 011
-------------------
-FROM RVV : 00000000000000000000000000000001
-
-------------------
-RVV_insn  : 00000000010101010111001011010111
-RVV_vtype : 00000000000000000000000000000101
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 011
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 10000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000000000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000000000
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000001101
-RVV_vlmax : 00000000000000000000000000000001
-RVV_tmp : 011
-------------------
-FROM RVV : 00000000000000000000000000000001
-
-------------------
-RVV_insn  : 10000000101101010111001011010111
-RVV_vtype : 00000000000000000000000000000101
-RVV_vlmax : 00000000000000000000000000000010
-RVV_tmp : 011
-------------------
-FROM RVV : 00000000000000000000000000000010
-
-------------------
-RVV_insn  : 00000000000001010111001011010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 11000001000011111111001011010111
-RVV_vtype : 00000000000000000000000000010000
-RVV_vlmax : 00000000000000000000000000000100
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000000100
-
-------------------
-RVV_insn  : 11000000100011111111001011010111
-RVV_vtype : 00000000000000000000000000001000
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 11000000000011111111001011010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 11000001000111111111001011010111
-RVV_vtype : 00000000000000000000000000010001
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 11000000100111111111001011010111
-RVV_vtype : 00000000000000000000000000001001
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 11000000000111111111001011010111
-RVV_vtype : 00000000000000000000000000000001
-RVV_vlmax : 00000000000000000000000000100000
-RVV_tmp : 111
-------------------
-FROM RVV : 00000000000000000000000000011111
-
-------------------
-RVV_insn  : 00000000000000000111001011010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000010000
-
-------------------
-RVV_insn  : 00000000100000000111001011010111
-RVV_vtype : 00000000000000000000000000001000
-RVV_vlmax : 00000000000000000000000000001000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
-
-------------------
-RVV_insn  : 00000000000000000111000001010111
-RVV_vtype : 00000000000000000000000000000000
-RVV_vlmax : 00000000000000000000000000010000
-RVV_tmp : 000
-------------------
-FROM RVV : 00000000000000000000000000001000
+vload_vstore..FROM PICO (pc, insn, addr, rdata) : 00000f4c 000072d7 10000000 000072d7
+FROM PICO (pc, insn, addr, rdata) : 00000f4c 000072d7 00000f50 000072d7
+FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f50 000072d7
+FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f54 000072d7 00000f54 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f5c 02008087
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c4 44444444
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c4 44444444
+FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
+FROM PICO (pc, insn, addr, rdata) : 00000f60 02008087 00000f60 00002097
 OK
  1st prime is 2.
  2nd prime is 3.
@@ -545,8 +141,8 @@ hard mul   1B639DFB  F98C5E4E  324704BF  324704BF
 soft mul   1B639DFB  F98C5E4E  324704BF  324704BF   OK
 hard div   FFFFFFFF  00000000  1B9D5F9C  38BAA671
 soft div   FFFFFFFF  00000000  1B9D5F9C  38BAA671   OK
-Cycle counter ......... 265947
-Instruction counter .... 49272
+Cycle counter ......... 264993
+Instruction counter .... 49083
 CPI: 5.39
 DONE
 
@@ -557,12 +153,12 @@ x1  000004F0    x9  00000000    x17 00000000    x25 00000000
 x2  00020000    x10 20000000    x18 00000000    x26 00000000
 x3  DEADBEEF    x11 075BCD15    x19 00000000    x27 00000000
 x4  DEADBEEF    x12 0000004F    x20 00000000    x28 000036A8
-x5  00000008    x13 0000004E    x21 00000000    x29 0000001D
+x5  00000010    x13 0000004E    x21 00000000    x29 0000001D
 x6  0000B92B    x14 00000045    x22 00000000    x30 00000000
 x7  00000000    x15 0000000A    x23 00000000    x31 00000000
 ------------------------------------------------------------
-Number of fast external IRQs counted: 33
+Number of fast external IRQs counted: 32
 Number of slow external IRQs counted: 4
 Number of timer IRQs counted: 1
-TRAP after 298084 clock cycles
+TRAP after 296570 clock cycles
 ALL TESTS PASSED.

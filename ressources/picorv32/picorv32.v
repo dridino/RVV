@@ -100,7 +100,7 @@ module picorv32 #(
 
 	output reg [31:0] mem_addr,
 	output reg [31:0] mem_wdata,
-	output reg [ 3:0] mem_wstrb,
+	output reg [ 3:0] mem_wstrb, // indicates which byte should be written to memory
 	input      [31:0] mem_rdata,
 
 	// Look-Ahead Interface
@@ -277,6 +277,13 @@ module picorv32 #(
 	wire [31:0] pcpi_rvv_rd;
 	wire        pcpi_rvv_wait;
 	wire        pcpi_rvv_ready;
+	wire		pcpi_rvv_is_rvv_insn;
+	// memory transfers
+	wire		pcpi_rvv_mem_op;
+	wire		pcpi_rvv_mem_load;
+	wire		pcpi_rvv_mem_wen;
+	wire [31:0]  pcpi_rvv_mem_base;
+	wire [31:0] pcpi_rvv_mem_offset;
 
 
 	generate if (ENABLE_FAST_MUL) begin
@@ -347,7 +354,18 @@ module picorv32 #(
 			.pcpi_wr   			(pcpi_rvv_wr    ),
 			.pcpi_rd   			(pcpi_rvv_rd    ),
 			.pcpi_wait 			(pcpi_rvv_wait  ),
-			.pcpi_ready			(pcpi_rvv_ready )
+			.pcpi_ready			(pcpi_rvv_ready ),
+
+			.pcpi_is_rvv_insn	(pcpi_rvv_is_rvv_insn),
+
+			// memory transfers
+			.pcpi_mem_rdata		(mem_rdata),
+			.pcpi_mem_done		(mem_ready),
+			.pcpi_mem_op		(pcpi_rvv_mem_op),
+			.pcpi_mem_load		(pcpi_rvv_mem_load),
+			.pcpi_mem_wen		(pcpi_rvv_mem_wen),
+			.pcpi_mem_base		(pcpi_rvv_mem_base),
+			.pcpi_mem_offset	(pcpi_rvv_mem_offset)
 		);
 	end endgenerate
 
@@ -374,7 +392,6 @@ module picorv32 #(
 			ENABLE_RVV && pcpi_rvv_ready: begin
 				pcpi_int_wr = pcpi_rvv_wr;
 				pcpi_int_rd = pcpi_rvv_rd;
-				$display("FROM RVV : %b", pcpi_int_rd);
 			end
 		endcase
 	end
@@ -925,7 +942,7 @@ module picorv32 #(
 
 			compressed_instr <= 0;
 			if (COMPRESSED_ISA && mem_rdata_latched[1:0] != 2'b11) begin
-				compressed_instr <= 1;
+				compressed_instr <= ENABLE_RVV ? !pcpi_rvv_is_rvv_insn : 1;
 				decoded_rd <= 0;
 				decoded_rs1 <= 0;
 				decoded_rs2 <= 0;
@@ -1598,7 +1615,7 @@ module picorv32 #(
 						count_instr <= count_instr + 1;
 						if (!ENABLE_COUNTERS64) count_instr[63:32] <= 0;
 					end
-					if (instr_jal) begin
+					if (instr_jal && (ENABLE_RVV ? !pcpi_rvv_is_rvv_insn : 1)) begin
 						mem_do_rinst <= 1;
 						reg_next_pc <= current_pc + decoded_imm_j;
 						latched_branch <= 1;
@@ -2198,6 +2215,31 @@ module picorv32 #(
 		end
 	end
 `endif
+
+// RVV memory transfer (load / store) (lw / sw)
+generate
+	if (ENABLE_RVV) begin
+		always @(posedge clk) begin
+			// $display("FROM PICO (addr, rdata) : %h %h", mem_addr, mem_rdata);
+			// $display("FROM PICO (decoded_imm, reg_npc, npc) : %h %h %h", decoded_imm, reg_next_pc, next_pc);
+			if (pcpi_rvv_is_rvv_insn) begin
+				$display("FROM PICO (pc, insn, addr, rdata) : %h %h %h %h", reg_pc, pcpi_insn, mem_addr, mem_rdata);
+				if (pcpi_rvv_mem_op) begin
+					if (pcpi_rvv_mem_load) begin
+						if (pcpi_rvv_mem_wen) begin
+							mem_addr <= pcpi_rvv_mem_base + pcpi_rvv_mem_offset;
+							mem_wstrb <= 0;
+						end
+						mem_valid <= pcpi_rvv_mem_wen;
+					end
+				end else begin
+					mem_addr <= next_pc;
+					mem_valid <= 1;
+				end
+			end
+		end
+	end
+endgenerate
 endmodule
 
 // This is a simple example implementation of PICORV32_REGS.
@@ -3107,42 +3149,28 @@ module picorv32_pcpi_rvv #(
 	output reg        pcpi_wr, // 1 if scalar result
 	output reg [31:0] pcpi_rd, // scalar result
 	output reg        pcpi_wait,
-	output reg        pcpi_ready
+	output reg        pcpi_ready,
 	
-	/* input	   [31:0] pcpi_mem_rdata, // value from load
+	output wire		  pcpi_is_rvv_insn, // 1 if pcpi_insn is an rvv instruction
+	
+	input	   [31:0] pcpi_mem_rdata, // value from load
 	input	          pcpi_mem_done, // 1 if new value available
+	output reg		  pcpi_mem_op,
 	output reg 		  pcpi_mem_load, // 1 if vector memory load
-	output reg [4:0]  pcpi_mem_base, // base reg addr
-	output reg [31:0] pcpi_mem_offset // offset from vreg, vector-indexed */
+	output reg		  pcpi_mem_wen, // memory access
+	output reg [31:0] pcpi_mem_base, // base reg addr
+	output reg [31:0] pcpi_mem_offset // offset from vreg, vector-indexed
 );
 	localparam integer VLENB = VLEN/8;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
 
-	localparam rvv_state_load 	= 3'b100;
-	localparam rvv_state_store 	= 3'b010;
-	localparam rvv_state_exec	= 3'b001;
+	assign pcpi_is_rvv_insn = |{instr_cfg, mem_instr};
 
-	reg [2:0] rvv_state;
+	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
 	reg [31:0] vxsat, vxrm, vcsr, vl, vlmax, vtype;
 	reg [31:0] vstart; // reg must be as short as possible
-	reg [VLEN:0] [regfile_size:0] vregs;
-
-	/* reg instr_ivv, instr_fvv, instr_mvv; // vec-vec
-	reg instr_vi; // vec-imm
-	reg instr_ivs, instr_fvs, instr_mvs; // vec-scalar
-	reg instr_ctrl;
-	wire instr_vector_scalar = |{vector_ivi, vector_fvi, vector_ivs, vector_fvs};
-	wire instr_float = |{instr_fvv, instr_fvi, instr_fvs};
-	wire instr_int = !instr_float; */
-
-	// reg instr_vload, instr_vstore;
-	// reg [VLENB:0] remaining_mem_transfer; // number of remaining mem trans
-
-	reg instr_vsetvli, instr_vsetivli, instr_vsetvl;
-	wire instr_cfg = |{instr_vsetvli, instr_vsetivli, instr_vsetvl};
-
-	reg [31:0] avl;
+	reg [VLEN-1:0] vregs [regfile_size-1:0];
 
 	wire 	   vma   = vtype[7];
 	wire 	   vta   = vtype[6];
@@ -3151,35 +3179,54 @@ module picorv32_pcpi_rvv #(
 
 	wire [4:0] vs1 = pcpi_insn[19:15];
 	wire [4:0] vs2 = pcpi_insn[24:20];
+	
+	// VSETVL
+	reg instr_vsetvli, instr_vsetivli, instr_vsetvl;
+	wire instr_cfg = |{instr_vsetvli, instr_vsetivli, instr_vsetvl};
+	reg [31:0] avl;
+
+	// LOAD-STORE
+	reg instr_vload, instr_vstore;
+	wire mem_instr = |{instr_vload, instr_vstore};
+	reg [31:0] mem_transfer_n; // number of 32 bits transfers
+	reg [1:0]  mem_last_transfer_len; // number of bytes to keep in the last transfer
+	reg [9:0]  mem_byte_index; // index in the vector register, same size as VLEN parameter
+	reg [4:0]  mem_reg_index; // index of the vector register
+	reg 	   mem_sending; // 1 if addr needs to be sent, 0 if waiting for data from main core
+
+	reg [VLEN-1:0] temp_vreg; // avoid errors
+	integer index; // avoid errors
+	integer offset; // avoid errors
+
+	// reg [VLENB:0] remaining_mem_transfer; // number of remaining mem trans
+	// reg [31:0]	  current_mem_addr;
+	// reg [VLENB:0] current_reg_byte;
 
 	initial begin
 		if (REGS_INIT_ZERO) begin
-			for (i = 0; i < regfile_size; i = i+1)
+			for (integer i = 0; i < regfile_size; i = i+1)
 				vregs[i] = 0;
 		end
-		$display("from RVV");
 	end
 
 
 	always @* begin
-		/* instr_ivv = 0;
-		instr_fvv = 0;
-		instr_mvv = 0;
-		instr_vi = 0;
-		instr_ivs = 0;
-		instr_fvs = 0;
-		instr_mvs = 0;
-		instr_ctrl = 0; */
-
-		/* instr_vload = 0;
-		instr_vstore = 0; */
-
+		// vsetvl
 		instr_vsetvli = 0;
 		instr_vsetivli = 0;
 		instr_vsetvl = 0;
+		
+		// mem
+		instr_vload = 0;
+		instr_vstore = 0;
+		mem_transfer_n = 0;
+		mem_last_transfer_len = 0;
+		// remaining_mem_transfer = 0;
+		// current_mem_addr = 0;
+		// current_reg_byte = 0;
 
 		// config
-		if (resetn && pcpi_valid && !pcpi_ready && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
+		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
 			if (pcpi_insn[31] == 1'b0)
 				instr_vsetvli = 1;
 			else if (pcpi_insn[31:30] == 2'b11)
@@ -3188,28 +3235,25 @@ module picorv32_pcpi_rvv #(
 				instr_vsetvl = 1;
 		end
 
+		// $display("RVV_insn : %b\n", pcpi_insn);
 		// mem decod
-		/* if (resetn && pcpi_valid && !pcpi_ready && pcpi_insn[6:0] == 7'b0?00111) begin
+		if (resetn && (pcpi_insn[6:0] == 7'b0000111 || pcpi_insn[6:0] == 7'b0100111)) begin
 			instr_vload = !pcpi_insn[5];
 			instr_vstore = pcpi_insn[5];
-			remaining_mem_transfer =
-		end */
+			// $display("here vload | vstore = %b | %b", instr_vload, instr_vstore);
 
-		// arithmetic decod
-		/* if (resetn && pcpi_valid && !pcpi_ready && pcpi_insn[6:0] == 7'b1010111) begin
+			// remaining_mem_transfer = vl;
+			// current_mem_addr = pcpi_rs1; // base addr
+			// TODO: only works for unit-stride addressing mode
 			case (pcpi_insn[14:12])
-				3'b000: instr_ivv = 1; // vec-vec
-				3'b001: instr_fvv = 1; // float vec-vec
-				3'b010: instr_mvv = 1; // masked vec-vec
-				3'b011: instr_vi = 1; // vec-imm
-				3'b100: instr_ivs = 1; // vec-scal
-				3'b101: instr_fvs = 1; // float vec-scal
-				3'b110: instr_mvs = 1; // masked vec-scal
-				3'b111: instr_ctrl = 1; // control (vsetvli)
+				3'b000: begin mem_transfer_n = vl >> 2; mem_last_transfer_len = vl[1:0]; end // 8 bits elem
+				3'b101: begin mem_transfer_n = vl >> 1; mem_last_transfer_len = vl[0]; end // 16 bits elem
+				3'b110: begin mem_transfer_n = vl; mem_last_transfer_len = 0; end // 32 bits elem
+				3'b111: begin mem_transfer_n = vl << 1; mem_last_transfer_len = 0; end // 64 bits elem
 			endcase
-		end */
-
-		// pcpi_wait <= instr_any_div_rem && resetn;
+			if (mem_last_transfer_len != 0)
+				mem_transfer_n += 1;
+		end
 	end
 
 	always @(posedge clk) begin
@@ -3217,6 +3261,12 @@ module picorv32_pcpi_rvv #(
 		pcpi_wait <= 0;
 		pcpi_wr <= 0;
 		pcpi_rd <= 'bx;
+		pcpi_mem_load <= 0; // 1 if vector memory load
+		pcpi_mem_wen <= 0; // memory access
+		pcpi_mem_base <= 0; // base reg addr
+		pcpi_mem_offset <= 0; // mem addr offset
+		pcpi_mem_op <= 0;
+		
 		if (!resetn) begin
 			vstart = 0;
 			vxsat = 0;
@@ -3224,10 +3274,13 @@ module picorv32_pcpi_rvv #(
 			vcsr = 0;
 			vl = 0;
 			vtype = 32'h8000_0000;
-			rvv_state = rvv_state_exec;
+			// vsetvl
 			vlmax = 0;
 			avl = 0;
-		end else begin
+			mem_byte_index = 0;
+			mem_reg_index = 0;
+			mem_sending = 1;
+		end else if (instr_run) begin
 			if (instr_cfg) begin
 				if (instr_vsetvli || instr_vsetivli) begin
 					vtype[31] = 0; // vill
@@ -3271,12 +3324,111 @@ module picorv32_pcpi_rvv #(
 				pcpi_wr <= 1;
 				pcpi_wait <= 0;
 				pcpi_ready <= 1;
-				$display("\n------------------");
+				/* $display("\n------------------");
 				$display("RVV_insn  : %b", pcpi_insn);
 				$display("RVV_vtype : %b", vtype);
 				$display("RVV_vlmax : %b", vlmax);
 				$display("RVV_tmp : %b", ($unsigned(-$signed(vtype[2:0]))));
-				$display("------------------");
+				$display("------------------"); */
+			end else if (mem_instr) begin
+				pcpi_mem_op <= 1;
+				if (instr_vload) begin
+					pcpi_rd <= 'bx;
+					pcpi_wait <= 1;
+					pcpi_ready <= 0;
+					pcpi_mem_wen <= 0;
+					if (mem_sending) begin
+						// $display("mem_sending");
+						// $display("base, offset : %h %d, %d", pcpi_rs1, pcpi_rs1, (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5)));
+						// send addr to main proc
+						pcpi_mem_load <= 1;
+						pcpi_mem_wen <= 1;
+						pcpi_mem_base <= pcpi_rs1;
+						pcpi_mem_offset <= (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5));
+						mem_sending <= 0;
+						pcpi_wr <= 0;
+						pcpi_wait <= 1;
+						pcpi_ready <= 0;
+					end else if (pcpi_mem_done) begin
+						// $display("mem_done");
+						// $display("mem_byte_i : %d", mem_byte_index);
+						// $display("mem_transfer_n : %d\n", mem_transfer_n);
+						// $display("rdata : %h\n", pcpi_mem_rdata);
+						// receive data from main proc
+						if (mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1) begin
+							// not last transfer
+							index = pcpi_insn[11:7] + mem_reg_index;
+							offset = mem_byte_index << 5;
+							temp_vreg = vregs[index];
+							temp_vreg[offset +: 32] = pcpi_mem_rdata;
+							vregs[index] = temp_vreg;
+							// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata;
+							
+							// update indices
+							if ((mem_byte_index+1) << 5 == VLEN) begin
+								mem_byte_index = 0;
+								mem_reg_index += 1;
+							end else begin
+								mem_byte_index += 1;
+								mem_reg_index = mem_reg_index;
+							end
+						
+							mem_sending <= 1;
+							pcpi_wait <= 1;
+							pcpi_ready <= 0;
+						end else begin
+							// last transfer
+							index = pcpi_insn[11:7] + mem_reg_index;
+							offset = mem_byte_index << 5;
+							case (mem_last_transfer_len)
+								2'b00: begin
+									temp_vreg = vregs[index];
+									temp_vreg[offset +:32] = pcpi_mem_rdata[31:0];
+									vregs[index] = temp_vreg;
+									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata[31:0]; // word
+								end
+								2'b01: begin
+									temp_vreg = vregs[index];
+									temp_vreg[offset +:8] = pcpi_mem_rdata[7:0];
+									vregs[index] = temp_vreg;
+									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+7 : (mem_byte_index << 2)] = pcpi_mem_rdata[7:0]; // byte
+								end
+								2'b10: begin
+									temp_vreg = vregs[index];
+									temp_vreg[offset +:16] = pcpi_mem_rdata[15:0];
+									vregs[index] = temp_vreg;
+									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+15 : (mem_byte_index << 2)] = pcpi_mem_rdata[15:0]; // half
+								end
+								2'b11: begin
+									temp_vreg = vregs[index];
+									temp_vreg[offset +:24] = pcpi_mem_rdata[23:0];
+									vregs[index] = temp_vreg;
+									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+23 : (mem_byte_index << 2)] = pcpi_mem_rdata[23:0]; // 3/4
+								end
+							endcase
+							// mem_sending <= 0;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+							pcpi_mem_op <= 0;
+							// update indices
+							mem_byte_index = 0;
+							mem_reg_index = 0;
+						end
+
+						// $display("v1 : %h", vregs[1]);
+						// $display("v2 : %h", vregs[2]);
+						// $display("v3 : %h", vregs[3]);
+						// $display("v4 : %h", vregs[4]);
+						
+						// outputs
+						pcpi_mem_load <= 1;
+						pcpi_mem_wen <= 0;
+						pcpi_mem_base <= 0;
+						pcpi_mem_offset <= 0;
+						
+						pcpi_wr <= 0;
+					end
+				end
 			end
 		end
 	end
