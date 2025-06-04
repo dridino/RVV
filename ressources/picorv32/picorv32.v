@@ -2223,7 +2223,7 @@ generate
 			// $display("FROM PICO (addr, rdata) : %h %h", mem_addr, mem_rdata);
 			// $display("FROM PICO (decoded_imm, reg_npc, npc) : %h %h %h", decoded_imm, reg_next_pc, next_pc);
 			if (pcpi_rvv_is_rvv_insn) begin
-				$display("FROM PICO (pc, insn, addr, rdata) : %h %h %h %h", reg_pc, pcpi_insn, mem_addr, mem_rdata);
+				// $display("FROM PICO (pc, insn, addr, rdata) : %h %h %h %h", reg_pc, pcpi_insn, mem_addr, mem_rdata);
 				if (pcpi_rvv_mem_op) begin
 					if (pcpi_rvv_mem_load) begin
 						if (pcpi_rvv_mem_wen) begin
@@ -3247,7 +3247,7 @@ module picorv32_pcpi_rvv #(
 			// TODO: only works for unit-stride addressing mode
 			case (pcpi_insn[14:12])
 				3'b000: begin mem_transfer_n = vl >> 2; mem_last_transfer_len = vl[1:0]; end // 8 bits elem
-				3'b101: begin mem_transfer_n = vl >> 1; mem_last_transfer_len = vl[0]; end // 16 bits elem
+				3'b101: begin mem_transfer_n = vl >> 1; mem_last_transfer_len = vl[0] << 1; end // 16 bits elem
 				3'b110: begin mem_transfer_n = vl; mem_last_transfer_len = 0; end // 32 bits elem
 				3'b111: begin mem_transfer_n = vl << 1; mem_last_transfer_len = 0; end // 64 bits elem
 			endcase
@@ -3415,10 +3415,14 @@ module picorv32_pcpi_rvv #(
 							mem_reg_index = 0;
 						end
 
-						// $display("v1 : %h", vregs[1]);
-						// $display("v2 : %h", vregs[2]);
-						// $display("v3 : %h", vregs[3]);
-						// $display("v4 : %h", vregs[4]);
+						$display("v1 : %h", vregs[1]);
+						$display("v2 : %h", vregs[2]);
+						$display("v3 : %h", vregs[3]);
+						$display("v4 : %h", vregs[4]);
+						$display("v5 : %h", vregs[5]);
+						$display("v6 : %h", vregs[6]);
+						$display("v7 : %h", vregs[7]);
+						$display("v8 : %h\n", vregs[8]);
 						
 						// outputs
 						pcpi_mem_load <= 1;

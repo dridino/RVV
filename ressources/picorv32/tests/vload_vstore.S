@@ -13,16 +13,14 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e8, m1
-  la      x1, tdat14
-  vle8.v  v1, (x1)
+  vsetvli t0, x0, e64, mf4
+  la      x1, tdat1
+  vle64.v  v1, (x1)
 
-  TEST_CASE( 10, x3, 0x5678, \
-    la  x1, tdat9; \
-    li  x2, 0x12345678; \
-    addi x4, x1, -32; \
-    sh x2, 32(x4); \
-    lh x3, 0(x1); \
+  TEST_CASE( 1, x1, 12, \
+    li  x1, 5; \
+    li  x2, 7; \
+    add x1, x1, x2; \
   )
 
   TEST_PASSFAIL 
@@ -112,6 +110,21 @@ tdat14:  .word 0x99999999
 tdat15:  .word 0x10101010
 tdat16:  .word 0x12121212
 tdat17:  .word 0x44444444
-tdat18:  .word 0x14141414
+tdat18:  .word 0xa0000001
+tdat19:  .word 0xa0000002
+tdat20:  .word 0xa0000003
+tdat21:  .word 0xa0000004
+tdat22:  .word 0xa0000005
+tdat23:  .word 0xa0000006
+tdat24:  .word 0xa0000007
+tdat25:  .word 0xa0000008
+tdat26:  .word 0xa0000009
+tdat27:  .word 0xa000000A
+tdat28:  .word 0xa000000B
+tdat29:  .word 0xa000000C
+tdat30:  .word 0xa000000D
+tdat31:  .word 0xa000000E
+tdat32:  .word 0xa000000F
+tdat33:  .word 0xa0000010
 
 RVTEST_DATA_END
