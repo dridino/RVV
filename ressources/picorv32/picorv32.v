@@ -285,6 +285,8 @@ module picorv32 #(
 	wire [31:0] pcpi_rvv_mem_base;
 	wire [31:0] pcpi_rvv_mem_offset;
 	reg 		pcpi_rvv_mem_ifetch;
+	wire [31:0] pcpi_rvv_mem_wdata;
+	wire [3:0]  pcpi_rvv_mem_strb;
 
 
 	generate if (ENABLE_FAST_MUL) begin
@@ -367,7 +369,9 @@ module picorv32 #(
 			.pcpi_mem_load		(pcpi_rvv_mem_load),
 			.pcpi_mem_wen		(pcpi_rvv_mem_wen),
 			.pcpi_mem_base		(pcpi_rvv_mem_base),
-			.pcpi_mem_offset	(pcpi_rvv_mem_offset)
+			.pcpi_mem_offset	(pcpi_rvv_mem_offset),
+			.pcpi_mem_wdata		(pcpi_rvv_mem_wdata),
+			.pcpi_mem_strb		(pcpi_rvv_mem_strb)
 		);
 	end endgenerate
 
@@ -2235,7 +2239,14 @@ generate
 						end
 						mem_instr <= 0;
 						mem_valid <= pcpi_rvv_mem_wen;
-						// mem_do_rinst <= 0;
+					end else begin
+						if (pcpi_rvv_mem_wen) begin
+							mem_addr <= pcpi_rvv_mem_base + pcpi_rvv_mem_offset;
+							mem_wstrb <= pcpi_rvv_mem_strb;
+							mem_wdata <= pcpi_rvv_mem_wdata;
+						end
+						mem_instr <= 0;
+						mem_valid <= pcpi_rvv_mem_wen;						
 					end
 				end else begin
 					mem_addr <= next_pc;
@@ -3167,7 +3178,9 @@ module picorv32_pcpi_rvv #(
 	output reg 		  pcpi_mem_load, // 1 if vector memory load
 	output reg		  pcpi_mem_wen, // memory access
 	output reg [31:0] pcpi_mem_base, // base reg addr
-	output reg [31:0] pcpi_mem_offset // offset from vreg, vector-indexed
+	output reg [31:0] pcpi_mem_offset, // offset from vreg, vector-indexed
+	output reg [31:0] pcpi_mem_wdata, // data to store
+	output reg [3:0]  pcpi_mem_strb // i=1 if byte i should be writtent to memory
 );
 	localparam integer VLENB = VLEN/8;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
@@ -3345,10 +3358,7 @@ module picorv32_pcpi_rvv #(
 					pcpi_wait <= 1;
 					pcpi_ready <= 0;
 					pcpi_mem_wen <= 0;
-					$display("mem_sending : %b | pcpi_mem_done : %b", mem_sending, pcpi_mem_done);
 					if (mem_sending) begin
-						$display("mem_sending");
-						// $display("base, offset : %h %d, %d", pcpi_rs1, pcpi_rs1, (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5)));
 						// send addr to main proc
 						pcpi_mem_load <= 1;
 						pcpi_mem_wen <= 1;
@@ -3359,20 +3369,14 @@ module picorv32_pcpi_rvv #(
 						pcpi_wait <= 1;
 						pcpi_ready <= 0;
 					end else if (pcpi_mem_done) begin
-						$display("mem_done");
-						// $display("mem_byte_i : %d", mem_byte_index);
-						// $display("mem_transfer_n : %d\n", mem_transfer_n);
-						// $display("rdata : %h\n", pcpi_mem_rdata);
-						// receive data from main proc
+						index = pcpi_insn[11:7] + mem_reg_index;
+						offset = mem_byte_index << 5;
 						if (mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1) begin
 							// not last transfer
-							index = pcpi_insn[11:7] + mem_reg_index;
-							offset = mem_byte_index << 5;
 							temp_vreg = vregs[index];
 							temp_vreg[offset +: 32] = pcpi_mem_rdata;
 							vregs[index] = temp_vreg;
-							// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata;
-							
+
 							// update indices
 							if ((mem_byte_index+1) << 5 == VLEN) begin
 								mem_byte_index = 0;
@@ -3382,40 +3386,19 @@ module picorv32_pcpi_rvv #(
 								mem_reg_index = mem_reg_index;
 							end
 						
-							mem_sending <= 1;
 							pcpi_wait <= 1;
 							pcpi_ready <= 0;
 						end else begin
 							// last transfer
-							index = pcpi_insn[11:7] + mem_reg_index;
-							offset = mem_byte_index << 5;
+							temp_vreg = vregs[index];
 							case (mem_last_transfer_len)
-								2'b00: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:32] = pcpi_mem_rdata[31:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata[31:0]; // word
-								end
-								2'b01: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:8] = pcpi_mem_rdata[7:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+7 : (mem_byte_index << 2)] = pcpi_mem_rdata[7:0]; // byte
-								end
-								2'b10: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:16] = pcpi_mem_rdata[15:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+15 : (mem_byte_index << 2)] = pcpi_mem_rdata[15:0]; // half
-								end
-								2'b11: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:24] = pcpi_mem_rdata[23:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+23 : (mem_byte_index << 2)] = pcpi_mem_rdata[23:0]; // 3/4
-								end
+								2'b00: temp_vreg[offset +:32] = pcpi_mem_rdata[31:0];
+								2'b01: temp_vreg[offset +:8] = pcpi_mem_rdata[7:0];
+								2'b10: temp_vreg[offset +:16] = pcpi_mem_rdata[15:0];
+								2'b11: temp_vreg[offset +:24] = pcpi_mem_rdata[23:0];
 							endcase
-							mem_sending <= 1;
+							vregs[index] = temp_vreg;
+
 							pcpi_wait <= 0;
 							pcpi_ready <= 1;
 							pcpi_mem_op <= 0;
@@ -3433,12 +3416,12 @@ module picorv32_pcpi_rvv #(
 						$display("v7 : %h", vregs[7]);
 						$display("v8 : %h\n", vregs[8]);
 						
+						mem_sending <= 1;
 						// outputs
 						pcpi_mem_load <= 1;
 						pcpi_mem_wen <= 0;
 						pcpi_mem_base <= 0;
-						pcpi_mem_offset <= 0;
-						
+						pcpi_mem_offset <= 0;						
 						pcpi_wr <= 0;
 					end
 				end else if (instr_vstore) begin
@@ -3447,32 +3430,47 @@ module picorv32_pcpi_rvv #(
 					pcpi_ready <= 0;
 					pcpi_mem_wen <= 0;
 					if (mem_sending) begin
-						// $display("mem_sending");
-						// $display("base, offset : %h %d, %d", pcpi_rs1, pcpi_rs1, (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5)));
-						// send addr to main proc
-						pcpi_mem_load <= 1;
+						// send data to main proc
+						index = pcpi_insn[11:7] + mem_reg_index;
+						offset = mem_byte_index << 5;
+						if (mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1) begin
+							// not last transfer
+							pcpi_mem_wdata = vregs[index][offset +: 32];
+							pcpi_mem_strb = 4'b1111;
+						end else begin
+							// last transfer
+							case (mem_last_transfer_len)
+								2'b00: begin
+									pcpi_mem_wdata = vregs[index][offset +: 32];
+									pcpi_mem_strb = 4'b1111;
+								end
+								2'b01: begin
+									pcpi_mem_wdata = {24'h000000, vregs[index][offset +: 8]};
+									pcpi_mem_strb = 4'b0001;
+								end
+								2'b10: begin
+									pcpi_mem_wdata = {16'h0000, vregs[index][offset +: 16]};
+									pcpi_mem_strb = 4'b0011;
+								end
+								2'b11: begin
+									pcpi_mem_wdata = {8'h00, vregs[index][offset +: 24]};
+									pcpi_mem_strb = 4'b0111;
+								end
+							endcase
+						end						
+						mem_sending <= pcpi_mem_ifetch ? 1 : 0;
+						// outputs
+						pcpi_mem_load <= 0;
 						pcpi_mem_wen <= 1;
 						pcpi_mem_base <= pcpi_rs1;
 						pcpi_mem_offset <= (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5));
-						mem_sending <= 0;
-						pcpi_wr <= 0;
 						pcpi_wait <= 1;
 						pcpi_ready <= 0;
 					end else if (pcpi_mem_done) begin
-						// $display("mem_done");
-						// $display("mem_byte_i : %d", mem_byte_index);
-						// $display("mem_transfer_n : %d\n", mem_transfer_n);
-						// $display("rdata : %h\n", pcpi_mem_rdata);
-						// receive data from main proc
 						if (mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1) begin
-							// not last transfer
-							index = pcpi_insn[11:7] + mem_reg_index;
-							offset = mem_byte_index << 5;
-							temp_vreg = vregs[index];
-							temp_vreg[offset +: 32] = pcpi_mem_rdata;
-							vregs[index] = temp_vreg;
-							// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata;
-							
+							// not last tranfer
+							pcpi_wait <= 1;
+							pcpi_ready <= 0;
 							// update indices
 							if ((mem_byte_index+1) << 5 == VLEN) begin
 								mem_byte_index = 0;
@@ -3481,64 +3479,20 @@ module picorv32_pcpi_rvv #(
 								mem_byte_index += 1;
 								mem_reg_index = mem_reg_index;
 							end
-						
-							mem_sending <= 1;
-							pcpi_wait <= 1;
-							pcpi_ready <= 0;
 						end else begin
 							// last transfer
-							index = pcpi_insn[11:7] + mem_reg_index;
-							offset = mem_byte_index << 5;
-							case (mem_last_transfer_len)
-								2'b00: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:32] = pcpi_mem_rdata[31:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+31 : (mem_byte_index << 2)] = pcpi_mem_rdata[31:0]; // word
-								end
-								2'b01: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:8] = pcpi_mem_rdata[7:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+7 : (mem_byte_index << 2)] = pcpi_mem_rdata[7:0]; // byte
-								end
-								2'b10: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:16] = pcpi_mem_rdata[15:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+15 : (mem_byte_index << 2)] = pcpi_mem_rdata[15:0]; // half
-								end
-								2'b11: begin
-									temp_vreg = vregs[index];
-									temp_vreg[offset +:24] = pcpi_mem_rdata[23:0];
-									vregs[index] = temp_vreg;
-									// vregs[pcpi_insn[11:7] + mem_reg_index][(mem_byte_index << 2)+23 : (mem_byte_index << 2)] = pcpi_mem_rdata[23:0]; // 3/4
-								end
-							endcase
-							// mem_sending <= 0;
 							pcpi_wait <= 0;
 							pcpi_ready <= 1;
-							pcpi_mem_op <= 0;
 							// update indices
 							mem_byte_index = 0;
 							mem_reg_index = 0;
 						end
 
-						$display("v1 : %h", vregs[1]);
-						$display("v2 : %h", vregs[2]);
-						$display("v3 : %h", vregs[3]);
-						$display("v4 : %h", vregs[4]);
-						$display("v5 : %h", vregs[5]);
-						$display("v6 : %h", vregs[6]);
-						$display("v7 : %h", vregs[7]);
-						$display("v8 : %h\n", vregs[8]);
-						
-						// outputs
-						pcpi_mem_load <= 1;
+						pcpi_mem_load <= 0;
 						pcpi_mem_wen <= 0;
 						pcpi_mem_base <= 0;
 						pcpi_mem_offset <= 0;
-						
+						mem_sending <= 1;
 						pcpi_wr <= 0;
 					end
 				end

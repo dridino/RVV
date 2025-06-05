@@ -318,10 +318,18 @@ Fonctionnement de l'instruction `vload` :
 |32b| - | x | x | x | x | x | x |
 |64b| - | - | x | x | x | x | x |
 
+Les `~vl` accès mémoire sont réalisés puis la prochaine instruction est rechargée en envoyant pc à la mémoire. Pas le même système que les accès scalaire car ils ont un état en plus.
+
+## 05/06
+
+> Plusieurs `vload` à la suite fonctionnent.
+
+> `vstart` *unit-stride* fonctionne
+
 TODO :
 
-- store unit stride
 - vstart (trap) et trap quand op impossible (débordement)
+- mask load
 - constant-stride load & store
 - indexed load & store
 - cas particuliers

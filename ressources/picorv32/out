@@ -1,38 +1,98 @@
-~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/vload_vstore.o -DTEST_FUNC_NAME=vload_vstore \
-	-DTEST_FUNC_TXT='"vload_vstore"' -DTEST_FUNC_RET=vload_vstore_ret tests/vload_vstore.S
-~/rvv32/bin/riscv32-unknown-elf-gcc -Os -mabi=ilp32 -march=rv32imvc -ffreestanding -nostdlib -o firmware/firmware.elf \
-	-Wl,--build-id=none,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
-	firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o firmware/adrien.o tests/vload_vstore.o -lgcc
-chmod -x firmware/firmware.elf
-~/rvv32/bin/riscv32-unknown-elf-objcopy -O binary firmware/firmware.elf firmware/firmware.bin
-chmod -x firmware/firmware.bin
-python3 firmware/makehex.py firmware/firmware.bin 32768 > firmware/firmware.hex
+iverilog -o testbench.vvp -DCOMPRESSED_ISA testbench.v picorv32.v
+chmod -x testbench.vvp
 vvp -N testbench.vvp
 Yo depuis adrien
 hello world
-vload_vstore..FROM PICO (pc, insn, addr, rdata) : 00000f4c 000072d7 10000000 000072d7
-FROM PICO (pc, insn, addr, rdata) : 00000f4c 000072d7 00000f50 000072d7
-FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f50 000072d7
-FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f50 000072d7 00000f54 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f54 000072d7 00000f54 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f5c 02008087
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028b8 99999999
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028bc 10101010
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c0 12121212
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c4 44444444
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 000028c4 44444444
-FROM PICO (pc, insn, addr, rdata) : 00000f5c 02008087 00000f60 00002097
-FROM PICO (pc, insn, addr, rdata) : 00000f60 02008087 00000f60 00002097
+vload_vstore..v1 : xxxxxxxxxxxxxxxxxxxxxxxx11111111
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : xxxxxxxxxxxxxxxx2222222211111111
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : xxxxxxxx333333332222222211111111
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : 44444444333333332222222211111111
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+mem_sending : 1
+wdata : 11111111
+mem_sending : 1
+wdata : 11111111
+mem_sending : 1
+wdata : 11111111
+mem_sending : 1
+wdata : 11111111
+mem_done
+mem_sending : 1
+wdata : 22222222
+mem_done
+mem_sending : 1
+wdata : 33333333
+mem_done
+mem_sending : 1
+wdata : 44444444
+mem_done
+v1 : 44444444333333332222222211111111
+v2 : xxxxxxxxxxxxxxxxxxxxxxxx11111111
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : 44444444333333332222222211111111
+v2 : xxxxxxxxxxxxxxxx2222222211111111
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : 44444444333333332222222211111111
+v2 : xxxxxxxx333333332222222211111111
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : 44444444333333332222222211111111
+v2 : 44444444333333332222222211111111
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 OK
  1st prime is 2.
  2nd prime is 3.
@@ -49,116 +109,4 @@ OK
 13th prime is 41.
 14th prime is 43.
 15th prime is 47.
-16th prime is 53.
-17th prime is 59.
-18th prime is 61.
-19th prime is 67.
-20th prime is 71.
-21st prime is 73.
-22nd prime is 79.
-23rd prime is 83.
-24th prime is 89.
-25th prime is 97.
-26th prime is 101.
-27th prime is 103.
-28th prime is 107.
-29th prime is 109.
-30th prime is 113.
-31st prime is 127.
-checksum: 1772A48F OK
-input     [FFFFFFFF] 80000000 [FFFFFFFF] FFFFFFFF
-hard mul   80000000  00000000  80000000  7FFFFFFF
-soft mul   80000000  00000000  80000000  7FFFFFFF   OK
-hard div   80000000  00000000  00000000  80000000
-soft div   80000000  00000000  00000000  80000000   OK
-input     [00000000] 00000000 [00000000] 00000000
-hard mul   00000000  00000000  00000000  00000000
-soft mul   00000000  00000000  00000000  00000000   OK
-hard div   FFFFFFFF  FFFFFFFF  00000000  00000000
-soft div   FFFFFFFF  FFFFFFFF  00000000  00000000   OK
-input     [FFFFFFFF] 8B578493 [00000000] 00000000
-hard mul   00000000  00000000  00000000  00000000
-soft mul   00000000  00000000  00000000  00000000   OK
-hard div   FFFFFFFF  FFFFFFFF  8B578493  8B578493
-soft div   FFFFFFFF  FFFFFFFF  8B578493  8B578493   OK
-input     [00000000] 6F038AFB [00000000] 00000000
-hard mul   00000000  00000000  00000000  00000000
-soft mul   00000000  00000000  00000000  00000000   OK
-hard div   FFFFFFFF  FFFFFFFF  6F038AFB  6F038AFB
-soft div   FFFFFFFF  FFFFFFFF  6F038AFB  6F038AFB   OK
-input     [00000000] 1BFC9C22 [FFFFFFFF] 876B9BDE
-hard mul   67CDFB7C  F2D15DD3  0ECDF9F5  0ECDF9F5
-soft mul   67CDFB7C  F2D15DD3  0ECDF9F5  0ECDF9F5   OK
-hard div   00000000  00000000  1BFC9C22  1BFC9C22
-soft div   00000000  00000000  1BFC9C22  1BFC9C22   OK
-input     [00000000] 76141B16 [00000000] 5BA2940D
-hard mul   949A181E  2A4422A3  2A4422A3  2A4422A3
-soft mul   949A181E  2A4422A3  2A4422A3  2A4422A3   OK
-hard div   00000001  00000001  1A718709  1A718709
-soft div   00000001  00000001  1A718709  1A718709   OK
-input     [00000000] 2D45231C [FFFFFFFF] ADFA166F
-hard mul   C756A124  F17ECF19  1EC3F235  1EC3F235
-soft mul   C756A124  F17ECF19  1EC3F235  1EC3F235   OK
-hard div   00000000  00000000  2D45231C  2D45231C
-soft div   00000000  00000000  2D45231C  2D45231C   OK
-input     [00000000] 09C7BF74 [00000000] 3B014C60
-hard mul   73323B80  024115D2  024115D2  024115D2
-soft mul   73323B80  024115D2  024115D2  024115D2   OK
-hard div   00000000  00000000  09C7BF74  09C7BF74
-soft div   00000000  00000000  09C7BF74  09C7BF74   OK
-input     [00000000] 4325E1E6 [00000000] 1C32932A
-hard mul   0BDA21BC  076568B5  076568B5  076568B5
-soft mul   0BDA21BC  076568B5  076568B5  076568B5   OK
-hard div   00000002  00000002  0AC0BB92  0AC0BB92
-soft div   00000002  00000002  0AC0BB92  0AC0BB92   OK
-input     [FFFFFFFF] 84A97421 [FFFFFFFF] EF8D27D7
-hard mul   002E8EB7  07ECBD6D  8C96318E  7C235965
-soft mul   002E8EB7  07ECBD6D  8C96318E  7C235965   OK
-hard div   00000007  00000000  F7CD5D40  84A97421
-soft div   00000007  00000000  F7CD5D40  84A97421   OK
-input     [00000000] 258BAFEC [00000000] 5EB6FD37
-hard mul   D7A707B4  0DE4210A  0DE4210A  0DE4210A
-soft mul   D7A707B4  0DE4210A  0DE4210A  0DE4210A   OK
-hard div   00000000  00000000  258BAFEC  258BAFEC
-soft div   00000000  00000000  258BAFEC  258BAFEC   OK
-input     [FFFFFFFF] A31BEA5F [00000000] 145CCB97
-hard mul   FE749309  F89C8277  F89C8277  0CF94E0E
-soft mul   FE749309  F89C8277  F89C8277  0CF94E0E   OK
-hard div   FFFFFFFC  00000008  F48F18BB  00358DA7
-soft div   FFFFFFFC  00000008  F48F18BB  00358DA7   OK
-input     [00000000] 28E3CD00 [00000000] 793F5181
-hard mul   21A74D00  135DC8F9  135DC8F9  135DC8F9
-soft mul   21A74D00  135DC8F9  135DC8F9  135DC8F9   OK
-hard div   00000000  00000000  28E3CD00  28E3CD00
-soft div   00000000  00000000  28E3CD00  28E3CD00   OK
-input     [FFFFFFFF] F2E838C6 [00000000] 4BE0C5FE
-hard mul   6558B274  FC1E89B3  FC1E89B3  47FF4FB1
-soft mul   6558B274  FC1E89B3  FC1E89B3  47FF4FB1   OK
-hard div   00000000  00000003  F2E838C6  0F45E6CC
-soft div   00000000  00000003  F2E838C6  0F45E6CC   OK
-input     [00000000] 38BAA671 [FFFFFFFF] E2E2B92B
-hard mul   1B639DFB  F98C5E4E  324704BF  324704BF
-soft mul   1B639DFB  F98C5E4E  324704BF  324704BF   OK
-hard div   FFFFFFFF  00000000  1B9D5F9C  38BAA671
-soft div   FFFFFFFF  00000000  1B9D5F9C  38BAA671   OK
-Cycle counter ......... 264993
-Instruction counter .... 49083
-CPI: 5.39
-DONE
-
-------------------------------------------------------------
-EBREAK instruction at 0x0000051E
-pc  00000521    x8  00000000    x16 E2E2B92B    x24 00000000
-x1  000004F0    x9  00000000    x17 00000000    x25 00000000
-x2  00020000    x10 20000000    x18 00000000    x26 00000000
-x3  DEADBEEF    x11 075BCD15    x19 00000000    x27 00000000
-x4  DEADBEEF    x12 0000004F    x20 00000000    x28 000036A8
-x5  00000010    x13 0000004E    x21 00000000    x29 0000001D
-x6  0000B92B    x14 00000045    x22 00000000    x30 00000000
-x7  00000000    x15 0000000A    x23 00000000    x31 00000000
-------------------------------------------------------------
-Number of fast external IRQs counted: 32
-Number of slow external IRQs counted: 4
-Number of timer IRQs counted: 1
-TRAP after 296570 clock cycles
-ALL TESTS PASSED.
+16t

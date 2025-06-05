@@ -13,11 +13,13 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e8, m2
+  vsetivli t0, 19, e8, m2
   la      x1, tdat1
-  vle8.v  v1, (x1)
-  // add t0,t0,t0
-  vle8.v  v4, (x1)
+  la      x5, tdat5
+
+  vle8.v    v1, (x5)
+  vse8.v    v1, (x1)
+  vle8.v    v3, (x1)
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
