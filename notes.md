@@ -307,8 +307,6 @@ Compilation de tests persos impossibles pour des instructions vectorielles 32 bi
 
 > L'instruction `vset{i}vl{i}` s'exécute parfaitement.
 
-> TODO: Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
-
 ## 04/06
 
 Fonctionnement de l'instruction `vload` :
@@ -320,4 +318,11 @@ Fonctionnement de l'instruction `vload` :
 |32b| - | x | x | x | x | x | x |
 |64b| - | - | x | x | x | x | x |
 
-TODO : vstart (trap) et trap quand op impossible (débordement)
+TODO :
+
+- store unit stride
+- vstart (trap) et trap quand op impossible (débordement)
+- constant-stride load & store
+- indexed load & store
+- cas particuliers
+- Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
