@@ -1,0 +1,105 @@
+iverilog -o testbench.vvp -DCOMPRESSED_ISA testbench.v picorv32.v
+chmod -x testbench.vvp
+vvp -N testbench.vvp
+Yo depuis adrien
+hello world
+vload_vstore..v1 : xxxxxxxxxxxxxxxxxxxxxxxx12345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : xxxxxxxxxxxxxxxx8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : xxxxxxxxabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+IN CONDITION
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : xxxxxxxxxxxxxxxxxxxxxxxx12345678
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : xxxxxxxxxxxxxxxx8765432112345678
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : xxxxxxxxabcdabcd8765432112345678
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : beefbeefabcdabcd8765432112345678
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+v1 : beefbeefabcdabcd8765432112345678
+v2 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v3 : beefbeefabcdabcd8765432112345678
+v4 : xxxxxxxxxxxxxxxxxxxxxxxxxx0bab01
+v5 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v6 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v7 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+v8 : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+IN CONDITION
+OK
+ 1st prime is 2.
+ 2nd prime is 3.
+ 3rd prime is 5.
+ 4th prime is 7.
+ 5th prime is 11.
+ 6th prime is 13.
+ 7th prime is 17.

@@ -17,9 +17,15 @@ RVTEST_CODE_BEGIN
   la      x1, tdat1
   la      x5, tdat5
 
-  vle8.v    v1, (x5)
-  vse8.v    v1, (x1)
-  vle8.v    v3, (x1)
+  vle8.v    v1, (x1)
+  vse8.v    v1, (x5)
+  add t4,t5,t6
+  vle8.v    v3, (x5)
+  add t0,t1,t2
+  // vse8.v    v1, (x1)
+  // vle8.v    v3, (x1)
+  // li          x2, 1
+  // vlse8.v     v1, (x1), x2
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
@@ -102,7 +108,7 @@ tdat1:  .word 0x12345678
 tdat2:  .word 0x87654321
 tdat3:  .word 0xabcdabcd
 tdat4:  .word 0xbeefbeef
-tdat5:  .word 0x11111111
+tdat5:  .word 0xba0bab01
 tdat6:  .word 0x22222222
 tdat7:  .word 0x33333333
 tdat8:  .word 0x44444444

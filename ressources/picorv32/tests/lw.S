@@ -17,8 +17,15 @@ RVTEST_CODE_BEGIN
   # Basic tests
   #-------------------------------------------------------------
 
-  TEST_LD_OP( 2, lw, 0x00ff00ff, 0,  tdat );
-  TEST_LD_OP( 3, lw, 0xff00ff00, 4,  tdat );
+  la  a1, adrien
+  add t3,t3,t3
+  lw  a0,(a1)
+  add t0,t0,t0
+  add t1,t1,t1
+  add t2,t2,t2
+
+  // TEST_LD_OP( 2, lw, 0x00ff00ff, 0,  tdat );
+  /* TEST_LD_OP( 3, lw, 0xff00ff00, 4,  tdat );
   TEST_LD_OP( 4, lw, 0x0ff00ff0, 8,  tdat );
   TEST_LD_OP( 5, lw, 0xf00ff00f, 12, tdat );
 
@@ -72,9 +79,9 @@ RVTEST_CODE_BEGIN
     lw  x2, 0(x3); \
     nop; \
     li  x2, 2; \
-  )
+  ) */
 
-  TEST_PASSFAIL
+  // TEST_PASSFAIL
 
 RVTEST_CODE_END
 
@@ -82,6 +89,8 @@ RVTEST_CODE_END
 RVTEST_DATA_BEGIN
 
   TEST_DATA
+
+adrien: .word 0x0000006F
 
 tdat:
 tdat1:  .word 0x00ff00ff
