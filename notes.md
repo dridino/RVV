@@ -326,6 +326,10 @@ Les `~vl` accès mémoire sont réalisés puis la prochaine instruction est rech
 
 > `vstart` *unit-stride* fonctionne
 
+## 09/06
+
+> Changement de la manière dont est chargée l'instruction après un accès mémoire vectoriel : on la met dans un registre intermédiaire pendant l'opération et la remet dans `mem_rdata_q` plutôt que refaire un accès mémoire à la fin. Cette dernière étant déjà dans `rdata` au moment de faire les accès mémoires de données
+
 TODO :
 
 - vstart (trap) et trap quand op impossible (débordement)

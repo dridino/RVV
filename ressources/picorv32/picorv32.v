@@ -2243,10 +2243,8 @@ generate
 					end
 					mem_instr <= 0;
 					mem_valid <= pcpi_rvv_mem_wen;
-					if (!pcpi_rvv_mem_op) begin
-						$display("IN CONDITION");
+					if (!pcpi_rvv_mem_op)
 						mem_rdata_q = rvv_mem_next_insn;
-					end
 				end else if (pcpi_rvv_mem_store) begin
 					// vector store
 					if (pcpi_rvv_mem_wen) begin
@@ -3179,8 +3177,8 @@ module picorv32_pcpi_rvv #(
 	input	          pcpi_mem_done, 		// 1 if new value available
 	output reg		  pcpi_mem_op, 			// 1 if a memory operation is being executed
 	output reg		  pcpi_mem_ftrans, 		// 1 if this is the first transfer
-	output reg 		  pcpi_mem_load, 		// 1 if vector memory load
-	output reg 		  pcpi_mem_store, 		// 1 if vector memory store
+	output wire		  pcpi_mem_load, 		// 1 if vector memory load
+	output wire		  pcpi_mem_store, 		// 1 if vector memory store
 	output reg		  pcpi_mem_wen, 		// memory access
 	output reg [31:0] pcpi_mem_base, 		// base reg addr
 	output reg [31:0] pcpi_mem_offset, 		// offset from vreg, vector-indexed
@@ -3213,6 +3211,8 @@ module picorv32_pcpi_rvv #(
 
 	// LOAD-STORE
 	reg instr_vload, instr_vstore;
+	assign pcpi_mem_load = instr_vload;
+	assign pcpi_mem_store = instr_vstore;
 	reg instr_mem_unit;
 	reg instr_mem_const;
 	wire mem_instr = |{instr_vload, instr_vstore};
@@ -3314,8 +3314,8 @@ module picorv32_pcpi_rvv #(
 		pcpi_wait <= 0;
 		pcpi_wr <= 0;
 		pcpi_rd <= 'bx;
-		pcpi_mem_load <= 0; // 1 if vector memory load
-		pcpi_mem_store <= 0; // 1 if vector memory store
+		// pcpi_mem_load <= 0; // 1 if vector memory load
+		// pcpi_mem_store <= 0; // 1 if vector memory store
 		pcpi_mem_wen <= 0; // memory access
 		pcpi_mem_base <= 0; // base reg addr
 		pcpi_mem_offset <= 0; // mem addr offset
@@ -3399,7 +3399,7 @@ module picorv32_pcpi_rvv #(
 					if (mem_sending) begin
 						// send addr to main proc
 						pcpi_mem_ftrans <= (mem_byte_index == 0 && mem_reg_index == 0 && mem_stride_i == 0);
-						pcpi_mem_load <= 1;
+						// pcpi_mem_load <= 1;
 						pcpi_mem_wen <= 1;
 						pcpi_mem_base <= pcpi_rs1;
 						if (instr_mem_unit)
@@ -3562,7 +3562,7 @@ module picorv32_pcpi_rvv #(
 						
 						mem_sending <= 1;
 						// outputs
-						pcpi_mem_load <= 1;
+						// pcpi_mem_load <= 1;
 						pcpi_mem_wen <= 0;
 						pcpi_mem_base <= 0;
 						pcpi_mem_offset <= 0;						
@@ -3606,7 +3606,7 @@ module picorv32_pcpi_rvv #(
 						end						
 						mem_sending <= pcpi_mem_ifetch ? 1 : 0;
 						// outputs
-						pcpi_mem_store <= 1;
+						// pcpi_mem_store <= 1;
 						pcpi_mem_wen <= 1;
 						pcpi_mem_base <= pcpi_rs1;
 						pcpi_mem_offset <= (mem_byte_index << 2) + (mem_reg_index << (VLEN >> 5));
@@ -3635,7 +3635,7 @@ module picorv32_pcpi_rvv #(
 							mem_reg_index = 0;
 						end
 
-						pcpi_mem_store <= 1;
+						// pcpi_mem_store <= 1;
 						pcpi_mem_wen <= 0;
 						pcpi_mem_base <= 0;
 						pcpi_mem_offset <= 0;
