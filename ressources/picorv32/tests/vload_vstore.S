@@ -24,7 +24,9 @@ RVTEST_CODE_BEGIN
   // vle64.v     v3, (x5)
   // vsse64.v    v3, (x5), x2
 
-  vlse64.v    v1, (x5), x2
+  vle64.v    v1, (x5)
+  vsse64.v    v1, (x5), x2
+  vlse64.v    v3, (x5), x2
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
