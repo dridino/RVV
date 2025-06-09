@@ -3221,10 +3221,11 @@ module picorv32_pcpi_rvv #(
 	reg [9:0]  mem_byte_index; // index in the vector register, same size as VLEN parameter
 	reg [4:0]  mem_reg_index; // index of the vector register
 	reg 	   mem_sending; // 1 if addr needs to be sent, 0 if waiting for data from main core
-	reg		   mem_not_last_transfer; // condition to determine wether the transfer is over
+	reg		   mem_last_transfer; // condition to determine wether the transfer is over
 	reg	[2:0]  mem_sew;
 	reg [11:0] mem_stride_mask; // mask for strided transfers
 	reg [1:0]  mem_stride_i; // index of transfer for 1 element in strided transfers, 0->2
+	reg [31:0] mem_stride_amount;
 	reg [31:0] mem_offset_q;
 
 	reg [VLEN-1:0] temp_vreg; // avoid errors
@@ -3277,34 +3278,33 @@ module picorv32_pcpi_rvv #(
 			instr_vload = !pcpi_insn[5];
 			instr_vstore = pcpi_insn[5];
 
-			// TODO: only works for unit-stride addressing mode
 			case (pcpi_insn[27:26]) 
 				2'b00: begin
 					// unit-stride
 					instr_mem_unit = 1;
 					instr_mem_const = 0;
-					case (pcpi_insn[14:12])
+					/* case (pcpi_insn[14:12])
 						3'b000: begin mem_transfer_n = vl >> 2; mem_last_transfer_len = vl[1:0]; end // 8 bits elem
 						3'b101: begin mem_transfer_n = vl >> 1; mem_last_transfer_len = vl[0] << 1; end // 16 bits elem
 						3'b110: begin mem_transfer_n = vl; mem_last_transfer_len = 0; end // 32 bits elem
 						3'b111: begin mem_transfer_n = vl << 1; mem_last_transfer_len = 0; end // 64 bits elem
-					endcase
-					mem_sew = 3'b101;
-					if (mem_last_transfer_len != 0)
-						mem_transfer_n += 1;
+					endcase */
+					// mem_sew = 3'b101;
+					/* if (mem_last_transfer_len != 0)
+						mem_transfer_n += 1; */
 				end
 				2'b10: begin
 					// constant stride
 					instr_mem_unit = 0;
 					instr_mem_const = 1;
-					mem_transfer_n = pcpi_insn[14:12] == 3'b111 ? vl << 1 : vl;
-					case (pcpi_insn[14:12])
-						3'b000: mem_sew = 3'b011;
-						3'b101: mem_sew = 3'b100;
-						3'b110: mem_sew = 3'b101; 
-						3'b111: mem_sew = 3'b110;
-					endcase
 				end
+			endcase
+			mem_transfer_n = vl;
+			case (pcpi_insn[14:12])
+				3'b000: mem_sew = 3'b011;
+				3'b101: mem_sew = 3'b100;
+				3'b110: mem_sew = 3'b101; 
+				3'b111: mem_sew = 3'b110;
 			endcase
 		end
 	end
@@ -3335,10 +3335,11 @@ module picorv32_pcpi_rvv #(
 			mem_byte_index = 0;
 			mem_reg_index = 0;
 			mem_sending = 1;
-			mem_not_last_transfer <= 0;
+			mem_last_transfer <= 0;
 			mem_stride_mask <= 12'h000;
 			mem_stride_i <= 0;
 			mem_offset_q <= 0;
+			offset = 0;
 		end else if (instr_run) begin
 			if (instr_cfg) begin
 				if (instr_vsetvli || instr_vsetivli) begin
@@ -3397,112 +3398,120 @@ module picorv32_pcpi_rvv #(
 					pcpi_ready <= 0;
 					pcpi_mem_wen <= 0;
 					if (mem_sending) begin
+						// $display("mem_sending, ifetch : %b", pcpi_mem_ifetch);
 						// send addr to main proc
 						pcpi_mem_ftrans <= (mem_byte_index == 0 && mem_reg_index == 0 && mem_stride_i == 0);
 						// pcpi_mem_load <= 1;
 						pcpi_mem_wen <= 1;
 						pcpi_mem_base <= pcpi_rs1;
-						if (instr_mem_unit)
-							pcpi_mem_offset <= (mem_byte_index << 2) + (mem_reg_index << (VLEN >> mem_sew));
-						else if (instr_mem_const) begin
-							if (mem_stride_i == 0) begin
-								mem_offset_q = (pcpi_rs2 * (mem_byte_index + (mem_reg_index * (VLEN >> mem_sew)))) + (mem_stride_i << 2);
-								case (mem_offset_q[1:0])
-									2'b00: begin // no shift
-										case (mem_sew)
-											3'b011: mem_stride_mask = 12'h001; // 8 bits
-											3'b100: mem_stride_mask = 12'h003; // 16 bits
-											3'b101: mem_stride_mask = 12'h00F; // 32 bits
-											3'b110: mem_stride_mask = 12'h0FF; // 64 bits
-										endcase
-									end
-									2'b01: begin // shift 1 byte
-										case (mem_sew)
-											3'b011: mem_stride_mask = 12'h002; // 8 bits
-											3'b100: mem_stride_mask = 12'h006; // 16 bits
-											3'b101: mem_stride_mask = 12'h01E; // 32 bits
-											3'b110: mem_stride_mask = 12'h1FE; // 64 bits
-										endcase
-									end
-									2'b10: begin // shift 2 bytes
-										case (mem_sew)
-											3'b011: mem_stride_mask = 12'h004; // 8 bits
-											3'b100: mem_stride_mask = 12'h00C; // 16 bits
-											3'b101: mem_stride_mask = 12'h03C; // 32 bits
-											3'b110: mem_stride_mask = 12'h3FC; // 64 bits
-										endcase
-									end
-									2'b11: begin // shift 3 bytes
-										case (mem_sew)
-											3'b011: mem_stride_mask = 12'h008; // 8 bits
-											3'b100: mem_stride_mask = 12'h018; // 16 bits
-											3'b101: mem_stride_mask = 12'h078; // 32 bits
-											3'b110: mem_stride_mask = 12'h7F8; // 64 bits
-										endcase
-									end
-								endcase
-								pcpi_mem_offset <= mem_offset_q;
-								$display("mem_offset_q : %d", mem_offset_q);
-							end
+						mem_stride_amount = instr_mem_unit ? (1 << (mem_sew-3)) : pcpi_rs2;
+						mem_offset_q = mem_stride_amount * (mem_byte_index + (mem_reg_index * (VLEN >> mem_sew))) + (mem_stride_i << 2);
+						if (mem_stride_i == 0) begin
+							case (mem_offset_q[1:0])
+								2'b00: begin // no shift
+									case (mem_sew)
+										3'b011: mem_stride_mask = 12'h001; // 8 bits
+										3'b100: mem_stride_mask = 12'h003; // 16 bits
+										3'b101: mem_stride_mask = 12'h00F; // 32 bits
+										3'b110: mem_stride_mask = 12'h0FF; // 64 bits
+									endcase
+								end
+								2'b01: begin // shift 1 byte
+									case (mem_sew)
+										3'b011: mem_stride_mask = 12'h002; // 8 bits
+										3'b100: mem_stride_mask = 12'h006; // 16 bits
+										3'b101: mem_stride_mask = 12'h01E; // 32 bits
+										3'b110: mem_stride_mask = 12'h1FE; // 64 bits
+									endcase
+								end
+								2'b10: begin // shift 2 bytes
+									case (mem_sew)
+										3'b011: mem_stride_mask = 12'h004; // 8 bits
+										3'b100: mem_stride_mask = 12'h00C; // 16 bits
+										3'b101: mem_stride_mask = 12'h03C; // 32 bits
+										3'b110: mem_stride_mask = 12'h3FC; // 64 bits
+									endcase
+								end
+								2'b11: begin // shift 3 bytes
+									case (mem_sew)
+										3'b011: mem_stride_mask = 12'h008; // 8 bits
+										3'b100: mem_stride_mask = 12'h018; // 16 bits
+										3'b101: mem_stride_mask = 12'h078; // 32 bits
+										3'b110: mem_stride_mask = 12'h7F8; // 64 bits
+									endcase
+								end
+							endcase
 						end
+						pcpi_mem_offset <= mem_offset_q;
+						// $display("mem_offset_q : %d", mem_offset_q);
+						// $display("mem_stride_mask : %h", mem_stride_mask);
 
 						mem_sending <= pcpi_mem_ifetch ? 1 : 0;
 						pcpi_wr <= 0;
 						pcpi_wait <= 1;
 						pcpi_ready <= 0;
 					end else if (pcpi_mem_done) begin
+						// $display("mem_done");
 						pcpi_mem_ftrans <= 0;
 						index = pcpi_insn[11:7] + mem_reg_index;
-						if (instr_mem_unit) begin
-							offset = mem_byte_index << 5;
-							mem_not_last_transfer = mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1;
-						end	else if (instr_mem_const) begin
+						
+						mem_last_transfer = (mem_byte_index + (VLEN >> mem_sew) * mem_reg_index) == mem_transfer_n - 1 && ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2);
+						// mem_not_last_transfer = mem_reg_index * (VLEN >> 5) + mem_byte_index < mem_transfer_n - 1;
+						/* end	else if (instr_mem_const) begin
 							offset = mem_byte_index << (mem_sew-2);
 							mem_not_last_transfer = (mem_byte_index + (mem_reg_index * (VLEN >> mem_sew))) < vl - 1;
-						end
+						end */
 
-						if (mem_not_last_transfer) begin
+						/* $display("mem_last : %d | mem_transfer_n : %d", (mem_byte_index + (VLEN >> mem_sew) * mem_reg_index), mem_transfer_n);
+						$display("tmp1 : %b | tmp2 : %b", (mem_stride_i==0 && mem_stride_mask[11:8] == 0), (mem_stride_i==1));
+
+						$display("mem_byte_i : %d", mem_byte_index);
+						$display("mem_reg_i : %d", mem_reg_index);
+						$display("mem_stride_mask : %h | mem_stride_i : %b", mem_stride_mask, mem_stride_i); */
+						if (!mem_last_transfer) begin
 							// not last transfer
 							temp_vreg = vregs[index];
-							if (instr_mem_unit)
-								temp_vreg[offset +: 32] = pcpi_mem_rdata;
-							else if (instr_mem_const) begin
-								if (mem_stride_mask[mem_stride_i<<2]) begin
-									$display("byte 1 | val : %b", mem_stride_mask[mem_stride_i<<2]);
-									tmp_offset = offset << 2;
-									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
-								end
-								if (mem_stride_mask[(mem_stride_i<<2) + 1]) begin
-									$display("byte 2 | val : %b", mem_stride_mask[(mem_stride_i<<2)+1]);
-									tmp_offset = offset << 2;
-									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[8 +: 8];
-								end
-								if (mem_stride_mask[(mem_stride_i<<2)+2]) begin
-									$display("byte 3 | val : %b", mem_stride_mask[(mem_stride_i<<2)+2]);
-									tmp_offset = offset << 2;
-									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[16 +: 8];
-								end
-								if (mem_stride_mask[(mem_stride_i<<2) + 3]) begin
-									$display("byte 4 | val : %b", mem_stride_mask[(mem_stride_i<<2)+3]);
-									tmp_offset = offset << 2;
-									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[24 +: 8];
-								end
-								$display("mem_stride_mask : %h | mem_stride_i : %b", mem_stride_mask, mem_stride_i);
-								$display("pcpi_mem_rdata : %h", pcpi_mem_rdata);
-								$display("tmp_offset : %d | offset : %d", tmp_offset, offset);
-								$display("temp_vreg : %h", temp_vreg);
+							if (mem_stride_mask[mem_stride_i<<2]) begin
+								// $display("byte 1");
+								tmp_offset = (offset << 3);
+								temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
+								offset += 1;
 							end
+							if (mem_stride_mask[(mem_stride_i<<2) + 1]) begin
+								// $display("byte 2");
+								tmp_offset = (offset << 3);
+								temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[8 +: 8];
+								offset += 1;
+							end
+							if (mem_stride_mask[(mem_stride_i<<2)+2]) begin
+								// $display("byte 3");
+								tmp_offset = (offset << 3);
+								temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[16 +: 8];
+								offset += 1;
+							end
+							if (mem_stride_mask[(mem_stride_i<<2) + 3]) begin
+								// $display("byte 4");
+								tmp_offset = (offset << 3);
+								temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[24 +: 8];
+								offset += 1;
+							end
+							/* $display("pcpi_mem_rdata : %h", pcpi_mem_rdata);
+							$display("tmp_offset : %d | offset : %d", tmp_offset, offset);
+							$display("temp_vreg : %h", temp_vreg); */
+
 							vregs[index] = temp_vreg;
 
 							// update indices
-							if ((instr_mem_const && ((mem_stride_i==0 && mem_stride_mask[1] == 0) || (mem_stride_i==1 && mem_stride_mask[2] == 0) || mem_stride_i==2)) || instr_mem_unit) begin
+							if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
 								mem_stride_i = 0;
-								if ((instr_mem_unit && (mem_byte_index+1) << 5 == VLEN) || (instr_mem_const && ((offset << 2) + (1 << mem_sew)) == VLEN)) begin
+								// if ((instr_mem_unit && (mem_byte_index+1) << 5 == VLEN) || (instr_mem_const && ((offset << 2) + (1 << mem_sew)) == VLEN)) begin
+								if (mem_byte_index == (VLEN >> mem_sew) - 1) begin
 									mem_byte_index = 0;
+									offset = 0;
 									mem_reg_index += 1;
 								end else begin
-									mem_byte_index += 1;
 									mem_reg_index = mem_reg_index;
+									mem_byte_index += 1;
 								end
 							end else
 								mem_stride_i += 1;
@@ -3510,37 +3519,41 @@ module picorv32_pcpi_rvv #(
 							pcpi_wait <= 1;
 							pcpi_ready <= 0;
 						end else begin
+							// $display("LAST");
 							// last transfer
 							temp_vreg = vregs[index];
-							tmp_offset = offset << 2;
-							if (instr_mem_const) begin
+							// if (instr_mem_const) begin
 								if (mem_stride_mask[mem_stride_i<<2]) begin
-									$display("byte 1 | val : %b", mem_stride_mask[mem_stride_i<<2]);
-									tmp_offset = offset << 2;
+									// $display("byte 1");
+									tmp_offset = offset << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
+									offset += 1;
 								end
 								if (mem_stride_mask[(mem_stride_i<<2) + 1]) begin
-									$display("byte 2 | val : %b", mem_stride_mask[(mem_stride_i<<2)+1]);
-									tmp_offset = offset << 2;
+									// $display("byte 2");
+									tmp_offset = offset << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[8 +: 8];
+									offset += 1;
 								end
 								if (mem_stride_mask[(mem_stride_i<<2)+2]) begin
-									$display("byte 3 | val : %b", mem_stride_mask[(mem_stride_i<<2)+2]);
-									tmp_offset = offset << 2;
+									// $display("byte 3");
+									tmp_offset = offset << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[16 +: 8];
+									offset += 1;
 								end
 								if (mem_stride_mask[(mem_stride_i<<2) + 3]) begin
-									$display("byte 4 | val : %b", mem_stride_mask[(mem_stride_i<<2)+3]);
-									tmp_offset = offset << 2;
+									// $display("byte 4");
+									tmp_offset = offset << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[24 +: 8];
+									offset += 1;
 								end
-							end else if (instr_mem_unit)
+							/* end else if (instr_mem_unit)
 								case (mem_last_transfer_len)
 									2'b00: temp_vreg[offset +:32] = pcpi_mem_rdata[31:0];
 									2'b01: temp_vreg[offset +:8] = pcpi_mem_rdata[7:0];
 									2'b10: temp_vreg[offset +:16] = pcpi_mem_rdata[15:0];
 									2'b11: temp_vreg[offset +:24] = pcpi_mem_rdata[23:0];
-								endcase
+								endcase */
 							vregs[index] = temp_vreg;
 
 							pcpi_wait <= 0;
@@ -3549,6 +3562,8 @@ module picorv32_pcpi_rvv #(
 							// update indices
 							mem_byte_index = 0;
 							mem_reg_index = 0;
+							offset = 0;
+							mem_stride_i = 0;
 						end
 
 						$display("v1 : %h", vregs[1]);
@@ -3569,7 +3584,7 @@ module picorv32_pcpi_rvv #(
 						pcpi_wr <= 0;
 					end
 				end else if (instr_vstore) begin
-					pcpi_rd <= 'bx;
+					/* pcpi_rd <= 'bx;
 					pcpi_wait <= 1;
 					pcpi_ready <= 0;
 					pcpi_mem_wen <= 0;
@@ -3641,7 +3656,7 @@ module picorv32_pcpi_rvv #(
 						pcpi_mem_offset <= 0;
 						mem_sending <= 1;
 						pcpi_wr <= 0;
-					end
+					end */
 				end
 			end
 		end
