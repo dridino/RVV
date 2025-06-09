@@ -13,19 +13,18 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetivli t0, 17, e64, mf2
+  vsetivli t0, 3, e64, m2
   la      x1, tdat1
   la      x5, tdat5
 
-  vle64.v    v1, (x1)
+  li         x2, 9
+
+  // vle8.v    v1, (x1)
   // vse8.v    v1, (x5)
-  add t4,t5,t6
-  vle64.v    v3, (x5)
-  add t0,t1,t2
-  // vse8.v    v1, (x1)
-  // vle8.v    v3, (x1)
-  // li          x2, 1
-  // vlse8.v     v1, (x1), x2
+  // vle64.v     v3, (x5)
+  // vsse64.v    v3, (x5), x2
+
+  vlse64.v    v1, (x5), x2
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
