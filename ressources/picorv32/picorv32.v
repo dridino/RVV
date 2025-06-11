@@ -3218,10 +3218,10 @@ module picorv32_pcpi_rvv #(
 	assign pcpi_mem_load = instr_vload;
 	assign pcpi_mem_store = instr_vstore;
 	reg instr_mem_unit;
-	reg instr_mem_const;
+	reg instr_mem_strided;
+	reg instr_mem_indexed;
 	wire mem_instr = |{instr_vload, instr_vstore};
 	reg [31:0] mem_transfer_n; // number of 32 bits transfers
-	reg [1:0]  mem_last_transfer_len; // number of bytes to keep in the last transfer
 	reg [9:0]  mem_byte_index; // index in the vector register, same size as VLEN parameter
 	reg [4:0]  mem_reg_index; // index of the vector register
 	reg 	   mem_sending; // 1 if addr needs to be sent, 0 if waiting for data from main core
@@ -3229,10 +3229,13 @@ module picorv32_pcpi_rvv #(
 	reg	[2:0]  mem_sew;
 	reg [11:0] mem_stride_mask; // mask for strided transfers
 	reg [1:0]  mem_stride_i; // index of transfer for 1 element in strided transfers, 0->2
-	reg [31:0] mem_stride_amount;
+	reg [31:0] mem_stride_amount; // mem offset value between two accesses
 	reg [31:0] mem_offset_q;
 	reg	[3:0]  mem_strb_q;
 	reg	[31:0] mem_wdata_q;
+	reg [9:0]  mem_indexed_byte_index; // used for indexed accesses | index in the offset vector register, same size as VLEN parameter
+	reg [4:0]  mem_indexed_reg_index; // used for indexed accesses | index of the offset vector register
+	reg [2:0]  mem_indexed_sew; // sew of indices in an indexed insn
 
 	reg [VLEN-1:0] temp_vreg; // avoid errors
 	integer index; // avoid errors
@@ -3261,13 +3264,11 @@ module picorv32_pcpi_rvv #(
 		instr_vload = 0;
 		instr_vstore = 0;
 		mem_transfer_n = 0;
-		mem_last_transfer_len = 0;
 		instr_mem_unit = 0;
-		instr_mem_const = 0;
+		instr_mem_strided = 0;
+		instr_mem_indexed = 0;
 		mem_sew = 0;
-		// remaining_mem_transfer = 0;
-		// current_mem_addr = 0;
-		// current_reg_byte = 0;
+		mem_indexed_sew = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -3288,21 +3289,39 @@ module picorv32_pcpi_rvv #(
 				2'b00: begin
 					// unit-stride
 					instr_mem_unit = 1;
-					instr_mem_const = 0;
+					instr_mem_strided = 0;
+					instr_mem_indexed = 0;
 				end
 				2'b10: begin
 					// constant stride
 					instr_mem_unit = 0;
-					instr_mem_const = 1;
+					instr_mem_strided = 1;
+					instr_mem_indexed = 0;
+				end
+				2'b01, 2'b11: begin
+					// indexed
+					instr_mem_unit = 0;
+					instr_mem_strided = 0;
+					instr_mem_indexed = 1;
 				end
 			endcase
 			mem_transfer_n = vl;
-			case (pcpi_insn[14:12])
-				3'b000: mem_sew = 3'b011;
-				3'b101: mem_sew = 3'b100;
-				3'b110: mem_sew = 3'b101; 
-				3'b111: mem_sew = 3'b110;
-			endcase
+			if (!instr_mem_indexed)
+				case (pcpi_insn[14:12])
+					3'b000: mem_sew = 3'b011;
+					3'b101: mem_sew = 3'b100;
+					3'b110: mem_sew = 3'b101; 
+					3'b111: mem_sew = 3'b110;
+				endcase
+			else begin
+				mem_sew = vtype[5:3] + 3;
+				case (pcpi_insn[14:12])
+					3'b000: mem_indexed_sew = 3'b011;
+					3'b101: mem_indexed_sew = 3'b100;
+					3'b110: mem_indexed_sew = 3'b101; 
+					3'b111: mem_indexed_sew = 3'b110;
+				endcase
+			end
 		end
 	end
 
@@ -3331,6 +3350,8 @@ module picorv32_pcpi_rvv #(
 			// mem
 			mem_byte_index = 0;
 			mem_reg_index = 0;
+			mem_indexed_byte_index = 0;
+			mem_indexed_reg_index = 0;
 			mem_sending = 1;
 			mem_last_transfer <= 0;
 			mem_stride_mask <= 12'h000;
@@ -3391,7 +3412,21 @@ module picorv32_pcpi_rvv #(
 				pcpi_mem_wen <= 0;
 
 				mem_stride_amount = instr_mem_unit ? (1 << (mem_sew-3)) : pcpi_rs2;
-				mem_offset_q = mem_stride_amount * (mem_byte_index + (mem_reg_index * (VLEN >> mem_sew))) + (mem_stride_i << 2);
+
+				if (instr_mem_indexed) begin
+					temp_vreg = vregs[pcpi_insn[24:20] + mem_indexed_reg_index];
+					tmp_offset = mem_indexed_byte_index << mem_indexed_sew;
+					mem_offset_q = 0;
+					case (mem_indexed_sew)
+						3'b011: mem_offset_q[0 +: 8] = temp_vreg[tmp_offset +: 8]; // 8 bits index
+						3'b100: mem_offset_q[0 +: 16] = temp_vreg[tmp_offset +: 16]; // 16 bits index
+						3'b101: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 32 bits index
+						3'b110: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 64 bits index but we only keep 32 LSB
+					endcase
+					mem_offset_q += (mem_stride_i << 2);
+				end else
+					mem_offset_q = mem_stride_amount * (mem_byte_index + (mem_reg_index * (VLEN >> mem_sew))) + (mem_stride_i << 2);
+				
 				if (mem_sending && mem_stride_i == 0) begin
 					case (mem_offset_q[1:0])
 						2'b00: begin // no shift
@@ -3428,7 +3463,7 @@ module picorv32_pcpi_rvv #(
 						end
 					endcase
 				end
-				
+
 				if (instr_vload) begin
 					if (mem_sending) begin
 						// send addr to main proc
@@ -3485,6 +3520,16 @@ module picorv32_pcpi_rvv #(
 									mem_reg_index = mem_reg_index;
 									mem_byte_index += 1;
 								end
+								// update indexed indices
+								if (instr_mem_indexed) begin
+									if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
+										mem_indexed_byte_index = 0;
+										mem_indexed_reg_index += 1;
+									end else begin
+										mem_indexed_byte_index += 1;
+										mem_indexed_reg_index = mem_indexed_reg_index;
+									end
+								end
 							end else
 								mem_stride_i += 1;
 						
@@ -3497,18 +3542,20 @@ module picorv32_pcpi_rvv #(
 							// update indices
 							mem_byte_index = 0;
 							mem_reg_index = 0;
+							mem_indexed_byte_index = 0;
+							mem_indexed_reg_index = 0;
 							offset = 0;
 							mem_stride_i = 0;
 						end
 
-						/* $display("v1 : %h", vregs[1]);
+						$display("v1 : %h", vregs[1]);
 						$display("v2 : %h", vregs[2]);
 						$display("v3 : %h", vregs[3]);
 						$display("v4 : %h", vregs[4]);
 						$display("v5 : %h", vregs[5]);
 						$display("v6 : %h", vregs[6]);
 						$display("v7 : %h", vregs[7]);
-						$display("v8 : %h\n", vregs[8]); */
+						$display("v8 : %h\n", vregs[8]);
 						
 						mem_sending <= 1;
 						// outputs
@@ -3581,6 +3628,16 @@ module picorv32_pcpi_rvv #(
 									mem_reg_index = mem_reg_index;
 									mem_byte_index += 1;
 								end
+								// update indexed indices
+								if (instr_mem_indexed) begin
+									if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
+										mem_indexed_byte_index = 0;
+										mem_indexed_reg_index += 1;
+									end else begin
+										mem_indexed_byte_index += 1;
+										mem_indexed_reg_index = mem_indexed_reg_index;
+									end
+								end
 							end else
 								mem_stride_i += 1;
 								
@@ -3594,6 +3651,8 @@ module picorv32_pcpi_rvv #(
 							// update indices
 							mem_byte_index = 0;
 							mem_reg_index = 0;
+							mem_indexed_byte_index = 0;
+							mem_indexed_reg_index = 0;
 							offset = 0;
 							mem_stride_i = 0;
 						end

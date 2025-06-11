@@ -13,20 +13,25 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetivli t0, 3, e64, m2
-  la      x1, tdat1
-  la      x5, tdat5
+  vsetvli t0, x0, e64, m2
+  la      x1, index1
+  la      x6, tdat6
 
-  li         x2, 9
+  li         x2, -1
 
   // vle8.v    v1, (x1)
   // vse8.v    v1, (x5)
   // vle64.v     v3, (x5)
   // vsse64.v    v3, (x5), x2
 
-  vle64.v    v1, (x5)
-  vsse64.v    v1, (x5), x2
-  vlse64.v    v3, (x5), x2
+  // vle64.v    v1, (x5)
+  // vsse64.v    v1, (x5), x2
+  // vlse64.v    v3, (x5), x2
+
+  vle8.v      v1, (x1) // load indices
+  vle64.v     v3, (x6) // load data
+  vsuxei8.v   v3, (x6), v1 // store indexed
+  vluxei8.v   v5, (x6), v1 // indexed load
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
@@ -35,67 +40,6 @@ RVTEST_CODE_BEGIN
   )
 
   TEST_PASSFAIL 
-
-  #-------------------------------------------------------------
-  # Basic tests
-  #-------------------------------------------------------------
-
-  /* TEST_ST_OP( 2, lh, sh, 0x000000aa, 0, tdat );
-  TEST_ST_OP( 3, lh, sh, 0xffffaa00, 2, tdat );
-  TEST_ST_OP( 4, lw, sh, 0xbeef0aa0, 4, tdat );
-  TEST_ST_OP( 5, lh, sh, 0xffffa00a, 6, tdat );
-
-  # Test with negative offset
-
-  TEST_ST_OP( 6, lh, sh, 0x000000aa, -6, tdat8 );
-  TEST_ST_OP( 7, lh, sh, 0xffffaa00, -4, tdat8 );
-  TEST_ST_OP( 8, lh, sh, 0x00000aa0, -2, tdat8 );
-  TEST_ST_OP( 9, lh, sh, 0xffffa00a, 0,  tdat8 );
-
-  # Test with a negative base
-
-  TEST_CASE( 10, x3, 0x5678, \
-    la  x1, tdat9; \
-    li  x2, 0x12345678; \
-    addi x4, x1, -32; \
-    sh x2, 32(x4); \
-    lh x3, 0(x1); \
-  )
-
-  # Test with unaligned base
-
-  TEST_CASE( 11, x3, 0x3098, \
-    la  x1, tdat9; \
-    li  x2, 0x00003098; \
-    addi x1, x1, -5; \
-    sh x2, 7(x1); \
-    la  x4, tdat10; \
-    lh x3, 0(x4); \
-  )
-
-  #-------------------------------------------------------------
-  # Bypassing tests
-  #-------------------------------------------------------------
-
-  TEST_ST_SRC12_BYPASS( 12, 0, 0, lh, sh, 0xffffccdd, 0,  tdat );
-  TEST_ST_SRC12_BYPASS( 13, 0, 1, lh, sh, 0xffffbccd, 2,  tdat );
-  TEST_ST_SRC12_BYPASS( 14, 0, 2, lh, sh, 0xffffbbcc, 4,  tdat );
-  TEST_ST_SRC12_BYPASS( 15, 1, 0, lh, sh, 0xffffabbc, 6, tdat );
-  TEST_ST_SRC12_BYPASS( 16, 1, 1, lh, sh, 0xffffaabb, 8, tdat );
-  TEST_ST_SRC12_BYPASS( 17, 2, 0, lh, sh, 0xffffdaab, 10, tdat );
-
-  TEST_ST_SRC21_BYPASS( 18, 0, 0, lh, sh, 0x2233, 0,  tdat );
-  TEST_ST_SRC21_BYPASS( 19, 0, 1, lh, sh, 0x1223, 2,  tdat );
-  TEST_ST_SRC21_BYPASS( 20, 0, 2, lh, sh, 0x1122, 4,  tdat );
-  TEST_ST_SRC21_BYPASS( 21, 1, 0, lh, sh, 0x0112, 6, tdat );
-  TEST_ST_SRC21_BYPASS( 22, 1, 1, lh, sh, 0x0011, 8, tdat );
-  TEST_ST_SRC21_BYPASS( 23, 2, 0, lh, sh, 0x3001, 10, tdat );
-
-  li a0, 0xbeef
-  la a1, tdat
-  sh a0, 6(a1)
-
-  */
 
 RVTEST_CODE_END
 
@@ -138,4 +82,8 @@ tdat31:  .word 0xa000000E
 tdat32:  .word 0xa000000F
 tdat33:  .word 0xa0000010
 
+index1:   .word 0x04000400
+index2:   .word 0x04000400
+index3:   .word 0x0B0A0908
+index4:   .word 0x0F0E0D0C
 RVTEST_DATA_END

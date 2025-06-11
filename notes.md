@@ -330,11 +330,17 @@ Les `~vl` accès mémoire sont réalisés puis la prochaine instruction est rech
 
 > Changement de la manière dont est chargée l'instruction après un accès mémoire vectoriel : on la met dans un registre intermédiaire pendant l'opération et la remet dans `mem_rdata_q` plutôt que refaire un accès mémoire à la fin. Cette dernière étant déjà dans `rdata` au moment de faire les accès mémoires de données
 
+> `vload` | `vstore` fonctionnels avec mode d'adressage `unit-stride` et `strided`. Le mode d'adressage `unit-stride` ne groupe pas les accès mémoire, conformément à la doc.
+
+## 11/06
+
+> Pour le mode d'adressage `strided`, une valeur positive, négative ou nulle fonctionne
+
+> Mode d'adressage `indexed` fonctionne
+
 TODO :
 
 - vstart (trap) et trap quand op impossible (débordement)
 - mask load
-- constant-stride load & store
-- indexed load & store
 - cas particuliers
 - Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
