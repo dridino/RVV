@@ -338,9 +338,31 @@ Les `~vl` accès mémoire sont réalisés puis la prochaine instruction est rech
 
 > Mode d'adressage `indexed` fonctionne
 
+## 12/06
+
+### traps
+
+> Gestion des traps et émission de traps selon les conditions ci-dessous.
+
+Conditions pour trap :
+
+- bit `vill=1` et on veut exécuter une instruction autre que `vset{i}vl{i}` ou *whole-register load/store/move*
+- quand vstart est *out-of-bounds*, recommandé de trap mais pas obligé
+- quand la valeur des registres spécifiée n'est pas compatible avec vtype. Exemple : v31 & LMUL=2
+
+> Encodage de vstart dans le cadre de transferts mémoire (différents des transferts de masques qui sont des cas particuleirs) : `vstart = {00, indexed_reg_i, indexed_byte_i, reg_i, byte_i}`
+
+Conditions pour raise `Illegal Instruction`
+
+- quand on se retrouve avec un vstart que le programme n'aurait jamais pu produire avec ce vtype
+
 TODO :
 
-- vstart (trap) et trap quand op impossible (débordement)
-- mask load
 - cas particuliers
+- mask load
 - Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
+
+Questions :
+
+- Comment faire pour les fault-only-first sachant que la mémoire ne renvoie pas de signal d'erreur. Constante pour l'adresse max et basta ? (supporte pas les adresses non allouées etc)
+- Quand est-ce qu'on revient d'un trap ?

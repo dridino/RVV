@@ -13,7 +13,7 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e64, m2
+  vsetvli t0, x0, e16, m4
   la      x1, index1
   la      x6, tdat6
 
@@ -28,10 +28,10 @@ RVTEST_CODE_BEGIN
   // vsse64.v    v1, (x5), x2
   // vlse64.v    v3, (x5), x2
 
-  vle8.v      v1, (x1) // load indices
-  vle64.v     v3, (x6) // load data
-  vsuxei8.v   v3, (x6), v1 // store indexed
-  vluxei8.v   v5, (x6), v1 // indexed load
+  vle8.v      v31, (x1) // load indices
+  vle16.v     v3, (x6) // load data
+  vsuxei8.v   v3, (x6), v31 // store indexed
+  vluxei8.v   v5, (x6), v31 // indexed load
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
