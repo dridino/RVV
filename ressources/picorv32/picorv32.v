@@ -3247,6 +3247,7 @@ module picorv32_pcpi_rvv #(
 	reg [9:0]  mem_indexed_byte_index; // used for indexed accesses | index in the offset vector register, same size as VLEN parameter
 	reg [4:0]  mem_indexed_reg_index; // used for indexed accesses | index of the offset vector register
 	reg [2:0]  mem_indexed_sew; // sew of indices in an indexed insn
+	reg [3:0]  mem_seg_n; // number of segments in a segment load / store
 
 	reg [VLEN-1:0] temp_vreg; // avoid errors
 	integer index; // avoid errors
@@ -3282,6 +3283,7 @@ module picorv32_pcpi_rvv #(
 		instr_mem_indexed = 0;
 		mem_sew = 0;
 		mem_indexed_sew = 0;
+		mem_seg_n = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -3322,7 +3324,9 @@ module picorv32_pcpi_rvv #(
 					instr_mem_indexed = 1;
 				end
 			endcase
+
 			mem_transfer_n = vl;
+			mem_seg_n = {1'b0, pcpi_insn[31:29]} + 1;
 			if (!instr_mem_indexed) begin
 				case (pcpi_insn[14:12])
 					3'b000: mem_sew = 3'b011;
@@ -3330,7 +3334,7 @@ module picorv32_pcpi_rvv #(
 					3'b110: mem_sew = 3'b101; 
 					3'b111: mem_sew = 3'b110;
 				endcase
-				should_trap = should_trap || (vs1 + (vl / (VLEN >> mem_sew)) >= regfile_size);
+				should_trap = should_trap || (pcpi_insn[11:7] + (vl / (VLEN >> mem_sew)) >= regfile_size);
 			end else begin
 				mem_sew = vtype[5:3] + 3;
 				case (pcpi_insn[14:12])
@@ -3339,7 +3343,7 @@ module picorv32_pcpi_rvv #(
 					3'b110: mem_indexed_sew = 3'b101; 
 					3'b111: mem_indexed_sew = 3'b110;
 				endcase
-				should_trap = should_trap || (vs1 + (vl / (VLEN >> mem_sew)) >= regfile_size) || (vs2 + (vl / (VLEN >> mem_indexed_sew)) >= regfile_size);
+				should_trap = should_trap || (pcpi_insn[11:7] + (vl / (VLEN >> mem_sew)) >= regfile_size) || (pcpi_insn[24:20] + (vl / (VLEN >> mem_indexed_sew)) >= regfile_size);
 			end
 		end
 	end
@@ -3382,7 +3386,10 @@ module picorv32_pcpi_rvv #(
 			offset = 0;
 			pcpi_trap_in_q <= 0;
 		end else begin
-			if (pcpi_trap_in || pcpi_trap_out) begin
+			if (should_trap)
+				pcpi_trap_out <= 1;
+			
+			if (should_trap || pcpi_trap_in || pcpi_trap_out) begin
 				if (!pcpi_trap_in_q) begin
 					$display("trap taken");
 					if (mem_instr) begin
@@ -3403,9 +3410,7 @@ module picorv32_pcpi_rvv #(
 					end
 				end
 				if (instr_run) begin
-					if (should_trap)
-						pcpi_trap_out <= 1;
-					else if (instr_cfg) begin
+					if (instr_cfg) begin
 						if (instr_vsetvli || instr_vsetivli) begin
 							vtype[31] = 0; // vill
 							vtype[30:8] = {23{1'b0}}; // reserved
