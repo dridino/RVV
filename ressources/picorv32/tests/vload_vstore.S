@@ -13,9 +13,9 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e16, m4
+  vsetvli t0, x0, e32, m1
   la      x1, index1
-  la      x6, tdat6
+  la      x6, tdat1
 
   li         x2, -1
 
@@ -28,10 +28,16 @@ RVTEST_CODE_BEGIN
   // vsse64.v    v1, (x5), x2
   // vlse64.v    v3, (x5), x2
 
-  vle8.v      v31, (x1) // load indices
-  vle16.v     v3, (x6) // load data
-  vsuxei8.v   v3, (x6), v31 // store indexed
-  vluxei8.v   v5, (x6), v31 // indexed load
+  // vle8.v      v31, (x1) // load indices
+  // vle16.v     v3, (x6) // load data
+  // vsuxei8.v   v3, (x6), v31 // store indexed
+  // vluxei8.v   v5, (x6), v31 // indexed load
+
+  vle32.v       v1, (x6)
+  vle32.v       v2, (x6)
+
+  vsseg2e32.v    v1, (x1)
+  vlseg2e32.v    v4, (x1)
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
@@ -86,4 +92,13 @@ index1:   .word 0x04000400
 index2:   .word 0x04000400
 index3:   .word 0x0B0A0908
 index4:   .word 0x0F0E0D0C
+
+seg1:     .word 0x11221122
+seg2:     .word 0x11221122
+seg3:     .word 0x11221122
+seg4:     .word 0x11221122
+seg5:     .word 0x11221122
+seg6:     .word 0x11221122
+seg7:     .word 0x11221122
+seg8:     .word 0x11221122
 RVTEST_DATA_END

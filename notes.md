@@ -352,9 +352,23 @@ Conditions pour trap :
 
 > Encodage de vstart dans le cadre de transferts mémoire (différents des transferts de masques qui sont des cas particuleirs) : `vstart = {00, indexed_reg_i, indexed_byte_i, reg_i, byte_i}`
 
+										$display("byte0");
 ## 13/06
 
+### Segment load / store
 
+> Idée : un indice permettant de savoir à quel registre (*field*) on en est.
+
+## 16/06
+
+Test des différentes variantes de `vlseg{seg}e{sew}.v` :
+
+|SEW\SEG|2|3|4|5|6|7|8|
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|8b| (M1) | (M1) |  |  |  |  |  |
+|16b| (M1,M2,M4) | (M1) |  | (MF2) |  |  | (MF2,M1,ERR) |
+|32b| (M1) | (M1) |  |  |  |  |  |
+|64b| (M1) | (M1) |  |  |  | (M1) |  |
 
 
 
