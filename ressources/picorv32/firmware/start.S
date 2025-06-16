@@ -410,7 +410,7 @@ start:
 	n ## _ret:
 #endif
 
-	TEST(vload_vstore)
+	TEST(vand)
 
 	/* TEST(lui)
 	TEST(auipc)

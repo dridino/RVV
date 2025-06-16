@@ -383,17 +383,21 @@ TODO :
 - indexed load : pas d'overwrite entre data & indices
 - index reg ne dépasse pas 31
 - pas d'écriture si vstart >= vl (ou vstart >= evl pour whole reg load & store)
-- cas particuliers
 - mask load
 - Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
 
 Questions :
 
 - Comment faire pour les fault-only-first sachant que la mémoire ne renvoie pas de signal d'erreur. Constante pour l'adresse max et basta ? (supporte pas les adresses non allouées etc)
+
 - Quand est-ce qu'on revient d'un trap ?
 
 > and the vector register group for each eld must follow the usual vector register alignment constraints (e.g., when EMUL=2 and NFIELDS=4, each eld’s vector register group must start at an even vector register, but does not have to start at a multiple of 8 vector register number)
 
-trap quand c'est pas le cas ? (cf ci-dessus)
+trap quand c'est pas le cas ? (cf ci-dessus) : je pense que oui, c'est marqué *reserved* pour les *whole register transfers*
 
 - actuellement je maintiens le signal trap à haut quand un trap est détecté, bien ?
+
+- mask load & store : d'un côté on me dit que je peux charger un masque dans n'importe quel vecteur vd, de l'autre on me dit que le masque utilisé dans une instruction c'est soit `v0.t`, soit rien. Donc le masque c'est pas n'importe quel reg finalement ? (cf 7.4)
+
+- is reserved = on doit trap ?
