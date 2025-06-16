@@ -34,15 +34,17 @@ RVTEST_CODE_BEGIN
   // vsuxei8.v   v3, (x6), v31 // store indexed
   // vluxei8.v   v5, (x6), v31 // indexed load
 
-  addi x3, x3, 1
-
-  vle32.v       v1, (x6)
+  /* vle32.v       v1, (x6)
   vle32.v       v2, (x3)
 
   vle8.v        v10, (x1)
 
   vsuxseg2ei8.v    v1, (x3), v10
-  vluxseg2ei8.v    v4, (x3), v10
+  vluxseg2ei8.v    v4, (x3), v10 */
+
+  vl8re64.v v1, (x6)
+  vs8r.v v1, (x3)
+  vl8re64.v v1, (x3)
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
