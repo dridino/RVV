@@ -370,6 +370,7 @@ Test des différentes variantes de `vlseg{seg}e{sew}.v` :
 |32b| (M1) | (M1) |  |  |  |  |  |
 |64b| (M1) | (M1) |  |  |  | (M1) |  |
 
+> segment load & store fonctionnent parfaitement
 
 
 Conditions pour raise `Illegal Instruction`
@@ -378,6 +379,9 @@ Conditions pour raise `Illegal Instruction`
 
 TODO :
 
+- tous les vstart (seg load & store : numéro du segment courant)
+- indexed load : pas d'overwrite entre data & indices
+- index reg ne dépasse pas 31
 - cas particuliers
 - mask load
 - Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)

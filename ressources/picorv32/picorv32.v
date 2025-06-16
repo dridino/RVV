@@ -3489,7 +3489,7 @@ module picorv32_pcpi_rvv #(
 						mem_offset_q += (mem_seg_i << (mem_sew - 3));
 						
 						if (mem_sending && mem_stride_i == 0) begin
-							case (mem_offset_q[1:0])
+							case (mem_offset_q[1:0] + pcpi_rs1[1:0])
 								2'b00: begin // no shift
 									case (mem_sew)
 										3'b011: mem_stride_mask = 12'h001; // 8 bits
@@ -3540,6 +3540,7 @@ module picorv32_pcpi_rvv #(
 							end else if (pcpi_mem_done) begin
 								$display("byte_i : %d | reg_i : %d", mem_byte_index, mem_reg_index);
 								$display("mask_i : %d | seg_i : %d", mem_stride_i, mem_seg_i);
+								$display("mem_base : %h", pcpi_rs1);
 								$display("mem_offset : %d | reg_offset : %d", mem_offset_q, offset << 3);
 								$display("rdata : %h", pcpi_mem_rdata);
 								pcpi_mem_ftrans <= 0;

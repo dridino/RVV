@@ -34,6 +34,8 @@ RVTEST_CODE_BEGIN
   // vsuxei8.v   v3, (x6), v31 // store indexed
   // vluxei8.v   v5, (x6), v31 // indexed load
 
+  addi x3, x3, 1
+
   vle32.v       v1, (x6)
   vle32.v       v2, (x3)
 
