@@ -286,8 +286,7 @@ module picorv32 #(
 	wire		pcpi_rvv_mem_load;
 	wire		pcpi_rvv_mem_store;
 	wire		pcpi_rvv_mem_wen;
-	wire [31:0] pcpi_rvv_mem_base;
-	wire [31:0] pcpi_rvv_mem_offset;
+	wire [31:0] pcpi_rvv_mem_addr;
 	reg 		pcpi_rvv_mem_ifetch;
 	wire [31:0] pcpi_rvv_mem_wdata;
 	wire [3:0]  pcpi_rvv_mem_strb;
@@ -376,8 +375,7 @@ module picorv32 #(
 			.pcpi_mem_load		(pcpi_rvv_mem_load),
 			.pcpi_mem_store		(pcpi_rvv_mem_store),
 			.pcpi_mem_wen		(pcpi_rvv_mem_wen),
-			.pcpi_mem_base		(pcpi_rvv_mem_base),
-			.pcpi_mem_offset	(pcpi_rvv_mem_offset),
+			.pcpi_mem_addr		(pcpi_rvv_mem_addr),
 			.pcpi_mem_wdata		(pcpi_rvv_mem_wdata),
 			.pcpi_mem_strb		(pcpi_rvv_mem_strb)
 		);
@@ -2241,7 +2239,7 @@ generate
 					if (pcpi_rvv_mem_ftrans)
 						rvv_mem_next_insn <= mem_rdata;
 					if (pcpi_rvv_mem_wen) begin
-						mem_addr <= pcpi_rvv_mem_base + pcpi_rvv_mem_offset;
+						mem_addr <= pcpi_rvv_mem_addr;
 						mem_wstrb <= 0;
 					end
 					mem_instr <= 0;
@@ -2253,7 +2251,7 @@ generate
 					if (pcpi_rvv_mem_ftrans)
 						rvv_mem_next_insn <= mem_rdata;
 					if (pcpi_rvv_mem_wen) begin
-						mem_addr <= pcpi_rvv_mem_base + pcpi_rvv_mem_offset;
+						mem_addr <= pcpi_rvv_mem_addr;
 						mem_wstrb <= pcpi_rvv_mem_strb;
 						mem_wdata <= pcpi_rvv_mem_wdata;
 					end
@@ -3191,8 +3189,7 @@ module picorv32_pcpi_rvv #(
 	output wire		  pcpi_mem_load, 		// 1 if vector memory load
 	output wire		  pcpi_mem_store, 		// 1 if vector memory store
 	output reg		  pcpi_mem_wen, 		// memory access
-	output reg [31:0] pcpi_mem_base, 		// base reg addr
-	output reg [31:0] pcpi_mem_offset, 		// offset from vreg, vector-indexed
+	output reg [31:0] pcpi_mem_addr, 		// memory access addr
 	output reg [31:0] pcpi_mem_wdata, 		// data to store
 	output reg [3:0]  pcpi_mem_strb 		// i=1 if byte i should be writtent to memory
 );
@@ -3359,8 +3356,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_wr <= 0;
 		pcpi_rd <= 'bx;
 		pcpi_mem_wen <= 0; // memory access
-		pcpi_mem_base <= 0; // base reg addr
-		pcpi_mem_offset <= 0; // mem addr offset
+		pcpi_mem_addr <= 0; // mem addr
 		pcpi_mem_op <= 0;
 		pcpi_mem_strb <= 0;
 		pcpi_mem_ftrans <= 0;
@@ -3530,8 +3526,7 @@ module picorv32_pcpi_rvv #(
 								// send addr to main proc
 								pcpi_mem_ftrans <= (mem_byte_index == 0 && mem_reg_index == 0 && mem_stride_i == 0 && mem_seg_i == 0);
 								pcpi_mem_wen <= 1;
-								pcpi_mem_base <= pcpi_rs1;
-								pcpi_mem_offset <= mem_offset_q;
+								pcpi_mem_addr <= pcpi_rs1 + mem_offset_q;
 
 								mem_sending <= pcpi_mem_ifetch ? 1 : 0;
 								pcpi_wr <= 0;
@@ -3712,8 +3707,7 @@ module picorv32_pcpi_rvv #(
 								mem_sending <= 1;
 								// outputs
 								pcpi_mem_wen <= 0;
-								pcpi_mem_base <= 0;
-								pcpi_mem_offset <= 0;						
+								pcpi_mem_addr <= 0;						
 								pcpi_wr <= 0;
 							end
 						end else if (instr_vstore) begin
@@ -3721,8 +3715,6 @@ module picorv32_pcpi_rvv #(
 								// send data to main proc
 								pcpi_mem_ftrans <= (mem_byte_index == 0 && mem_reg_index == 0 && mem_stride_i == 0 && mem_seg_i == 0);
 								index = pcpi_insn[11:7] + mem_reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0]));
-								
-								pcpi_mem_offset <= mem_offset_q;
 
 								temp_vreg = vregs[index];
 								mem_strb_q = 0;
@@ -3767,7 +3759,7 @@ module picorv32_pcpi_rvv #(
 								mem_sending <= pcpi_mem_ifetch ? 1 : 0;
 								// outputs
 								pcpi_mem_wen <= 1;
-								pcpi_mem_base <= pcpi_rs1;
+								pcpi_mem_addr <= pcpi_rs1 + mem_offset_q;
 								pcpi_wait <= 1;
 								pcpi_ready <= 0;
 							end else if (pcpi_mem_done) begin
@@ -3825,8 +3817,7 @@ module picorv32_pcpi_rvv #(
 								end
 
 								pcpi_mem_wen <= 0;
-								pcpi_mem_base <= 0;
-								pcpi_mem_offset <= 0;
+								pcpi_mem_addr <= 0;
 								mem_sending <= 1;
 								pcpi_wr <= 0;
 							end

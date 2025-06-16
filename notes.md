@@ -382,6 +382,7 @@ TODO :
 - tous les vstart (seg load & store : numéro du segment courant)
 - indexed load : pas d'overwrite entre data & indices
 - index reg ne dépasse pas 31
+- pas d'écriture si vstart >= vl (ou vstart >= evl pour whole reg load & store)
 - cas particuliers
 - mask load
 - Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
