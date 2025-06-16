@@ -15,9 +15,10 @@ RVTEST_CODE_BEGIN
 
   vsetvli t0, x0, e32, m1
   la      x1, index1
+  la      x3, tdat12
   la      x6, tdat1
 
-  li         x2, -1
+  li         x2, 5
 
   // vle8.v    v1, (x1)
   // vse8.v    v1, (x5)
@@ -34,10 +35,12 @@ RVTEST_CODE_BEGIN
   // vluxei8.v   v5, (x6), v31 // indexed load
 
   vle32.v       v1, (x6)
-  vle32.v       v2, (x6)
+  vle32.v       v2, (x3)
 
-  vsseg2e32.v    v1, (x1)
-  vlseg2e32.v    v4, (x1)
+  vle8.v        v10, (x1)
+
+  vsuxseg2ei8.v    v1, (x3), v10
+  vluxseg2ei8.v    v4, (x3), v10
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \

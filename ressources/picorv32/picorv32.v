@@ -3719,7 +3719,7 @@ module picorv32_pcpi_rvv #(
 							if (mem_sending) begin
 								// send data to main proc
 								pcpi_mem_ftrans <= (mem_byte_index == 0 && mem_reg_index == 0 && mem_stride_i == 0 && mem_seg_i == 0);
-								index = pcpi_insn[11:7] + mem_reg_index;
+								index = pcpi_insn[11:7] + mem_reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0]));
 								
 								pcpi_mem_offset <= mem_offset_q;
 
@@ -3756,6 +3756,9 @@ module picorv32_pcpi_rvv #(
 										offset += offset_incr;
 									offset_incr = 0;
 								end
+
+								$display("store offset : %h", mem_offset_q);
+								$display("store wdata : %h", mem_wdata_q);
 
 								pcpi_mem_strb <= mem_strb_q;
 								pcpi_mem_wdata <= mem_wdata_q;
