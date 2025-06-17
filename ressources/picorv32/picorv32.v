@@ -3792,7 +3792,7 @@ module picorv32_pcpi_rvv #(
 							end
 						end
 					end else if (instr_arith) begin
-						last_op = (byte_index + (VLEN >> vsew) * reg_index) >= vl - 1;
+						last_op = (byte_index + (VLEN >> (vsew+3)) * reg_index) >= vl - 1;
 
 						$display("vsew : %b", vsew);
 						$display("vl cible : %d", (vl >> NB_LANES) - 1);
@@ -3800,7 +3800,7 @@ module picorv32_pcpi_rvv #(
 
 						if (!last_op) begin
 							// update indices
-							if (byte_index == (VLEN >> vsew) - 1) begin
+							if (byte_index >= (VLEN >> (vsew+3)) - 1) begin
 								byte_index = 0;
 								reg_index += NB_LANES;
 							end else begin
@@ -3844,7 +3844,7 @@ module picorv32_pcpi_rvv #(
 									// 32 bits
 									3'b010: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32];
 									// 64 bits
-									3'b011: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] & vregs[pcpi_insn[19:15] + reg_index][lane_i << (vsew + 3) +: 64];
+									3'b011: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64];
 								endcase
 								pcpi_rd <= 0;
 								pcpi_wr <= 0;

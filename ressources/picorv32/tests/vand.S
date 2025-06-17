@@ -13,19 +13,19 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e32, m1
+  vsetvli t0, x0, e32, mf2
   la    x1, tdat1
   la    x2, tdat2
 
   vle32.v v1, (x1)
-  vle32.v v2, (x2)
+  vle32.v v3, (x2)
   
-  vsetvli t0, x0, e8, m1
-  vand.vv v3, v1, v2 // v3 = v1 & v2
+  vsetvli t0, x0, e8, mf2
+  vand.vv v5, v1, v3
 
   // to print vectors state
   vsetvli t0, x0, e32, mf4
-  vle32.v v5, (x1)
+  vle32.v v9, (x1)
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
