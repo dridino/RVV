@@ -1,0 +1,71 @@
+`timescale 1 ns / 1 ps
+
+`ifndef VERILATOR
+module testbench ();
+	reg clk = 0;
+	reg resetn = 0;
+	wire trap;
+
+	initial begin
+		repeat (200) begin
+			clk <= ~clk;
+			#5;
+		end
+		resetn <= 1;
+		opcode <= 6'b001001;
+		vs1 <= 128'habcdabcdbeefbeef1234567887654321;
+		vs2 <= 128'h8765432112345678beefbeefabcdabcd;
+		// vd = 83450301122416681224166883450301
+		vsew <= 3'b011;
+		run <= 1;
+
+		repeat (20) begin
+			clk <= 1;
+			#5;
+			clk <= 0;
+			#5;
+			$display("vd : %h", vd);
+			if (done)
+				$display("done");
+		end
+	end
+
+	initial begin
+		if ($test$plusargs("vcd")) begin
+			$dumpfile("testbench_vec_alu.vcd");
+			$dumpvars(0, testbench);
+		end
+		repeat (1000000) @(posedge clk);
+		$display("TIMEOUT");
+		$finish;
+	end
+
+	wire trace_valid;
+	wire [35:0] trace_data;
+	integer trace_file;
+
+	reg [5:0] opcode;
+	reg	run;
+	reg [127:0] vs1;
+	reg [127:0] vs2;
+	reg [2:0] vsew;
+
+	wire [127:0] vd;
+	wire done;
+
+	vec_alu #(
+		.NB_LANES (2'b00),
+		.LANE_I (3'b000)
+	) valu0 (
+		.clk(clk),
+		.resetn(resetn),
+		.opcode(opcode),
+		.run(run),
+		.vs1(vs1),
+		.vs2(vs2),
+		.vsew(vsew),
+		.vd(vd),
+		.done(done)
+	);
+endmodule
+`endif

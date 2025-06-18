@@ -23,6 +23,13 @@ COMPRESSED_ISA = C
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
 
+test_vec_alu: testbench_vec_alu.vvp
+	$(VVP) -N $<
+
+testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu.v
+	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	chmod -x $@
+
 test: testbench.vvp firmware/firmware.hex
 	$(VVP) -N $<
 

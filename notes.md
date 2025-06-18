@@ -372,32 +372,27 @@ Test des différentes variantes de `vlseg{seg}e{sew}.v` :
 
 > segment load & store fonctionnent parfaitement
 
+> whole register load & store fonctionnent aussi
 
-Conditions pour raise `Illegal Instruction`
+## 18/06
+
+
+
+## Améliorations
+
+### Non-implémenté
+
+Conditions pour raise `Illegal Instruction` :
 
 - quand on se retrouve avec un vstart que le programme n'aurait jamais pu produire avec ce vtype
 
-TODO :
+- Fault-only-first load & store : pas d'info venant de la mémoire pour déterminer si l'accès valide ou non
+- Paramètre pour dire si on trap ou non quand les registres ne sont pas alignés sur `EMUL`
+- Mettre une cause précise lors d'un trap venant de RVV (je trouve pas de registre de cause même dans le coeur classique du pico)
+- Gérer toutes les raisons de trap
+- Bonne gestion de vstart
+- Load & Store de masques (qui vont uniquement dans `v0`)
 
-- tous les vstart (seg load & store : numéro du segment courant)
-- indexed load : pas d'overwrite entre data & indices
-- index reg ne dépasse pas 31
-- pas d'écriture si vstart >= vl (ou vstart >= evl pour whole reg load & store)
-- mask load
-- Faire en sorte de *pipeliner* les accès mémoire : (S), (S|R), (S|R), (S|R), (R) (S=send, R=receive)
+### Optionnel
 
-Questions :
-
-- Comment faire pour les fault-only-first sachant que la mémoire ne renvoie pas de signal d'erreur. Constante pour l'adresse max et basta ? (supporte pas les adresses non allouées etc)
-
-- Quand est-ce qu'on revient d'un trap ?
-
-> and the vector register group for each eld must follow the usual vector register alignment constraints (e.g., when EMUL=2 and NFIELDS=4, each eld’s vector register group must start at an even vector register, but does not have to start at a multiple of 8 vector register number)
-
-trap quand c'est pas le cas ? (cf ci-dessus) : je pense que oui, c'est marqué *reserved* pour les *whole register transfers*
-
-- actuellement je maintiens le signal trap à haut quand un trap est détecté, bien ?
-
-- mask load & store : d'un côté on me dit que je peux charger un masque dans n'importe quel vecteur vd, de l'autre on me dit que le masque utilisé dans une instruction c'est soit `v0.t`, soit rien. Donc le masque c'est pas n'importe quel reg finalement ? (cf 7.4)
-
-- is reserved = on doit trap ?
+- *pipeliner* les accès mémoire

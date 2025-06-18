@@ -3794,13 +3794,9 @@ module picorv32_pcpi_rvv #(
 					end else if (instr_arith) begin
 						last_op = (byte_index + (VLEN >> (vsew+3)) * reg_index) >= vl - 1;
 
-						$display("vsew : %b", vsew);
-						$display("vl cible : %d", (vl >> NB_LANES) - 1);
-						$display("arith reg_i : %d | byte_i : %d", reg_index, byte_index);
-
 						if (!last_op) begin
 							// update indices
-							if (byte_index >= (VLEN >> (vsew+3)) - 1) begin
+							if (byte_index >= (VLEN << (vsew+3 < LANE_WIDTH ? 0 : LANE_WIDTH - vsew - 3)) - 1) begin
 								byte_index = 0;
 								reg_index += NB_LANES;
 							end else begin
@@ -3816,6 +3812,8 @@ module picorv32_pcpi_rvv #(
 							pcpi_wait <= 0;
 							pcpi_ready <= 1;
 						end
+						pcpi_rd <= 0;
+						pcpi_wr <= 0;
 					end
 				end
 			end
@@ -3832,22 +3830,28 @@ module picorv32_pcpi_rvv #(
 					// reset
 				end else if (!(should_trap || pcpi_trap_in || pcpi_trap_out) && instr_run) begin
 					if (instr_arith) begin
-						$display("lane%d : index=%d", lane_i, (lane_i + byte_index) << (vsew + 3));
-						$display("lane%d byte_i: %d", lane_i, byte_index);
+						index = (lane_i + byte_index) << (vsew + 3);
 						case (pcpi_insn[31:26])
 							6'b001001: begin // vand
 								case (vsew)
 									// 8 bits
-									3'b000: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 8] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 8] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 8];
+									3'b000: begin
+										temp_vreg[0 +: 32] = ({{24{1'b0}}, vregs[pcpi_insn[24:20] + reg_index][index +: 8]} & {{24{1'b0}}, vregs[pcpi_insn[19:15] + reg_index][index +: 8]});
+										vregs[pcpi_insn[11:7] + reg_index][index +: 8] = temp_vreg[0 +: 8];
+									end
 									// 16 bits
-									3'b001: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 16] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 16] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 16];
+									3'b001: begin
+										temp_vreg[0 +: 32] = ({{16{1'b0}}, vregs[pcpi_insn[24:20] + reg_index][index +: 16]} & {{16{1'b0}},vregs[pcpi_insn[19:15] + reg_index][index +: 16]});
+										vregs[pcpi_insn[11:7] + reg_index][index +: 16] = temp_vreg[0 +: 16];
+									end
 									// 32 bits
-									3'b010: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 32];
-									// 64 bits
-									3'b011: vregs[pcpi_insn[11:7] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] <= vregs[pcpi_insn[24:20] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64] & vregs[pcpi_insn[19:15] + reg_index][(lane_i + byte_index) << (vsew + 3) +: 64];
+									3'b010: vregs[pcpi_insn[11:7] + reg_index][index +: 32] = ({{8{1'b0}},vregs[pcpi_insn[24:20] + reg_index][index +: 32]} & {{8{1'b0}},vregs[pcpi_insn[19:15] + reg_index][index +: 32]});
+									// 64 bits TODO
+									3'b011: vregs[pcpi_insn[11:7] + reg_index][index +: 64] = vregs[pcpi_insn[24:20] + reg_index][index +: 64] & vregs[pcpi_insn[19:15] + reg_index][index +: 64];
 								endcase
-								pcpi_rd <= 0;
-								pcpi_wr <= 0;
+								$display("lane%d : index=%d", lane_i, (lane_i + byte_index) << (vsew + 3));
+								$display("lane%d byte_i: %d", lane_i, byte_index);
+								$display("lane%d v5 : %h\n", lane_i, vregs[5]);
 							end
 						endcase						
 					end
