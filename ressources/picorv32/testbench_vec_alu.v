@@ -1,10 +1,40 @@
 `timescale 1 ns / 1 ps
 
 `ifndef VERILATOR
+
+`define assert(signal, value) \
+        if (signal !== value) begin \
+            $display("\n[ERROR] ASSERTION FAILED in %m: signal != value\n"); \
+            $finish; \
+        end
+
 module testbench ();
 	reg clk = 0;
 	reg resetn = 0;
 	wire trap;
+
+	task repeat_loop;
+		input integer n;
+		input print;
+		begin
+			repeat (n-1) begin
+				run <= 1;
+				clk <= 1;
+				#5;
+				clk <= 0;
+				#5;
+				if (print) $display("vd : %h", vd);
+				`assert(done, 1'b0)
+			end
+			clk <= 1;
+			#5;
+			clk <= 0;
+			#5;
+			if (print) $display("vd : %h", vd);
+			$display("[OK]");
+		end
+
+	endtask
 
 	initial begin
 		repeat (200) begin
@@ -15,19 +45,58 @@ module testbench ();
 		opcode <= 6'b001001;
 		vs1 <= 128'habcdabcdbeefbeef1234567887654321;
 		vs2 <= 128'h8765432112345678beefbeefabcdabcd;
-		// vd = 83450301122416681224166883450301
-		vsew <= 3'b011;
-		run <= 1;
+		
+		// -------------------------- 8 BITS --------------------------
+		vsew <= 3'b000;
+		run <= 0;
+		clk <= 1;
+		#5;
+		clk <= 0;
+		#5;
 
-		repeat (20) begin
-			clk <= 1;
-			#5;
-			clk <= 0;
-			#5;
-			$display("vd : %h", vd);
-			if (done)
-				$display("done");
-		end
+		repeat_loop(16, 0);
+		`assert(done, 1'b1)
+		`assert(vd, 128'h83450301122416681224166883450301)
+
+		// -------------------------- 16 BITS --------------------------
+		vsew <= 3'b001;
+		run <= 0;
+		clk <= 1;
+		#5;
+		clk <= 0;
+		#5;
+		
+		repeat_loop(8, 0);
+		`assert(done, 1'b1)
+		`assert(vd, 128'h83450301122416681224166883450301)
+
+		// -------------------------- 32 BITS --------------------------
+		vsew <= 3'b010;
+		run <= 0;
+		clk <= 1;
+		#5;
+		clk <= 0;
+		#5;
+		
+		repeat_loop(4, 0);
+		`assert(done, 1'b1)
+		`assert(vd, 128'h83450301122416681224166883450301)
+		
+		// -------------------------- 64 BITS --------------------------
+		vsew <= 3'b011;
+		run <= 0;
+		clk <= 1;
+		#5;
+		clk <= 0;
+		#5;
+		
+		repeat_loop(4, 0);
+		`assert(done, 1'b1)
+		`assert(vd, 128'h83450301122416681224166883450301)
+
+
+
+		
 	end
 
 	initial begin

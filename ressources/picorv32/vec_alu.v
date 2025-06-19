@@ -30,7 +30,7 @@ module vec_alu #(
         end else if (run) begin
             if (!done) begin
                 index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-                $display("lane byte_i : %d, reg_off : %d, index : %d", byte_i, in_reg_offset, index);
+                // $display("lane byte_i : %d, reg_off : %d, index : %d", byte_i, in_reg_offset, index);
                 case (opcode)
                     6'b001001: begin // vand
                         case (vsew)
