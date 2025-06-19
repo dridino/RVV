@@ -8,7 +8,11 @@
             $finish; \
         end
 
+`define min(a,b) (a < b ? a : b)
+
 module testbench ();
+	localparam [2:0] LANE_WIDTH = 3'b100;
+	localparam [9:0] VLEN = 10'd128;
 	reg clk = 0;
 	reg resetn = 0;
 	wire trap;
@@ -31,7 +35,6 @@ module testbench ();
 			clk <= 0;
 			#5;
 			if (print) $display("vd : %h", vd);
-			$display("[OK]");
 		end
 
 	endtask
@@ -53,10 +56,11 @@ module testbench ();
 		#5;
 		clk <= 0;
 		#5;
-
-		repeat_loop(16, 0);
+		
+		repeat_loop(VLEN >> `min(3, LANE_WIDTH), 0);
 		`assert(done, 1'b1)
 		`assert(vd, 128'h83450301122416681224166883450301)
+		$display("[OK] 8b");
 
 		// -------------------------- 16 BITS --------------------------
 		vsew <= 3'b001;
@@ -66,9 +70,10 @@ module testbench ();
 		clk <= 0;
 		#5;
 		
-		repeat_loop(8, 0);
+		repeat_loop(VLEN >> `min(4, LANE_WIDTH), 0);
 		`assert(done, 1'b1)
 		`assert(vd, 128'h83450301122416681224166883450301)
+		$display("[OK] 16b");
 
 		// -------------------------- 32 BITS --------------------------
 		vsew <= 3'b010;
@@ -78,9 +83,10 @@ module testbench ();
 		clk <= 0;
 		#5;
 		
-		repeat_loop(4, 0);
+		repeat_loop(VLEN >> `min(5, LANE_WIDTH), 0);
 		`assert(done, 1'b1)
 		`assert(vd, 128'h83450301122416681224166883450301)
+		$display("[OK] 32b");
 		
 		// -------------------------- 64 BITS --------------------------
 		vsew <= 3'b011;
@@ -90,9 +96,10 @@ module testbench ();
 		clk <= 0;
 		#5;
 		
-		repeat_loop(4, 0);
+		repeat_loop(VLEN >> `min(6, LANE_WIDTH), 0);
 		`assert(done, 1'b1)
 		`assert(vd, 128'h83450301122416681224166883450301)
+		$display("[OK] 64b");
 
 
 
@@ -123,6 +130,8 @@ module testbench ();
 	wire done;
 
 	vec_alu #(
+		.VLEN (VLEN),
+		.LANE_WIDTH (LANE_WIDTH),
 		.NB_LANES (2'b00),
 		.LANE_I (3'b000)
 	) valu0 (
