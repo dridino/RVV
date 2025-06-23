@@ -376,7 +376,17 @@ Test des différentes variantes de `vlseg{seg}e{sew}.v` :
 
 ## 18/06
 
+> vand.vv fonctionne dans l'alu vectorielle
 
+## 19/06
+
+> ALU vectorielle paramétrable (nombre et largeur des *lanes*)
+
+## 23/06
+
+> Le nombre de *lanes* est maintenant un argument et non un paramètre de l'ALU, permettant de tenir compte des cas où on a trop d'ALU par rapport au besoin (ex : VLEN=128, SEW=64 et NB_LANES=4, on a un potentiel de 4x64=256 bits mais seul 128 sont utilisés)
+
+> Modèle fonctionne avec toutes les combinaisons (largeur x nb) : `(8b,16b,32b,64b) x (1,2,4)`
 
 ## Améliorations
 
