@@ -14,15 +14,20 @@
 module testbench ();
 	localparam [2:0] LANE_WIDTH = 3'b101;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-	localparam [1:0] NB_LANES = 2'b10;
+	localparam [1:0] NB_LANES = 2'b01;
 	localparam [9:0] VLEN = 10'd128;
-	localparam [4:0] IMM = 5'b01111;
-	localparam [31:0] RS1 = 32'hFFFFFFFF;
+	localparam [4:0] IMM = 5'b00001;
+	localparam [31:0] RS1 = 32'h00000001;
 	
-	localparam [2:0] OP_TYPE = 3'b001;
+	localparam [2:0] OP_TYPE = 3'b100;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
+
+	localparam [5:0] VAND = 6'b001001;
+	localparam [5:0] VOR = 6'b001010;
+	localparam [5:0] VXOR = 6'b001011;
+	localparam [5:0] VADD = 6'b000000;
 
 	reg clk = 0;
 	reg resetn = 0;
@@ -152,7 +157,7 @@ module testbench ();
 			#5;
 		end
 		resetn <= 1;
-		opcode <= 6'b001011;
+		opcode <= VADD;
 		case (OP_TYPE)
 			VV: vs1 <= 128'habcdabcdbeefbeef1234567887654321;
 			VX: vs1 <= {{96{RS1[31]}}, RS1};
@@ -185,6 +190,8 @@ module testbench ();
 		if (nb_lanes >= 2) `assert(done2, 1'b1)
 		if (nb_lanes >= 2) `assert(done3, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
+		// add.vv
+		// 3232eeeed0231467d02314673232eeee
 		$display("[OK] 8b");
 
 		// -------------------------- 16 BITS --------------------------
@@ -212,6 +219,8 @@ module testbench ();
 		if (nb_lanes >= 2) `assert(done2, 1'b1)
 		if (nb_lanes >= 2) `assert(done3, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
+		// add.vv
+		// 3332eeeed1231567d12315673332eeee
 		$display("[OK] 16b");
 
 		// -------------------------- 32 BITS --------------------------
@@ -239,6 +248,8 @@ module testbench ();
 		if (nb_lanes >= 2) `assert(done2, 1'b1)
 		if (nb_lanes >= 2) `assert(done3, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
+		// add.vv
+		// 3332eeeed1241567d12415673332eeee
 		$display("[OK] 32b");
 		
 		// -------------------------- 64 BITS --------------------------
@@ -266,6 +277,8 @@ module testbench ();
 		if (nb_lanes >= 2) `assert(done2, 1'b1)
 		if (nb_lanes >= 2) `assert(done3, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
+		// add.vv
+		// 3332eeeed1241567d12415683332eeee
 		$display("[OK] 64b");
 
 
@@ -293,8 +306,8 @@ module testbench ();
 		.nb_lanes(nb_lanes),
 		.opcode(opcode),
 		.run(run0),
-		.vs1(vs1),
-		.vs2(vs2),
+		.vs1_in(vs1),
+		.vs2_in(vs2),
 		.vsew(vsew),
 		.op_type(OP_TYPE),
 		.vd(vd0),
@@ -312,8 +325,8 @@ module testbench ();
 		.nb_lanes(nb_lanes),
 		.opcode(opcode),
 		.run(run1),
-		.vs1(vs1),
-		.vs2(vs2),
+		.vs1_in(vs1),
+		.vs2_in(vs2),
 		.vsew(vsew),
 		.op_type(OP_TYPE),
 		.vd(vd1),
@@ -331,8 +344,8 @@ module testbench ();
 		.nb_lanes(nb_lanes),
 		.opcode(opcode),
 		.run(run2),
-		.vs1(vs1),
-		.vs2(vs2),
+		.vs1_in(vs1),
+		.vs2_in(vs2),
 		.vsew(vsew),
 		.op_type(OP_TYPE),
 		.vd(vd2),
@@ -350,8 +363,8 @@ module testbench ();
 		.nb_lanes(nb_lanes),
 		.opcode(opcode),
 		.run(run3),
-		.vs1(vs1),
-		.vs2(vs2),
+		.vs1_in(vs1),
+		.vs2_in(vs2),
 		.vsew(vsew),
 		.op_type(OP_TYPE),
 		.vd(vd3),
