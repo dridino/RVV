@@ -152,7 +152,7 @@ module testbench ();
 			#5;
 		end
 		resetn <= 1;
-		opcode <= 6'b001001;
+		opcode <= 6'b001011;
 		case (OP_TYPE)
 			VV: vs1 <= 128'habcdabcdbeefbeef1234567887654321;
 			VX: vs1 <= {{96{1'b0}}, RS1};

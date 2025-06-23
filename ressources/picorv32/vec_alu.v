@@ -45,6 +45,8 @@ module vec_alu #(
                         case (opcode)
                             // vand
                             6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2[index +: SHIFTED_LANE_WIDTH];
                         endcase
                         if (LANE_WIDTH >= vsew+3)
                             vd[index +: 8] = temp_vreg[0 +: 8];
@@ -54,6 +56,8 @@ module vec_alu #(
                         case (opcode)
                             // vand
                             6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2[index +: SHIFTED_LANE_WIDTH];
                         endcase
                         if (LANE_WIDTH >= vsew+3)
                             vd[index +: 16] = temp_vreg[0 +: 16];
@@ -63,6 +67,8 @@ module vec_alu #(
                         case (opcode)
                             // vand
                             6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2[index +: SHIFTED_LANE_WIDTH]);
+                            6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2[index +: SHIFTED_LANE_WIDTH]);
+                            6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2[index +: SHIFTED_LANE_WIDTH]);
                         endcase
                         if (LANE_WIDTH >= vsew+3)
                             vd[index +: 32] = temp_vreg[0 +: 32];
@@ -72,6 +78,8 @@ module vec_alu #(
                         case (opcode)
                             // vand
                             6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2[index +: SHIFTED_LANE_WIDTH];
+                            6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2[index +: SHIFTED_LANE_WIDTH];
                         endcase
                         if (LANE_WIDTH >= vsew+3)
                             vd[index +: 64] = temp_vreg[0 +: 64];
