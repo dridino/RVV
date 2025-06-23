@@ -155,8 +155,8 @@ module testbench ();
 		opcode <= 6'b001011;
 		case (OP_TYPE)
 			VV: vs1 <= 128'habcdabcdbeefbeef1234567887654321;
-			VX: vs1 <= {{96{1'b0}}, RS1};
-			VI: vs1 <= {{123{1'b0}}, IMM};
+			VX: vs1 <= {{96{RS1[31]}}, RS1};
+			VI: vs1 <= {{123{IMM[4]}}, IMM};
 		endcase
 		vs2 <= 128'h8765432112345678beefbeefabcdabcd;
 		
