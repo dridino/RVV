@@ -1,0 +1,6 @@
+# yosys synthesis script for post-synthesis simulation (make test_vec_alu_synth)
+
+read_verilog vec_alu.v
+hierarchy -top vec_alu
+synth
+write_verilog vec_alu_synth.v

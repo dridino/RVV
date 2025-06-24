@@ -24,7 +24,23 @@ COMPRESSED_ISA = C
 GIT_ENV = true
 
 test_vec_alu: testbench_vec_alu.vvp
+	$(VVP) -N $<
+	
+test_vec_alu_vcd: testbench_vec_alu.vvp
 	$(VVP) -N $< +vcd +trace +noerror
+
+test_vec_alu_synth: testbench_vec_alu_synth.vvp
+	$(VVP) -N $<
+	
+test_vec_alu_synth_vcd: testbench_vec_alu_synth.vvp
+	$(VVP) -N $< +vcd +trace +noerror
+
+testbench_vec_alu_synth.vvp: testbench_vec_alu.v vec_alu_synth.v
+	$(IVERILOG) -o $@ -DSYNTH_TEST $^
+	chmod -x $@
+
+vec_alu_synth.v: vec_alu.v scripts/yosys/alu_synth_sim.ys
+	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
 testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^

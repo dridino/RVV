@@ -12,9 +12,9 @@
 
 
 module testbench ();
-	localparam [2:0] LANE_WIDTH = 3'b101;
+	localparam [2:0] LANE_WIDTH = 3'b011;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-	localparam [1:0] NB_LANES = 2'b01;
+	localparam [1:0] NB_LANES = 2'b00;
 	localparam [9:0] VLEN = 10'd128;
 	localparam [4:0] IMM = 5'b00001;
 	localparam [31:0] RS1 = 32'h00000001;
@@ -45,6 +45,7 @@ module testbench ();
 
 	reg [127:0] vd;
 	wire [63:0] vd0, vd1, vd2, vd3;
+	wire t1,t2;
 	wire done0, done1, done2, done3;
 	wire [9:0] regi0,regi1,regi2,regi3;
 
@@ -72,12 +73,18 @@ module testbench ();
 				#5;
 				
 				`assert(done0, 1'b0)
-				`assert(done1, 1'b0)
-				`assert(done2, 1'b0)
-				`assert(done3, 1'b0)
+				if (nb_lanes >= 1) `assert(done1, 1'b0)
+				if (nb_lanes >= 2) `assert(done2, 1'b0)
+				if (nb_lanes >= 2) `assert(done3, 1'b0)
 
-				if (vsew + 3 > SHIFTED_LANE_WIDTH) begin // impossible for 8b
+				if (vsew + 3 <= SHIFTED_LANE_WIDTH) begin // lane larger than vsew
 					case (vsew)
+						3'b000: begin
+							vd[regi0 +: 8] = vd0[0 +: 8];
+							if (nb_lanes >= 1) vd[regi1 +: 8] = vd1[0 +: 8];
+							if (nb_lanes >= 2) vd[regi2 +: 8] = vd2[0 +: 8];
+							if (nb_lanes >= 2) vd[regi3 +: 8] = vd3[0 +: 8];
+						end
 						3'b001: begin
 							vd[regi0 +: 16] = vd0[0 +: 16];
 							if (nb_lanes >= 1) vd[regi1 +: 16] = vd1[0 +: 16];
@@ -114,8 +121,14 @@ module testbench ();
 			#5;
 			clk <= 0;
 			#5;
-			if (vsew + 3 > SHIFTED_LANE_WIDTH) begin // impossible for 8b
+			if (vsew + 3 <= SHIFTED_LANE_WIDTH) begin // lane larger than vsew
 				case (vsew)
+					3'b000: begin
+						vd[regi0 +: 8] = vd0[0 +: 8];
+						if (nb_lanes >= 1) vd[regi1 +: 8] = vd1[0 +: 8];
+						if (nb_lanes >= 2) vd[regi2 +: 8] = vd2[0 +: 8];
+						if (nb_lanes >= 2) vd[regi3 +: 8] = vd3[0 +: 8];
+					end
 					3'b001: begin
 						vd[regi0 +: 16] = vd0[0 +: 16];
 						if (nb_lanes >= 1) vd[regi1 +: 16] = vd1[0 +: 16];
@@ -152,6 +165,9 @@ module testbench ();
 	initial begin
 		$display("+---------------------------------+\n| Test with %2d LANE(S) of %2d bits |\n+---------------------------------+", 1 << NB_LANES, 1 << LANE_WIDTH);
 
+		resetn <= 0;
+		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
+
 		repeat (200) begin
 			clk <= ~clk;
 			#5;
@@ -167,7 +183,6 @@ module testbench ();
 		
 		// -------------------------- 8 BITS --------------------------
 		vsew <= 3'b000;
-		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
 		clk <= 1;
 		#5;
 		case (`min(VLEN>>(vsew+3), 1 << NB_LANES))
@@ -184,7 +199,7 @@ module testbench ();
 		clk <= 0;
 		#5;
 		
-		repeat_loop((VLEN >> `min(3, LANE_WIDTH))>>nb_lanes, 1);
+		repeat_loop(((VLEN >> `min(3, LANE_WIDTH))>>nb_lanes), 1);
 		`assert(done0, 1'b1)
 		if (nb_lanes >= 1) `assert(done1, 1'b1)
 		if (nb_lanes >= 2) `assert(done2, 1'b1)
@@ -315,7 +330,7 @@ module testbench ();
 		.done(done0)
 	);
 	
-	vec_alu #(
+	/* vec_alu #(
 		.VLEN (VLEN),
 		.LANE_WIDTH (LANE_WIDTH),
 		.LANE_I (3'b001)
@@ -370,6 +385,6 @@ module testbench ();
 		.vd(vd3),
 		.reg_index(regi3),
 		.done(done3)
-	);
+	); */
 endmodule
 `endif

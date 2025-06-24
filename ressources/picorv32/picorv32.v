@@ -3272,10 +3272,10 @@ module picorv32_pcpi_rvv #(
 	reg arith_vv;
 	reg arith_vi;
 	reg arith_vs;
-
+integer i;
 	initial begin
 		if (REGS_INIT_ZERO) begin
-			for (integer i = 0; i < regfile_size; i = i+1)
+			for (i = 0; i < regfile_size; i = i+1)
 				vregs[i] = 0;
 		end
 	end
