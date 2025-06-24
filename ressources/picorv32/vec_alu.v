@@ -13,9 +13,9 @@ module vec_alu #(
     input      [2:0]    vsew,
     input      [2:0]    op_type, // 001 : vv | 010 : VX | 100 : VI
 
-    output reg [VLEN-1:0] vd,
-    output reg [9:0] reg_index,
-    output reg          done
+    output [63:0] vd,
+    output [9:0] reg_index,
+    output reg       done
 );
     localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
     localparam [8:0] ADD_SHIFTED_LANE_WIDTH = SHIFTED_LANE_WIDTH + 1;
@@ -34,6 +34,10 @@ module vec_alu #(
     reg [63:0] vs1;
     reg [63:0] vs2;
 
+    assign reg_index = index;
+
+    assign vd = temp_vreg[0 +: 64];
+
     always @(posedge clk) begin
         if (!resetn) begin
             byte_i <= 0;
@@ -43,7 +47,7 @@ module vec_alu #(
             vs1 <= 0;
             vs2 <= 0;
             done <= 0;
-            reg_index <= 0;
+            index = 0;
         end else if (run) begin
             if (!done) begin
                 index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
@@ -86,28 +90,6 @@ module vec_alu #(
                     end
                 endcase
 
-                case (vsew)
-                    // 8 bits
-                    3'b000: 
-                        if (LANE_WIDTH >= vsew+3)
-                            vd[index +: 8] = temp_vreg[0 +: 8];
-                    // 16 bits
-                    3'b001: 
-                        if (LANE_WIDTH >= vsew+3)
-                            vd[index +: 16] = temp_vreg[0 +: 16];
-                    // 32 bits
-                    3'b010: 
-                        if (LANE_WIDTH >= vsew+3)
-                            vd[index +: 32] = temp_vreg[0 +: 32];
-                    // 64 bits
-                    3'b011: 
-                        if (LANE_WIDTH >= vsew+3)
-                            vd[index +: 64] = temp_vreg[0 +: 64];
-                endcase
-
-                if (LANE_WIDTH < vsew+3)
-                    vd[index +: SHIFTED_LANE_WIDTH] = temp_vreg[0 +: SHIFTED_LANE_WIDTH];
-
                 // $display("lane%d byte_i : %d, reg_off : %d, index : %d", LANE_I, byte_i, in_reg_offset, index);
                 done <= byte_i + (1 << nb_lanes) == (VLEN >> (vsew+3)) && in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1);
 
@@ -119,17 +101,12 @@ module vec_alu #(
 
                 if (in_reg_offset == 0)
                     cout <= 0;
-                
-                reg_index <= index;
             end
         end else begin
             byte_i <= 0;
             in_reg_offset <= 0;
             done <= 0;
-            reg_index <= 0;
-            
-            // FOR TESTS ONLY
-            vd <= 0;
+            index = 0;
         end
     end
 endmodule

@@ -24,7 +24,7 @@ COMPRESSED_ISA = C
 GIT_ENV = true
 
 test_vec_alu: testbench_vec_alu.vvp
-	$(VVP) -N $<
+	$(VVP) -N $< +vcd +trace +noerror
 
 testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
