@@ -31,8 +31,8 @@ module vec_alu #(
 
     integer index;
 
-    wire [VLEN+63:0] vs1 = {{32{1'b0}}, vs1_in};
-    wire [VLEN+63:0] vs2 = {{32{1'b0}}, vs2_in};
+    reg [63:0] vs1;
+    reg [63:0] vs2;
 
     always @(posedge clk) begin
         if (!resetn) begin
@@ -40,22 +40,47 @@ module vec_alu #(
             temp_vreg <= 0;
             in_reg_offset <= 0;
             cout <= 0;
+            vs1 <= 0;
+            vs2 <= 0;
             done <= 0;
             reg_index <= 0;
         end else if (run) begin
             if (!done) begin
                 index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
                 
+                case (vsew)
+                    // 8 bits
+                    3'b000: begin
+                        vs1 = {{56{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]};
+                        vs2 = {{56{1'b0}}, vs2_in[index +: 8]};
+                    end
+                    // 16 bits
+                    3'b001: begin
+                        vs1 = {{48{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 16]};
+                        vs2 = {{48{1'b0}}, vs2_in[index +: 16]};
+                    end
+                    // 32 bits
+                    3'b010: begin
+                        vs1 = {{32{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 32]};
+                        vs2 = {{32{1'b0}}, vs2_in[index +: 32]};
+                    end
+                    // 64 bits
+                    3'b011: begin
+                        vs1 = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 64];
+                        vs2 = vs2_in[index +: 64];
+                    end
+                endcase
+
                 case (opcode)
                     // vand
-                    6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2[index +: SHIFTED_LANE_WIDTH];
+                    6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] & vs2[0 +: SHIFTED_LANE_WIDTH];
                     // vor
-                    6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2[index +: SHIFTED_LANE_WIDTH];
+                    6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] | vs2[0 +: SHIFTED_LANE_WIDTH];
                     // vxor
-                    6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2[index +: SHIFTED_LANE_WIDTH];
+                    6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] ^ vs2[0 +: SHIFTED_LANE_WIDTH];
                     // vadd
                     6'b000000: begin
-                        temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2[index +: SHIFTED_LANE_WIDTH] + cout;
+                        temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] + vs2[0 +: SHIFTED_LANE_WIDTH] + cout;
                         cout = temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
                         temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1] = 1'b0;
                     end
@@ -79,7 +104,7 @@ module vec_alu #(
                         if (LANE_WIDTH >= vsew+3)
                             vd[index +: 64] = temp_vreg[0 +: 64];
                 endcase
-                
+
                 if (LANE_WIDTH < vsew+3)
                     vd[index +: SHIFTED_LANE_WIDTH] = temp_vreg[0 +: SHIFTED_LANE_WIDTH];
 
