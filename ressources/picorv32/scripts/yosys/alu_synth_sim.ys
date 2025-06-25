@@ -1,6 +1,7 @@
 # yosys synthesis script for post-synthesis simulation (make test_vec_alu_synth)
 
 read_verilog vec_alu.v
-hierarchy -top vec_alu
+read_verilog vec_alu_wrapper.v
+hierarchy -top vec_alu_wrapper
 synth
-write_verilog vec_alu_synth.v
+write_verilog vec_alu_wrapper_synth.v

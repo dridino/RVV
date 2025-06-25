@@ -12,9 +12,9 @@
 
 
 module testbench ();
-	localparam [2:0] LANE_WIDTH = 3'b011;
+	localparam [2:0] LANE_WIDTH = 3'b100;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-	localparam [1:0] NB_LANES = 2'b00;
+	localparam [1:0] NB_LANES = 2'b10;
 	localparam [9:0] VLEN = 10'd128;
 	localparam [4:0] IMM = 5'b00001;
 	localparam [31:0] RS1 = 32'h00000001;
@@ -77,7 +77,7 @@ module testbench ();
 				if (nb_lanes >= 2) `assert(done2, 1'b0)
 				if (nb_lanes >= 2) `assert(done3, 1'b0)
 
-				if (vsew + 3 <= SHIFTED_LANE_WIDTH) begin // lane larger than vsew
+				if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 					case (vsew)
 						3'b000: begin
 							vd[regi0 +: 8] = vd0[0 +: 8];
@@ -121,7 +121,7 @@ module testbench ();
 			#5;
 			clk <= 0;
 			#5;
-			if (vsew + 3 <= SHIFTED_LANE_WIDTH) begin // lane larger than vsew
+			if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 				case (vsew)
 					3'b000: begin
 						vd[regi0 +: 8] = vd0[0 +: 8];
@@ -295,10 +295,6 @@ module testbench ();
 		// add.vv
 		// 3332eeeed1241567d12415683332eeee
 		$display("[OK] 64b");
-
-
-
-		
 	end
 
 	initial begin
@@ -311,7 +307,37 @@ module testbench ();
 		$finish;
 	end
 
-	vec_alu #(
+	vec_alu_wrapper #(
+		.VLEN(VLEN),
+		.LANE_WIDTH(LANE_WIDTH)
+	) valu_wrapper (
+		.clk(clk),
+		.resetn(resetn),
+		.nb_lanes(nb_lanes),
+		.opcode(opcode),
+		.run0(run0),
+		.run1(run1),
+		.run2(run2),
+		.run3(run3),
+		.vs1(vs1),
+		.vs2(vs2),
+		.vsew(vsew),
+		.op_type(OP_TYPE),
+		.vd0(vd0),
+		.vd1(vd1),
+		.vd2(vd2),
+		.vd3(vd3),
+		.regi0(regi0),
+		.regi1(regi1),
+		.regi2(regi2),
+		.regi3(regi3),
+		.done0(done0),
+		.done1(done1),
+		.done2(done2),
+		.done3(done3)
+	);
+
+	/* vec_alu #(
 		.VLEN (VLEN),
 		.LANE_WIDTH (LANE_WIDTH),
 		.LANE_I (3'b000)
@@ -330,7 +356,7 @@ module testbench ();
 		.done(done0)
 	);
 	
-	/* vec_alu #(
+	vec_alu #(
 		.VLEN (VLEN),
 		.LANE_WIDTH (LANE_WIDTH),
 		.LANE_I (3'b001)

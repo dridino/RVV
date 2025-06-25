@@ -35,11 +35,11 @@ test_vec_alu_synth: testbench_vec_alu_synth.vvp
 test_vec_alu_synth_vcd: testbench_vec_alu_synth.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
-testbench_vec_alu_synth.vvp: testbench_vec_alu.v vec_alu_synth.v
+testbench_vec_alu_synth.vvp: testbench_vec_alu.v vec_alu_wrapper_synth.v vec_alu.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
-vec_alu_synth.v: vec_alu.v scripts/yosys/alu_synth_sim.ys
+vec_alu_wrapper_synth.v: vec_alu_wrapper.v scripts/yosys/alu_synth_sim.ys vec_alu.v
 	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
 testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu.v
@@ -209,6 +209,7 @@ clean:
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp \
 		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench.trace \
-		testbench_verilator testbench_verilator_dir
+		testbench_verilator testbench_verilator_dir \
+		vec_alu_wrapper_synth.v testbench_vec_alu_synth.vvp
 
 .PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth download-tools build-tools toc clean

@@ -388,6 +388,14 @@ Test des différentes variantes de `vlseg{seg}e{sew}.v` :
 
 > Modèle fonctionne avec toutes les combinaisons (largeur x nb) : `(8b,16b,32b,64b) x (1,2,4)`
 
+## 24/06
+
+> L'ALU est maintenant synthétisable
+
+## 25/06
+
+
+
 ## Améliorations
 
 ### Non-implémenté
