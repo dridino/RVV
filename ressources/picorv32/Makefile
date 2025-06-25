@@ -42,7 +42,7 @@ testbench_vec_alu_synth.vvp: testbench_vec_alu.v vec_alu_wrapper_synth.v vec_alu
 vec_alu_wrapper_synth.v: vec_alu_wrapper.v scripts/yosys/alu_synth_sim.ys vec_alu.v
 	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
-testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu.v
+testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu_wrapper.v vec_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 

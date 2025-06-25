@@ -34,8 +34,8 @@ module vec_alu #(
 
     integer index;
 
-    reg [63:0] vs1;
-    reg [63:0] vs2;
+    /* reg [63:0] vs1;
+    reg [63:0] vs2; */
 
     assign reg_index = index;
 
@@ -45,27 +45,27 @@ module vec_alu #(
         if (!resetn) begin
             temp_vreg = {65{1'b0}};
             // cout = 0;
-            vs1 = 0;
-            vs2 = 0;
+            /* vs1 = 0;
+            vs2 = 0; */
             index = 0;
         end else if (run) begin
             index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
                 
-            case (vsew)
+            /* case (vsew)
                 // 8 bits
                 3'b000: begin
-                    vs1 = {{56{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]};
-                    vs2 = {{56{1'b0}}, vs2_in[index +: 8]};
+                    vs1 = {{56{vs1_in[index + 8]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]};
+                    vs2 = {{56{vs2_in[index + 8]}}, vs2_in[index +: 8]};
                 end
                 // 16 bits
                 3'b001: begin
-                    vs1 = {{48{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 16]};
-                    vs2 = {{48{1'b0}}, vs2_in[index +: 16]};
+                    vs1 = {{48{vs1_in[index + 16]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 16]};
+                    vs2 = {{48{vs2_in[index + 16]}}, vs2_in[index +: 16]};
                 end
                 // 32 bits
                 3'b010: begin
-                    vs1 = {{32{1'b0}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 32]};
-                    vs2 = {{32{1'b0}}, vs2_in[index +: 32]};
+                    vs1 = {{32{vs1_in[index + 32]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 32]};
+                    vs2 = {{32{vs2_in[index + 32]}}, vs2_in[index +: 32]};
                 end
                 // 64 bits
                 3'b011: begin
@@ -76,27 +76,27 @@ module vec_alu #(
                     vs1 = 0;
                     vs2 = 0;
                 end
-            endcase
+            endcase */
             temp_vreg = 0;
             case (opcode)
                 // vand
                 6'b001001: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] & vs2[0 +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2_in[index +: SHIFTED_LANE_WIDTH];
                     // cout = 0;
                 end
                 // vor
                 6'b001010: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] | vs2[0 +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2_in[index +: SHIFTED_LANE_WIDTH];
                     // cout = 0;
                 end
                 // vxor
                 6'b001011: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] ^ vs2[0 +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2_in[index +: SHIFTED_LANE_WIDTH];
                     // cout = 0;
                 end
                 // vadd
                 6'b000000: begin
-                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1[0 +: SHIFTED_LANE_WIDTH] + vs2[0 +: SHIFTED_LANE_WIDTH] + cout_q;
+                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2_in[index +: SHIFTED_LANE_WIDTH] + cout_q;
                     // cout = temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
                     // temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1] = 1'b0;
                 end
@@ -113,8 +113,8 @@ module vec_alu #(
         end else begin
             temp_vreg = 0;
             // cout = 0;
-            vs1 = 0;
-            vs2 = 0;
+            /* vs1 = 0;
+            vs2 = 0; */
             index = 0;
         end
     end
