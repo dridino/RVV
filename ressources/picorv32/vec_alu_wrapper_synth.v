@@ -18901,20 +18901,12 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
   input clk;
   (* src = "vec_alu_wrapper.v:16" *)
   output done0;
-  (* src = "vec_alu_wrapper.v:19" *)
-  wire done0_q;
   (* src = "vec_alu_wrapper.v:16" *)
   output done1;
-  (* src = "vec_alu_wrapper.v:19" *)
-  wire done1_q;
   (* src = "vec_alu_wrapper.v:16" *)
   output done2;
-  (* src = "vec_alu_wrapper.v:19" *)
-  wire done2_q;
   (* src = "vec_alu_wrapper.v:16" *)
   output done3;
-  (* src = "vec_alu_wrapper.v:19" *)
-  wire done3_q;
   (* src = "vec_alu_wrapper.v:6" *)
   input [1:0] nb_lanes;
   (* src = "vec_alu_wrapper.v:12" *)
@@ -18956,7 +18948,7 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
   (* src = "vec_alu_wrapper.v:26" *)
   \$paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'000  valu0 (
     .clk(clk),
-    .done(done0_q),
+    .done(done0),
     .nb_lanes(nb_lanes),
     .op_type(op_type),
     .opcode(opcode),
@@ -18971,7 +18963,7 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
   (* src = "vec_alu_wrapper.v:45" *)
   \$paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'001  valu1 (
     .clk(clk),
-    .done(done1_q),
+    .done(done1),
     .nb_lanes(nb_lanes),
     .op_type(op_type),
     .opcode(opcode),
@@ -18986,7 +18978,7 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
   (* src = "vec_alu_wrapper.v:64" *)
   \$paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'010  valu2 (
     .clk(clk),
-    .done(done2_q),
+    .done(done2),
     .nb_lanes(nb_lanes),
     .op_type(op_type),
     .opcode(opcode),
@@ -19001,7 +18993,7 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
   (* src = "vec_alu_wrapper.v:83" *)
   \$paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'011  valu3 (
     .clk(clk),
-    .done(done3_q),
+    .done(done3),
     .nb_lanes(nb_lanes),
     .op_type(op_type),
     .opcode(opcode),
@@ -19013,8 +19005,4 @@ module vec_alu_wrapper(clk, resetn, nb_lanes, opcode, run0, run1, run2, run3, vs
     .vs2_in(vs2),
     .vsew(vsew)
   );
-  assign done0 = done0_q;
-  assign done1 = done1_q;
-  assign done2 = done2_q;
-  assign done3 = done3_q;
 endmodule

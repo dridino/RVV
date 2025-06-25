@@ -394,7 +394,7 @@ Test des différentes variantes de `vlseg{seg}e{sew}.v` :
 
 ## 25/06
 
-
+> ALU marche avec plusieurs lanes en passant par un wrapper
 
 ## Améliorations
 

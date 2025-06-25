@@ -15,14 +15,6 @@ module vec_alu_wrapper #(
     output      [9:0]       regi0,regi1,regi2,regi3,
     output                  done0,done1,done2,done3
 );
-
-    wire done0_q, done1_q, done2_q, done3_q;
-
-    assign done0 = done0_q;
-    assign done1 = done1_q;
-    assign done2 = done2_q;
-    assign done3 = done3_q;
-
     vec_alu #(
 		.VLEN (VLEN),
 		.LANE_WIDTH (LANE_WIDTH),
@@ -39,7 +31,7 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
 		.vd(vd0),
 		.reg_index(regi0),
-		.done(done0_q)
+		.done(done0)
 	);
 	
 	vec_alu #(
@@ -58,7 +50,7 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
 		.vd(vd1),
 		.reg_index(regi1),
-		.done(done1_q)
+		.done(done1)
 	);
 	
 	vec_alu #(
@@ -77,7 +69,7 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
 		.vd(vd2),
 		.reg_index(regi2),
-		.done(done2_q)
+		.done(done2)
 	);
 	
 	vec_alu #(
@@ -96,7 +88,7 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
 		.vd(vd3),
 		.reg_index(regi3),
-		.done(done3_q)
+		.done(done3)
 	);
 
 endmodule
