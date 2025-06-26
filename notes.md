@@ -865,14 +865,24 @@ Pas de padding
 
 Conclusion : ça fonctionne sans *padding* en post-synthèse et ça génère moins de matériel, autant garder ça.
 
+## 26/06
+
+Tentative d'envoyer que des vecteurs de 64b du wrapper aux ALU contre `VLEN` bits auparavant. Résulats :
+
+- (-61%) de *wire bits* (750 vs 1900) et (-68%) de *cells* (480 vs 1500) par ALU
+- (+527%) de *wire bits* (9400 vs 1500) et (+833%) de *cells* (8823 vs 945) pour le wrapper
+- (+33%) de *wire bits* (12350 vs 9300) et (+50%) de *cells* (10700 vs 7150) pour une architecture à 4 ALU
+
+Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ainsi, Elle ne sera pas retenue et on continuera de passer les 2x128b de données.
+
 ## Réponses
 
 - regarder vcd pour l'apparition de `x` quand on déborde
     - disparaît en post-synthèse
 - impact sur le matériel de la routine ajoutant le *padding*
-    - lourd :
-        - *padding* avec des `0` : +300 *cells*, +300 *wire bits*
-        - *padding* avec le dernier bit : +1100 *cells*, +1100 *wire bits*
+    - lourd (données par ALU) :
+        - *padding* avec des `0` : +300 (+14%) *cells*, +300 (+12%) *wire bits*
+        - *padding* avec le dernier bit : +1100 (+52%) *cells*, +1100 (+44%) *wire bits*
     - de plus, ça ne sert à rien
 
 

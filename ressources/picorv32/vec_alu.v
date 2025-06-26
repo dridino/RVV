@@ -13,9 +13,12 @@ module vec_alu #(
     input      [2:0]    vsew,
     input      [2:0]    op_type, // 001 : vv | 010 : VX | 100 : VI
 
-    output [63:0] vd,
-    output [9:0] reg_index,
-    output reg       done
+    input      [9:0]    index,
+    input      [3:0]    in_reg_offset,
+
+    output [63:0] vd
+    // output [9:0] reg_index,
+    // output reg       done
 );
     localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
     localparam [7:0] SHIFTED_LANE_WIDTH_M1 = SHIFTED_LANE_WIDTH - 1;
@@ -24,104 +27,58 @@ module vec_alu #(
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
 
-    reg [9:0]  byte_i;
+    // reg [9:0]  byte_i;
     reg [64:0] temp_vreg; // 64 + 1 for carry out
-    reg [3:0]  in_reg_offset;
+    // reg [3:0]  in_reg_offset;
 
+    // set to 0 when computing a new element of the vector
     wire cout = (in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) ? 0 : temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
 
     reg cout_q;
 
-    integer index;
+    /* integer index;
 
-    /* reg [63:0] vs1;
-    reg [63:0] vs2; */
-
-    assign reg_index = index;
+    assign reg_index = index; */
 
     assign vd = temp_vreg[0 +: 64];
 
     always @* begin
         if (!resetn) begin
             temp_vreg = {65{1'b0}};
-            // cout = 0;
-            /* vs1 = 0;
-            vs2 = 0; */
-            index = 0;
+            // index = 0;
         end else if (run) begin
-            index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-                
-            /* case (vsew)
-                // 8 bits
-                3'b000: begin
-                    vs1 = {{56{vs1_in[index + 8]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]};
-                    vs2 = {{56{vs2_in[index + 8]}}, vs2_in[index +: 8]};
-                end
-                // 16 bits
-                3'b001: begin
-                    vs1 = {{48{vs1_in[index + 16]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 16]};
-                    vs2 = {{48{vs2_in[index + 16]}}, vs2_in[index +: 16]};
-                end
-                // 32 bits
-                3'b010: begin
-                    vs1 = {{32{vs1_in[index + 32]}}, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 32]};
-                    vs2 = {{32{vs2_in[index + 32]}}, vs2_in[index +: 32]};
-                end
-                // 64 bits
-                3'b011: begin
-                    vs1 = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 64];
-                    vs2 = vs2_in[index +: 64];
-                end
-                default: begin
-                    vs1 = 0;
-                    vs2 = 0;
-                end
-            endcase */
+            // index = ((LANE_I + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
             temp_vreg = 0;
             case (opcode)
                 // vand
                 6'b001001: begin
                     temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2_in[index +: SHIFTED_LANE_WIDTH];
-                    // cout = 0;
                 end
                 // vor
                 6'b001010: begin
                     temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2_in[index +: SHIFTED_LANE_WIDTH];
-                    // cout = 0;
                 end
                 // vxor
                 6'b001011: begin
                     temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2_in[index +: SHIFTED_LANE_WIDTH];
-                    // cout = 0;
                 end
                 // vadd
                 6'b000000: begin
                     temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2_in[index +: SHIFTED_LANE_WIDTH] + cout_q;
-                    // cout = temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
-                    // temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1] = 1'b0;
                 end
                 default: begin
                     temp_vreg = 0;
-                    // cout = 0;
                 end
             endcase
-
-            /* if (in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1))
-                cout = 0;
-            else
-                cout = cout; */
         end else begin
             temp_vreg = 0;
-            // cout = 0;
-            /* vs1 = 0;
-            vs2 = 0; */
-            index = 0;
+            // index = 0;
         end
     end
 
     always @(posedge clk) begin
         cout_q <= cout;
-        if (!resetn) begin
+        /* if (!resetn) begin
             byte_i <= 0;
             in_reg_offset <= 0;
             done <= 0;
@@ -145,7 +102,6 @@ module vec_alu #(
             byte_i <= 0;
             in_reg_offset <= 0;
             done <= 0;
-            // index = 0;
-        end
+        end */
     end
 endmodule
