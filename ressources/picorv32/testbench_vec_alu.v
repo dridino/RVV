@@ -14,7 +14,7 @@
 module testbench ();
 	localparam [2:0] LANE_WIDTH = 3'b100;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-	localparam [1:0] NB_LANES = 2'b00;
+	localparam [1:0] NB_LANES = 2'b10;
 	localparam [9:0] VLEN = 10'd128;
 	localparam [4:0] IMM = 5'b00001;
 	localparam [31:0] RS1 = 32'h00000001;
@@ -38,7 +38,7 @@ module testbench ();
 	integer trace_file;
 
 	reg [5:0] opcode;
-	reg	run0,run1,run2,run3;
+	reg run;
 	reg [127:0] vs1;
 	reg [127:0] vs2;
 	reg [2:0] vsew;
@@ -48,6 +48,7 @@ module testbench ();
 	wire t1,t2;
 	wire done;
 	wire [9:0] regi0,regi1,regi2,regi3;
+	wire res0,res1,res2,res3;
 
 	reg [1:0] nb_lanes;
 
@@ -57,16 +58,8 @@ module testbench ();
 		input print;
 		begin
 			vd <= 0;
-			run0 <= 1;
-			if (VLEN >> (vsew+3) > 1 && NB_LANES >= 1) run1 <= 1; else run1 <= 0;
-			if (VLEN >> (vsew+3) > 2 && NB_LANES >= 2) run2 <= 1; else run2 <= 0;
-			if (VLEN >> (vsew+3) > 3 && NB_LANES >= 2) run3 <= 1; else run3 <= 0;
+			run <= 1;
 			repeat (n-1) begin
-				run0 <= 1;
-				if (VLEN >> (vsew+3) > 1 && NB_LANES >= 1) run1 <= 1; else run1 <= 0;
-				if (VLEN >> (vsew+3) > 2 && NB_LANES >= 2) run2 <= 1; else run2 <= 0;
-				if (VLEN >> (vsew+3) > 3 && NB_LANES >= 2) run3 <= 1; else run3 <= 0;
-
 				clk <= 1;
 				#5;
 				clk <= 0;
@@ -77,41 +70,41 @@ module testbench ();
 				if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 					case (vsew)
 						3'b000: begin
-							vd[regi0 +: 8] = vd0[0 +: 8];
-							if (nb_lanes >= 1) vd[regi1 +: 8] = vd1[0 +: 8];
-							if (nb_lanes >= 2) vd[regi2 +: 8] = vd2[0 +: 8];
-							if (nb_lanes >= 2) vd[regi3 +: 8] = vd3[0 +: 8];
+							if (res0) vd[regi0 +: 8] = vd0[0 +: 8];
+							if (res1) vd[regi1 +: 8] = vd1[0 +: 8];
+							if (res2) vd[regi2 +: 8] = vd2[0 +: 8];
+							if (res3) vd[regi3 +: 8] = vd3[0 +: 8];
 						end
 						3'b001: begin
-							vd[regi0 +: 16] = vd0[0 +: 16];
-							if (nb_lanes >= 1) vd[regi1 +: 16] = vd1[0 +: 16];
-							if (nb_lanes >= 2) vd[regi2 +: 16] = vd2[0 +: 16];
-							if (nb_lanes >= 2) vd[regi3 +: 16] = vd3[0 +: 16];
+							if (res0) vd[regi0 +: 16] = vd0[0 +: 16];
+							if (res1) vd[regi1 +: 16] = vd1[0 +: 16];
+							if (res2) vd[regi2 +: 16] = vd2[0 +: 16];
+							if (res3) vd[regi3 +: 16] = vd3[0 +: 16];
 						end
 						3'b010: begin
-							vd[regi0 +: 32] = vd0[0 +: 32];
-							if (nb_lanes >= 1) vd[regi1 +: 32] = vd1[0 +: 32];
-							if (nb_lanes >= 2) vd[regi2 +: 32] = vd2[0 +: 32];
-							if (nb_lanes >= 2) vd[regi3 +: 32] = vd3[0 +: 32];
+							if (res0) vd[regi0 +: 32] = vd0[0 +: 32];
+							if (res1) vd[regi1 +: 32] = vd1[0 +: 32];
+							if (res2) vd[regi2 +: 32] = vd2[0 +: 32];
+							if (res3) vd[regi3 +: 32] = vd3[0 +: 32];
 						end
 						3'b011: begin
-							vd[regi0 +: 64] = vd0[0 +: 64];
-							if (nb_lanes >= 1) vd[regi1 +: 64] = vd1[0 +: 64];
-							if (nb_lanes >= 2) vd[regi2 +: 64] = vd2[0 +: 64];
-							if (nb_lanes >= 2) vd[regi3 +: 64] = vd3[0 +: 64];
+							if (res0) vd[regi0 +: 64] = vd0[0 +: 64];
+							if (res1) vd[regi1 +: 64] = vd1[0 +: 64];
+							if (res2) vd[regi2 +: 64] = vd2[0 +: 64];
+							if (res3) vd[regi3 +: 64] = vd3[0 +: 64];
 						end
 					endcase
 				end else begin
-					vd[regi0 +: SHIFTED_LANE_WIDTH] = vd0[0 +: SHIFTED_LANE_WIDTH];
-					if (nb_lanes >= 1) vd[regi1 +: SHIFTED_LANE_WIDTH] = vd1[0 +: SHIFTED_LANE_WIDTH];
-					if (nb_lanes >= 2) vd[regi2 +: SHIFTED_LANE_WIDTH] = vd2[0 +: SHIFTED_LANE_WIDTH];
-					if (nb_lanes >= 2) vd[regi3 +: SHIFTED_LANE_WIDTH] = vd3[0 +: SHIFTED_LANE_WIDTH];
+					if (res0) vd[regi0 +: SHIFTED_LANE_WIDTH] = vd0[0 +: SHIFTED_LANE_WIDTH];
+					if (res1) vd[regi1 +: SHIFTED_LANE_WIDTH] = vd1[0 +: SHIFTED_LANE_WIDTH];
+					if (res2) vd[regi2 +: SHIFTED_LANE_WIDTH] = vd2[0 +: SHIFTED_LANE_WIDTH];
+					if (res3) vd[regi3 +: SHIFTED_LANE_WIDTH] = vd3[0 +: SHIFTED_LANE_WIDTH];
 				end
 				
-				if (print) $display("index1 : %d", regi0);
-				if (print) $display("index2 : %d", regi1);
-				if (print) $display("index3 : %d", regi2);
-				if (print) $display("index4 : %d", regi3);
+				if (res0 && print) $display("index1 : %d", regi0);
+				if (res1 && print) $display("index2 : %d", regi1);
+				if (res2 && print) $display("index3 : %d", regi2);
+				if (res3 && print) $display("index4 : %d", regi3);
 				if (print) $display("vd : %h", vd);
 			end
 			clk <= 1;
@@ -121,40 +114,40 @@ module testbench ();
 			if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 				case (vsew)
 					3'b000: begin
-						vd[regi0 +: 8] = vd0[0 +: 8];
-						if (nb_lanes >= 1) vd[regi1 +: 8] = vd1[0 +: 8];
-						if (nb_lanes >= 2) vd[regi2 +: 8] = vd2[0 +: 8];
-						if (nb_lanes >= 2) vd[regi3 +: 8] = vd3[0 +: 8];
+						if (res0) vd[regi0 +: 8] = vd0[0 +: 8];
+						if (res1) vd[regi1 +: 8] = vd1[0 +: 8];
+						if (res2) vd[regi2 +: 8] = vd2[0 +: 8];
+						if (res3) vd[regi3 +: 8] = vd3[0 +: 8];
 					end
 					3'b001: begin
-						vd[regi0 +: 16] = vd0[0 +: 16];
-						if (nb_lanes >= 1) vd[regi1 +: 16] = vd1[0 +: 16];
-						if (nb_lanes >= 2) vd[regi2 +: 16] = vd2[0 +: 16];
-						if (nb_lanes >= 2) vd[regi3 +: 16] = vd3[0 +: 16];
+						if (res0) vd[regi0 +: 16] = vd0[0 +: 16];
+						if (res1) vd[regi1 +: 16] = vd1[0 +: 16];
+						if (res2) vd[regi2 +: 16] = vd2[0 +: 16];
+						if (res3) vd[regi3 +: 16] = vd3[0 +: 16];
 					end
 					3'b010: begin
-						vd[regi0 +: 32] = vd0[0 +: 32];
-						if (nb_lanes >= 1) vd[regi1 +: 32] = vd1[0 +: 32];
-						if (nb_lanes >= 2) vd[regi2 +: 32] = vd2[0 +: 32];
-						if (nb_lanes >= 2) vd[regi3 +: 32] = vd3[0 +: 32];
+						if (res0) vd[regi0 +: 32] = vd0[0 +: 32];
+						if (res1) vd[regi1 +: 32] = vd1[0 +: 32];
+						if (res2) vd[regi2 +: 32] = vd2[0 +: 32];
+						if (res3) vd[regi3 +: 32] = vd3[0 +: 32];
 					end
 					3'b011: begin
-						vd[regi0 +: 64] = vd0[0 +: 64];
-						if (nb_lanes >= 1) vd[regi1 +: 64] = vd1[0 +: 64];
-						if (nb_lanes >= 2) vd[regi2 +: 64] = vd2[0 +: 64];
-						if (nb_lanes >= 2) vd[regi3 +: 64] = vd3[0 +: 64];
+						if (res0) vd[regi0 +: 64] = vd0[0 +: 64];
+						if (res1) vd[regi1 +: 64] = vd1[0 +: 64];
+						if (res2) vd[regi2 +: 64] = vd2[0 +: 64];
+						if (res3) vd[regi3 +: 64] = vd3[0 +: 64];
 					end
 				endcase
 			end else begin
-				vd[regi0 +: SHIFTED_LANE_WIDTH] = vd0[0 +: SHIFTED_LANE_WIDTH];
-				if (nb_lanes >= 1) vd[regi1 +: SHIFTED_LANE_WIDTH] = vd1[0 +: SHIFTED_LANE_WIDTH];
-				if (nb_lanes >= 2) vd[regi2 +: SHIFTED_LANE_WIDTH] = vd2[0 +: SHIFTED_LANE_WIDTH];
-				if (nb_lanes >= 2) vd[regi3 +: SHIFTED_LANE_WIDTH] = vd3[0 +: SHIFTED_LANE_WIDTH];
+				if (res0) vd[regi0 +: SHIFTED_LANE_WIDTH] = vd0[0 +: SHIFTED_LANE_WIDTH];
+				if (res1) vd[regi1 +: SHIFTED_LANE_WIDTH] = vd1[0 +: SHIFTED_LANE_WIDTH];
+				if (res2) vd[regi2 +: SHIFTED_LANE_WIDTH] = vd2[0 +: SHIFTED_LANE_WIDTH];
+				if (res3) vd[regi3 +: SHIFTED_LANE_WIDTH] = vd3[0 +: SHIFTED_LANE_WIDTH];
 			end
-			if (print) $display("index1 : %d", regi0);
-			if (print) $display("index2 : %d", regi1);
-			if (print) $display("index3 : %d", regi2);
-			if (print) $display("index4 : %d", regi3);
+			if (res0 && print) $display("index1 : %d", regi0);
+			if (res1 && print) $display("index2 : %d", regi1);
+			if (res2 && print) $display("index3 : %d", regi2);
+			if (res3 && print) $display("index4 : %d", regi3);
 			if (print) $display("vd : %h", vd);
 		end
 	endtask
@@ -163,7 +156,7 @@ module testbench ();
 		$display("+---------------------------------+\n| Test with %2d LANE(S) of %2d bits |\n+---------------------------------+", 1 << NB_LANES, 1 << LANE_WIDTH);
 
 		resetn <= 0;
-		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
+		run <= 0;
 
 		repeat (200) begin
 			clk <= ~clk;
@@ -205,7 +198,7 @@ module testbench ();
 
 		// -------------------------- 16 BITS --------------------------
 		vsew <= 3'b001;
-		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
+		run <= 0;
 		clk <= 1;
 		#5;
 		case (`min(VLEN>>(vsew+3), 1 << NB_LANES))
@@ -231,7 +224,7 @@ module testbench ();
 
 		// -------------------------- 32 BITS --------------------------
 		vsew <= 3'b010;
-		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
+		run <= 0;
 		clk <= 1;
 		#5;
 		case (`min(VLEN>>(vsew+3), 1 << NB_LANES))
@@ -257,7 +250,7 @@ module testbench ();
 		
 		// -------------------------- 64 BITS --------------------------
 		vsew <= 3'b011;
-		run0 <= 0; run1 <= 0; run2 <= 0; run3 <= 0;
+		run <= 0;
 		clk <= 1;
 		#5;
 		case (`min(VLEN>>(vsew+3), 1 << NB_LANES))
@@ -294,16 +287,13 @@ module testbench ();
 
 	vec_alu_wrapper #(
 		.VLEN(VLEN),
-		.LANE_WIDTH(LANE_WIDTH)
+		.LANE_WIDTH(LANE_WIDTH),
+		.NB_LANES(NB_LANES)
 	) valu_wrapper (
 		.clk(clk),
 		.resetn(resetn),
-		.nb_lanes(nb_lanes),
 		.opcode(opcode),
-		.run0(run0),
-		.run1(run1),
-		.run2(run2),
-		.run3(run3),
+		.run(run),
 		.vs1(vs1),
 		.vs2(vs2),
 		.vsew(vsew),
@@ -316,6 +306,10 @@ module testbench ();
 		.regi1(regi1),
 		.regi2(regi2),
 		.regi3(regi3),
+		.res0(res0),
+		.res1(res1),
+		.res2(res2),
+		.res3(res3),
 		.done_out(done)
 	);
 endmodule

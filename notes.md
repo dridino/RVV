@@ -863,6 +863,12 @@ Pas de padding
      $_XOR_                        616
 ```
 
+impact sur le matériel de la routine ajoutant le *padding*
+- lourd (données par ALU) :
+    - *padding* avec des `0` : +300 (+14%) *cells*, +300 (+12%) *wire bits*
+    - *padding* avec le dernier bit : +1100 (+52%) *cells*, +1100 (+44%) *wire bits*
+- de plus, ça ne sert à rien
+
 Conclusion : ça fonctionne sans *padding* en post-synthèse et ça génère moins de matériel, autant garder ça.
 
 ## 26/06
@@ -874,6 +880,8 @@ Tentative d'envoyer que des vecteurs de 64b du wrapper aux ALU contre `VLEN` bit
 - (+33%) de *wire bits* (12350 vs 9300) et (+50%) de *cells* (10700 vs 7150) pour une architecture à 4 ALU
 
 Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ainsi, Elle ne sera pas retenue et on continuera de passer les 2x128b de données.
+
+> Le calcul d'indices a été déporté dans le wrapper, La répartition de quelle *lane* doit tourner est aussi faite dans le wrapper plutôt que dans le TB (et donc le module RVV), des signaux ont été ajoutés pour dire au module RVV quelle valeur a été MAJ
 
 ## Réponses
 
@@ -889,6 +897,65 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 ## Questions
 
 > L'architecture fonctionne en simu post-synthèse mais plus en simu comportementale (sûrement un problème de *timings*), on est d'accord que c'est OK ?
+
+> Deux versions du wrapper, une avec 1 seul signal indiquant la terminaison, une autre avec 1 signal par ALU. Celle avec un seul signal utilise plus de fils et cells que celle avec plusieurs, chelou ? Rattrapé par l'utilisation côté module RVV ?
+
+```
+Plusieurs signaux done
+=== vec_alu_wrapper ===
+
+   Number of wires:                910
+   Number of wire bits:           1522
+   Number of public wires:          34
+   Number of public wire bits:     634
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                945
+     $_ANDNOT_                     173
+     $_AND_                         31
+     $_AOI3_                        63
+     $_DFF_P_                       15
+     $_MUX_                        129
+     $_NAND_                        25
+     $_NOR_                         53
+     $_NOT_                         67
+     $_OAI3_                        40
+     $_ORNOT_                       61
+     $_OR_                         105
+     $_XNOR_                        33
+     $_XOR_                        146
+```
+
+```
+Un seul signal done
+=== vec_alu_wrapper ===
+
+   Number of wires:               1021
+   Number of wire bits:           1633
+   Number of public wires:          28
+   Number of public wire bits:     628
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1062
+     $_ANDNOT_                     190
+     $_AND_                         22
+     $_AOI3_                        54
+     $_AOI4_                         1
+     $_DFF_P_                       15
+     $_MUX_                        131
+     $_NAND_                        37
+     $_NOR_                         78
+     $_NOT_                         69
+     $_OAI3_                        49
+     $_ORNOT_                       69
+     $_OR_                         137
+     $_XNOR_                        38
+     $_XOR_                        168
+```
+
+- Quand je tronque le résultat de l'addition entre la retenue et un élément pour garder des additionneurs de même taille (largeur de la lane) plutôt qu'avoir un de (largeur de lane) et un 1 bit plus large, ça rajoute 100 *cells* et *wire bits* par ALU. Je le fais quand-même ou non ?
 
 ## Améliorations
 
