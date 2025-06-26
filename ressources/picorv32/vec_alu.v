@@ -105,3 +105,166 @@ module vec_alu #(
         end */
     end
 endmodule
+
+/*
+4.26. Printing statistics.
+
+=== $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'000 ===
+
+   Number of wires:               1546
+   Number of wire bits:           1949
+   Number of public wires:          15
+   Number of public wire bits:     418
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1550
+     $_ANDNOT_                     211
+     $_AND_                         19
+     $_AOI3_                        29
+     $_DFF_P_                        1
+     $_MUX_                        469
+     $_NAND_                        31
+     $_NOR_                         18
+     $_NOT_                         62
+     $_OAI3_                       198
+     $_OAI4_                        15
+     $_ORNOT_                      197
+     $_OR_                         232
+     $_XNOR_                        16
+     $_XOR_                         52
+
+=== $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'001 ===
+
+   Number of wires:               1531
+   Number of wire bits:           1886
+   Number of public wires:          15
+   Number of public wire bits:     370
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1535
+     $_ANDNOT_                     196
+     $_AND_                         18
+     $_AOI3_                        31
+     $_DFF_P_                        1
+     $_MUX_                        469
+     $_NAND_                        46
+     $_NOR_                         15
+     $_NOT_                         34
+     $_OAI3_                       184
+     $_OAI4_                        15
+     $_ORNOT_                      211
+     $_OR_                         248
+     $_XNOR_                        17
+     $_XOR_                         50
+
+=== $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'010 ===
+
+   Number of wires:               1531
+   Number of wire bits:           1886
+   Number of public wires:          15
+   Number of public wire bits:     370
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1535
+     $_ANDNOT_                     196
+     $_AND_                         18
+     $_AOI3_                        31
+     $_DFF_P_                        1
+     $_MUX_                        469
+     $_NAND_                        46
+     $_NOR_                         15
+     $_NOT_                         34
+     $_OAI3_                       184
+     $_OAI4_                        15
+     $_ORNOT_                      211
+     $_OR_                         248
+     $_XNOR_                        17
+     $_XOR_                         50
+
+=== $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'011 ===
+
+   Number of wires:               1546
+   Number of wire bits:           1949
+   Number of public wires:          15
+   Number of public wire bits:     418
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1550
+     $_ANDNOT_                     211
+     $_AND_                         19
+     $_AOI3_                        29
+     $_DFF_P_                        1
+     $_MUX_                        469
+     $_NAND_                        31
+     $_NOR_                         18
+     $_NOT_                         62
+     $_OAI3_                       198
+     $_OAI4_                        15
+     $_ORNOT_                      197
+     $_OR_                         232
+     $_XNOR_                        16
+     $_XOR_                         52
+
+=== vec_alu_wrapper ===
+
+   Number of wires:                910
+   Number of wire bits:           1522
+   Number of public wires:          34
+   Number of public wire bits:     634
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                945
+     $_ANDNOT_                     173
+     $_AND_                         31
+     $_AOI3_                        63
+     $_DFF_P_                       15
+     $_MUX_                        129
+     $_NAND_                        25
+     $_NOR_                         53
+     $_NOT_                         67
+     $_OAI3_                        40
+     $_ORNOT_                       61
+     $_OR_                         105
+     $_XNOR_                        33
+     $_XOR_                        146
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'000      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'001      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'010      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'011      1
+
+=== design hierarchy ===
+
+   vec_alu_wrapper                   1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'000      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'001      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'010      1
+     $paramod\vec_alu\VLEN=10'0010000000\LANE_WIDTH=3'100\LANE_I=3'011      1
+
+   Number of wires:               7064
+   Number of wire bits:           9192
+   Number of public wires:          94
+   Number of public wire bits:    2210
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               7111
+     $_ANDNOT_                     987
+     $_AND_                        105
+     $_AOI3_                       183
+     $_DFF_P_                       19
+     $_MUX_                       2005
+     $_NAND_                       179
+     $_NOR_                        119
+     $_NOT_                        259
+     $_OAI3_                       804
+     $_OAI4_                        60
+     $_ORNOT_                      877
+     $_OR_                        1065
+     $_XNOR_                        99
+     $_XOR_                        350
+*/

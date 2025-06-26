@@ -46,7 +46,7 @@ module testbench ();
 	reg [127:0] vd;
 	wire [63:0] vd0, vd1, vd2, vd3;
 	wire t1,t2;
-	wire done0, done1, done2, done3;
+	wire done;
 	wire [9:0] regi0,regi1,regi2,regi3;
 
 	reg [1:0] nb_lanes;
@@ -72,11 +72,8 @@ module testbench ();
 				clk <= 0;
 				#5;
 				
-				`assert(done0, 1'b0)
-				if (nb_lanes >= 1) `assert(done1, 1'b0)
-				if (nb_lanes >= 2) `assert(done2, 1'b0)
-				if (nb_lanes >= 2) `assert(done3, 1'b0)
-
+				`assert(done, 1'b0)
+				
 				if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 					case (vsew)
 						3'b000: begin
@@ -200,10 +197,7 @@ module testbench ();
 		#5;
 		
 		repeat_loop(((VLEN >> `min(3, LANE_WIDTH))>>nb_lanes), 1);
-		`assert(done0, 1'b1)
-		if (nb_lanes >= 1) `assert(done1, 1'b1)
-		if (nb_lanes >= 2) `assert(done2, 1'b1)
-		if (nb_lanes >= 2) `assert(done3, 1'b1)
+		`assert(done, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
 		// add.vv
 		// 3232eeeed0231467d02314673232eeee
@@ -229,10 +223,7 @@ module testbench ();
 		#5;
 		
 		repeat_loop((VLEN >> `min(4, LANE_WIDTH))>>nb_lanes, 1);
-		`assert(done0, 1'b1)
-		if (nb_lanes >= 1) `assert(done1, 1'b1)
-		if (nb_lanes >= 2) `assert(done2, 1'b1)
-		if (nb_lanes >= 2) `assert(done3, 1'b1)
+		`assert(done, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
 		// add.vv
 		// 3332eeeed1231567d12315673332eeee
@@ -258,10 +249,7 @@ module testbench ();
 		#5;
 		
 		repeat_loop((VLEN >> `min(5, LANE_WIDTH))>>nb_lanes, 1);
-		`assert(done0, 1'b1)
-		if (nb_lanes >= 1) `assert(done1, 1'b1)
-		if (nb_lanes >= 2) `assert(done2, 1'b1)
-		if (nb_lanes >= 2) `assert(done3, 1'b1)
+		`assert(done, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
 		// add.vv
 		// 3332eeeed1241567d12415673332eeee
@@ -287,10 +275,7 @@ module testbench ();
 		#5;
 
 		repeat_loop((VLEN >> `min(6, LANE_WIDTH))>>nb_lanes, 1);
-		`assert(done0, 1'b1)
-		if (nb_lanes >= 1) `assert(done1, 1'b1)
-		if (nb_lanes >= 2) `assert(done2, 1'b1)
-		if (nb_lanes >= 2) `assert(done3, 1'b1)
+		`assert(done, 1'b1)
 		// `assert(vd, 128'h83450301122416681224166883450301)
 		// add.vv
 		// 3332eeeed1241567d12415683332eeee
@@ -331,86 +316,7 @@ module testbench ();
 		.regi1(regi1),
 		.regi2(regi2),
 		.regi3(regi3),
-		.done0(done0),
-		.done1(done1),
-		.done2(done2),
-		.done3(done3)
+		.done_out(done)
 	);
-
-	/* vec_alu #(
-		.VLEN (VLEN),
-		.LANE_WIDTH (LANE_WIDTH),
-		.LANE_I (3'b000)
-	) valu0 (
-		.clk(clk),
-		.resetn(resetn),
-		.nb_lanes(nb_lanes),
-		.opcode(opcode),
-		.run(run0),
-		.vs1_in(vs1),
-		.vs2_in(vs2),
-		.vsew(vsew),
-		.op_type(OP_TYPE),
-		.vd(vd0),
-		.reg_index(regi0),
-		.done(done0)
-	);
-	
-	vec_alu #(
-		.VLEN (VLEN),
-		.LANE_WIDTH (LANE_WIDTH),
-		.LANE_I (3'b001)
-	) valu1 (
-		.clk(clk),
-		.resetn(resetn),
-		.nb_lanes(nb_lanes),
-		.opcode(opcode),
-		.run(run1),
-		.vs1_in(vs1),
-		.vs2_in(vs2),
-		.vsew(vsew),
-		.op_type(OP_TYPE),
-		.vd(vd1),
-		.reg_index(regi1),
-		.done(done1)
-	);
-	
-	vec_alu #(
-		.VLEN (VLEN),
-		.LANE_WIDTH (LANE_WIDTH),
-		.LANE_I (3'b010)
-	) valu2 (
-		.clk(clk),
-		.resetn(resetn),
-		.nb_lanes(nb_lanes),
-		.opcode(opcode),
-		.run(run2),
-		.vs1_in(vs1),
-		.vs2_in(vs2),
-		.vsew(vsew),
-		.op_type(OP_TYPE),
-		.vd(vd2),
-		.reg_index(regi2),
-		.done(done2)
-	);
-	
-	vec_alu #(
-		.VLEN (VLEN),
-		.LANE_WIDTH (LANE_WIDTH),
-		.LANE_I (3'b011)
-	) valu3 (
-		.clk(clk),
-		.resetn(resetn),
-		.nb_lanes(nb_lanes),
-		.opcode(opcode),
-		.run(run3),
-		.vs1_in(vs1),
-		.vs2_in(vs2),
-		.vsew(vsew),
-		.op_type(OP_TYPE),
-		.vd(vd3),
-		.reg_index(regi3),
-		.done(done3)
-	); */
 endmodule
 `endif
