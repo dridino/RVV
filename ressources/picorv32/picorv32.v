@@ -98,7 +98,7 @@ module picorv32 #(
 	parameter [9:0] VLEN = 10'd 128,
 	parameter [0:0]	ENABLE_RVV = 0,
 	// arithmetic op
-	parameter [1:0] NB_LANES = 2'b01, // 2^NB_LANES lanes used for arith op
+	parameter integer NB_LANES = 3, // 2^NB_LANES lanes used for arith op
 	parameter [2:0] LANE_WIDTH = 3'b100 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
 	// LANE_WIDTH * 2^NB_LANES must be less than or equal to VLEN
 ) (
@@ -3282,9 +3282,9 @@ module picorv32_pcpi_rvv #(
 	reg arith_vi;
 	reg arith_vs;
 	reg alu_run;
-	wire [63:0] arith_vd0, arith_vd1, arith_vd2, arith_vd3;
-	wire [9:0] arith_regi0, arith_regi1, arith_regi2, arith_regi3;
-	wire arith_res0, arith_res1, arith_res2, arith_res3;
+	wire [(64 << NB_LANES) - 1:0] arith_vd;
+	wire [(10 << NB_LANES) - 1:0] arith_regi;
+	wire [(1 << NB_LANES) - 1:0] arith_res;
 	wire arith_done;
 	reg [31:0] arith_remaining;
 	reg arith_init;
@@ -3820,52 +3820,77 @@ module picorv32_pcpi_rvv #(
 							end
 						end
 					end else if (instr_arith) begin
+						`debug_rvv($display("nb_lanes=%d", NB_LANES);)
 						`debug_rvv($display("arith : done=%b | run=%b", arith_done, alu_run);)
 						`debug_rvv($display("arith vl:%d | remaining:%d", vl, arith_remaining);)
 						`debug_rvv($display("arith step:%d", arith_step);)
-						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) > 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
+						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run) begin
 							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 								case (vsew)
 									3'b000: begin
-										if (arith_res0) temp_vreg[arith_regi0 +: 8] = arith_vd0[0 +: 8];
-										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 8] = arith_vd1[0 +: 8];
-										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 8] = arith_vd2[0 +: 8];
-										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 8] = arith_vd3[0 +: 8];
+										if (arith_res[0]) temp_vreg[arith_regi[0 +: 10] +: 8] = arith_vd[0 +: 8];
+										if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: 8] = arith_vd[64 +: 8];
+										if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: 8] = arith_vd[128 +: 8];
+										if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: 8] = arith_vd[192 +: 8];
+										if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: 8] = arith_vd[256 +: 8];
+										if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: 8] = arith_vd[320 +: 8];
+										if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: 8] = arith_vd[384 +: 8];
+										if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: 8] = arith_vd[448 +: 8];
 									end
 									3'b001: begin
-										if (arith_res0) temp_vreg[arith_regi0 +: 16] = arith_vd0[0 +: 16];
-										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 16] = arith_vd1[0 +: 16];
-										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 16] = arith_vd2[0 +: 16];
-										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 16] = arith_vd3[0 +: 16];
+										if (arith_res[0]) temp_vreg[arith_regi[0 +: 10] +: 16] = arith_vd[0 +: 16];
+										if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: 16] = arith_vd[64 +: 16];
+										if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: 16] = arith_vd[128 +: 16];
+										if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: 16] = arith_vd[192 +: 16];
+										if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: 16] = arith_vd[256 +: 16];
+										if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: 16] = arith_vd[320 +: 16];
+										if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: 16] = arith_vd[384 +: 16];
+										if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: 16] = arith_vd[448 +: 16];
 									end
 									3'b010: begin
-										if (arith_res0) temp_vreg[arith_regi0 +: 32] = arith_vd0[0 +: 32];
-										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 32] = arith_vd1[0 +: 32];
-										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 32] = arith_vd2[0 +: 32];
-										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 32] = arith_vd3[0 +: 32];
+										if (arith_res[0]) temp_vreg[arith_regi[0 +: 10] +: 32] = arith_vd[0 +: 32];
+										if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: 32] = arith_vd[64 +: 32];
+										if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: 32] = arith_vd[128 +: 32];
+										if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: 32] = arith_vd[192 +: 32];
+										if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: 32] = arith_vd[256 +: 32];
+										if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: 32] = arith_vd[320 +: 32];
+										if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: 32] = arith_vd[384 +: 32];
+										if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: 32] = arith_vd[448 +: 32];
 									end
 									3'b011: begin
-										if (arith_res0) temp_vreg[arith_regi0 +: 64] = arith_vd0[0 +: 64];
-										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 64] = arith_vd1[0 +: 64];
-										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 64] = arith_vd2[0 +: 64];
-										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 64] = arith_vd3[0 +: 64];
+										if (arith_res[0]) temp_vreg[arith_regi[0 +: 10] +: 64] = arith_vd[0 +: 64];
+										if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: 64] = arith_vd[64 +: 64];
+										if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: 64] = arith_vd[128 +: 64];
+										if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: 64] = arith_vd[192 +: 64];
+										if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: 64] = arith_vd[256 +: 64];
+										if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: 64] = arith_vd[320 +: 64];
+										if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: 64] = arith_vd[384 +: 64];
+										if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: 64] = arith_vd[448 +: 64];
 									end
 								endcase
 							end else begin
-								if (arith_res0) temp_vreg[arith_regi0 +: SHIFTED_LANE_WIDTH] = arith_vd0[0 +: SHIFTED_LANE_WIDTH];
-								if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: SHIFTED_LANE_WIDTH] = arith_vd1[0 +: SHIFTED_LANE_WIDTH];
-								if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: SHIFTED_LANE_WIDTH] = arith_vd2[0 +: SHIFTED_LANE_WIDTH];
-								if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: SHIFTED_LANE_WIDTH] = arith_vd3[0 +: SHIFTED_LANE_WIDTH];
+								if (arith_res[0]) temp_vreg[arith_regi[0+:10] +: SHIFTED_LANE_WIDTH] = arith_vd[0 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[64 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[128 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[192 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[256 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[320 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[384 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[448 +: SHIFTED_LANE_WIDTH];
 							end
 
 							vregs[vd + reg_index] = temp_vreg;
 
-							`debug_rvv(if (arith_res0) $display("index1 : %d", arith_regi0);)
-							`debug_rvv(if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) $display("index2 : %d", arith_regi1);)
-							`debug_rvv(if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) $display("index3 : %d", arith_regi2);)
-							`debug_rvv(if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) $display("index4 : %d", arith_regi3);)
+							`debug_rvv(if (arith_res[0]) $display("index1 : %d", arith_regi[0 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) $display("index2 : %d", arith_regi[10 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) $display("index3 : %d", arith_regi[20 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) $display("index4 : %d", arith_regi[30 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) $display("index5 : %d", arith_regi[40 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) $display("index6 : %d", arith_regi[50 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) $display("index7 : %d", arith_regi[60 +: 10]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) $display("index8 : %d", arith_regi[70 +: 10]);)
 							`debug_rvv($display("vd : %h", temp_vreg);)
 						end
 
@@ -3917,18 +3942,9 @@ module picorv32_pcpi_rvv #(
 		.vs2(vregs[vs2 + reg_index]),
 		.vsew(vsew),
 		.op_type({arith_vi,arith_vs,arith_vv}),
-		.vd0(arith_vd0),
-		.vd1(arith_vd1),
-		.vd2(arith_vd2),
-		.vd3(arith_vd3),
-		.regi0(arith_regi0),
-		.regi1(arith_regi1),
-		.regi2(arith_regi2),
-		.regi3(arith_regi3),
-		.res0(arith_res0),
-		.res1(arith_res1),
-		.res2(arith_res2),
-		.res3(arith_res3),
+		.vd(arith_vd),
+		.regi(arith_regi),
+		.res(arith_res),
 		.done_out(arith_done)
 	);
 endmodule

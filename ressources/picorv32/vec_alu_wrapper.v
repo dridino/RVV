@@ -2,20 +2,20 @@
 
 module vec_alu_wrapper #(
     parameter [9:0] VLEN = 10'd 128,
-    parameter [2:0] LANE_WIDTH = 3'b100,
-    parameter [1:0] NB_LANES = 2'b10
+    parameter [2:0] LANE_WIDTH = 3'b011,
+    parameter integer NB_LANES = 2
 ) (
-    input                   clk, resetn,
-    input       [5:0]       opcode,
-    input                   run,
-    input       [VLEN-1:0]  vs1,
-    input       [VLEN-1:0]  vs2,
-    input       [2:0]       vsew,
-    input       [2:0]       op_type,
+    input                               clk, resetn,
+    input       [5:0]                   opcode,
+    input                               run,
+    input       [VLEN-1:0]              vs1,
+    input       [VLEN-1:0]              vs2,
+    input       [2:0]                   vsew,
+    input       [2:0]                   op_type,
 
-    output      [63:0]      vd0,vd1,vd2,vd3,
-    output      [9:0]       regi0,regi1,regi2,regi3,
-    output                  res0,res1,res2,res3,
+    output      [(64<<NB_LANES) - 1:0]        vd,
+    output      [(10<<NB_LANES) - 1:0]         regi,
+    output      [(1<<NB_LANES) - 1:0]         res,
     output                  done_out
 );
 	localparam [2:0] VV = 3'b001;
@@ -28,25 +28,27 @@ module vec_alu_wrapper #(
     reg done;
     assign done_out = done;
 
-    assign regi0 = index0;
-    assign regi1 = index1;
-    assign regi2 = index2;
-    assign regi3 = index3;
+    assign regi = {index7, index6, index5, index4, index3, index2, index1, index0};
 
     wire [9:0] index0 = ((0 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
     wire [9:0] index1 = ((1 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
     wire [9:0] index2 = ((2 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
     wire [9:0] index3 = ((3 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
+    wire [9:0] index4 = ((4 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
+    wire [9:0] index5 = ((5 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
+    wire [9:0] index6 = ((6 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
+    wire [9:0] index7 = ((7 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
 
     wire run0 = run;
     wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
     wire run2 = run && VLEN >> (vsew+3) > 2 && NB_LANES >= 2;
     wire run3 = run && VLEN >> (vsew+3) > 3 && NB_LANES >= 2;
+    wire run4 = run && VLEN >> (vsew+3) > 4 && NB_LANES >= 3;
+    wire run5 = run && VLEN >> (vsew+3) > 5 && NB_LANES >= 3;
+    wire run6 = run && VLEN >> (vsew+3) > 6 && NB_LANES >= 3;
+    wire run7 = run && VLEN >> (vsew+3) > 7 && NB_LANES >= 3;
 
-    assign res0 = run0;
-    assign res1 = run1;
-    assign res2 = run2;
-    assign res3 = run3;
+    assign res = {run7, run6, run5, run4, run3, run2, run1, run0};
 
     wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
@@ -97,10 +99,10 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
         .index(index0),
         .in_reg_offset(in_reg_offset),
-		.vd(vd0)
+		.vd(vd[63:0])
 	);
 	
-    generate if (NB_LANES >= 2'b01)
+    generate if (NB_LANES >= 1)
         vec_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
@@ -117,11 +119,11 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index1),
             .in_reg_offset(in_reg_offset),
-            .vd(vd1)
+            .vd(vd[127:64])
         );
     endgenerate
 	
-    generate if (NB_LANES >= 2'b10)
+    generate if (NB_LANES >= 2)
         vec_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
@@ -138,12 +140,10 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index2),
             .in_reg_offset(in_reg_offset),
-            .vd(vd2)
+            .vd(vd[191:128])
         );
-    endgenerate
-	
-    generate if (NB_LANES >= 2'b10)
-        vec_alu #(
+        
+       vec_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b011)
@@ -159,7 +159,85 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index3),
             .in_reg_offset(in_reg_offset),
-            .vd(vd3)
+            .vd(vd[255:192])
+        );
+    endgenerate
+	
+    generate if (NB_LANES >= 3)
+        vec_alu #(
+            .VLEN (VLEN),
+            .LANE_WIDTH (LANE_WIDTH),
+            .LANE_I (3'b100)
+        ) valu4 (
+            .clk(clk),
+            .resetn(resetn),
+            .nb_lanes(nb_lanes),
+            .opcode(opcode),
+            .run(run4),
+            .vs1_in(vs1),
+            .vs2_in(vs2),
+            .vsew(vsew),
+            .op_type(op_type),
+            .index(index4),
+            .in_reg_offset(in_reg_offset),
+            .vd(vd[319:256])
+        );
+        
+        vec_alu #(
+            .VLEN (VLEN),
+            .LANE_WIDTH (LANE_WIDTH),
+            .LANE_I (3'b101)
+        ) valu5 (
+            .clk(clk),
+            .resetn(resetn),
+            .nb_lanes(nb_lanes),
+            .opcode(opcode),
+            .run(run5),
+            .vs1_in(vs1),
+            .vs2_in(vs2),
+            .vsew(vsew),
+            .op_type(op_type),
+            .index(index5),
+            .in_reg_offset(in_reg_offset),
+            .vd(vd[383:320])
+        );
+        
+        vec_alu #(
+            .VLEN (VLEN),
+            .LANE_WIDTH (LANE_WIDTH),
+            .LANE_I (3'b110)
+        ) valu6 (
+            .clk(clk),
+            .resetn(resetn),
+            .nb_lanes(nb_lanes),
+            .opcode(opcode),
+            .run(run6),
+            .vs1_in(vs1),
+            .vs2_in(vs2),
+            .vsew(vsew),
+            .op_type(op_type),
+            .index(index6),
+            .in_reg_offset(in_reg_offset),
+            .vd(vd[447:384])
+        );
+        
+        vec_alu #(
+            .VLEN (VLEN),
+            .LANE_WIDTH (LANE_WIDTH),
+            .LANE_I (3'b111)
+        ) valu7 (
+            .clk(clk),
+            .resetn(resetn),
+            .nb_lanes(nb_lanes),
+            .opcode(opcode),
+            .run(run7),
+            .vs1_in(vs1),
+            .vs2_in(vs2),
+            .vsew(vsew),
+            .op_type(op_type),
+            .index(index7),
+            .in_reg_offset(in_reg_offset),
+            .vd(vd[511:448])
         );
     endgenerate
 endmodule
