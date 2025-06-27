@@ -3835,7 +3835,7 @@ module picorv32_pcpi_rvv #(
 						pcpi_wr <= 0; */
 						$display("arith : done=%b | run=%b", arith_done, alu_run);
 						$display("arith vl:%d | remaining:%d", vl, arith_remaining);
-						alu_run <= !arith_done;
+						alu_run <= !arith_done && ((arith_init ? vl : arith_remaining) > 1 << NB_LANES);
 						if (alu_run) begin
 							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew

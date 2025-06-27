@@ -20,7 +20,8 @@ RVTEST_CODE_BEGIN
   vle32.v v1, (x1)
   vle32.v v3, (x2)
   
-  vsetvli t0, x0, e8, m2
+  li x4, 21
+  vsetvli t0, x4, e8, m2
   vand.vv v5, v1, v3
 
   // to print vectors state
