@@ -25,6 +25,7 @@ module vec_alu_wrapper #(
     reg [9:0] byte_i;
     reg [3:0] in_reg_offset;
 
+    reg done;
     assign done_out = done;
 
     assign regi0 = index0;
@@ -56,7 +57,6 @@ module vec_alu_wrapper #(
     always @(posedge clk) begin
         if (!resetn) begin
             byte_i <= 0;
-            reg_index <= 0;
             done <= 0;
         end else if (run0 | run1 | run2 | run3) begin
             if (!done) begin

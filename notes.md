@@ -883,6 +883,10 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 
 > Le calcul d'indices a été déporté dans le wrapper, La répartition de quelle *lane* doit tourner est aussi faite dans le wrapper plutôt que dans le TB (et donc le module RVV), des signaux ont été ajoutés pour dire au module RVV quelle valeur a été MAJ
 
+## 27/06
+
+
+
 ## Réponses
 
 - regarder vcd pour l'apparition de `x` quand on déborde

@@ -79,7 +79,7 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
 
-testbench.vvp: testbench.v picorv32.v
+testbench.vvp: testbench.v vec_alu.v vec_alu_wrapper.v picorv32.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -121,7 +121,7 @@ check.smt2: picorv32.v
 		  -p 'assertpmux -noinit; opt -fast; dffunmap' \
 		  -p 'write_smt2 -wires check.smt2'
 
-synth.v: picorv32.v scripts/yosys/synth_sim.ys
+synth.v: vec_alu.v vec_alu_wrapper.v picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
 
 firmware/firmware.hex: firmware/firmware.bin firmware/makehex.py

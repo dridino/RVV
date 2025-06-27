@@ -13,19 +13,19 @@
 RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
-  vsetvli t0, x0, e32, m1
+  vsetvli t0, x0, e32, m2
   la    x1, tdat1
   la    x2, tdat2
 
   vle32.v v1, (x1)
   vle32.v v3, (x2)
   
-  vsetvli t0, x0, e8, m1
+  vsetvli t0, x0, e8, m2
   vand.vv v5, v1, v3
 
   // to print vectors state
   vsetvli t0, x0, e32, mf4
-  vle32.v v9, (x1)
+  vle32.v v8, (x1)
 
   TEST_CASE( 1, x1, 12, \
     li  x1, 5; \
@@ -48,5 +48,12 @@ tdat2:  .word 0x87654321
 tdat3:  .word 0xabcdabcd
 tdat4:  .word 0xbeefbeef
 tdat5:  .word 0xba0bab11
+        .word 0xc1a0c1a0
+        .word 0xbeefbeef
+        .word 0xc1a0c1a0
+        .word 0xbeefbeef
+        .word 0xc1a0c1a0
+        .word 0xbeefbeef
+        .word 0xc1a0c1a0
 
 RVTEST_DATA_END

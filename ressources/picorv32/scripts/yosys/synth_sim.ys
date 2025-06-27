@@ -1,5 +1,7 @@
 # yosys synthesis script for post-synthesis simulation (make test_synth)
 
+read_verilog vec_alu.v
+read_verilog vec_alu_wrapper.v
 read_verilog picorv32.v
 chparam -set COMPRESSED_ISA 1 -set ENABLE_MUL 1 -set ENABLE_DIV 1 \
         -set ENABLE_IRQ 1 -set ENABLE_TRACE 1 picorv32_axi

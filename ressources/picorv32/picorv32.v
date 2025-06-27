@@ -3205,6 +3205,7 @@ module picorv32_pcpi_rvv #(
 );
 	localparam integer VLENB = VLEN/8;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
+	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
 
@@ -3222,6 +3223,7 @@ module picorv32_pcpi_rvv #(
 
 	wire [4:0] vs1 = pcpi_insn[19:15];
 	wire [4:0] vs2 = pcpi_insn[24:20];
+	wire [4:0] vd = pcpi_insn[11:7];
 
 	reg	should_trap;
 	reg pcpi_trap_in_q;
@@ -3272,7 +3274,15 @@ module picorv32_pcpi_rvv #(
 	reg arith_vv;
 	reg arith_vi;
 	reg arith_vs;
-integer i;
+	reg alu_run;
+	wire [63:0] arith_vd0, arith_vd1, arith_vd2, arith_vd3;
+	wire [9:0] arith_regi0, arith_regi1, arith_regi2, arith_regi3;
+	wire arith_res0, arith_res1, arith_res2, arith_res3;
+	wire arith_done;
+	reg [31:0] arith_remaining;
+	reg arith_init;
+	
+	integer i;
 	initial begin
 		if (REGS_INIT_ZERO) begin
 			for (i = 0; i < regfile_size; i = i+1)
@@ -3393,6 +3403,9 @@ integer i;
 		pcpi_mem_ftrans <= 0;
 		pcpi_trap_out <= 0;
 		
+		// arith
+		alu_run <= 0;
+		
 		if (!resetn) begin
 			pcpi_trap_in_q <= 0;
 			vstart = 0;
@@ -3401,9 +3414,11 @@ integer i;
 			vcsr = 0;
 			vl = 0;
 			vtype = 32'h8000_0000;
+
 			// vsetvl
 			vlmax = 0;
 			avl = 0;
+
 			// mem
 			byte_index = 0;
 			reg_index = 0;
@@ -3421,6 +3436,10 @@ integer i;
 			mem_seg_i = 0;
 			mem_seg_index = 0;
 			mem_seg_n_access = 0;
+
+			// arith
+			arith_remaining <= 0;
+			arith_init <= 1;
 		end else begin
 			if (should_trap)
 				pcpi_trap_out <= 1;
@@ -3792,7 +3811,7 @@ integer i;
 							end
 						end
 					end else if (instr_arith) begin
-						last_op = (byte_index + (VLEN >> (vsew+3)) * reg_index) >= vl - 1;
+						/* last_op = (byte_index + (VLEN >> (vsew+3)) * reg_index) >= vl - 1;
 
 						if (!last_op) begin
 							// update indices
@@ -3813,6 +3832,73 @@ integer i;
 							pcpi_ready <= 1;
 						end
 						pcpi_rd <= 0;
+						pcpi_wr <= 0; */
+						$display("arith : done=%b | run=%b", arith_done, alu_run);
+						$display("arith vl:%d | remaining:%d", vl, arith_remaining);
+						alu_run <= !arith_done;
+						if (alu_run) begin
+							temp_vreg = vregs[vd + reg_index];
+							if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
+								case (vsew)
+									3'b000: begin
+										if (arith_res0) temp_vreg[arith_regi0 +: 8] = arith_vd0[0 +: 8];
+										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 8] = arith_vd1[0 +: 8];
+										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 8] = arith_vd2[0 +: 8];
+										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 8] = arith_vd3[0 +: 8];
+									end
+									3'b001: begin
+										if (arith_res0) temp_vreg[arith_regi0 +: 16] = arith_vd0[0 +: 16];
+										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 16] = arith_vd1[0 +: 16];
+										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 16] = arith_vd2[0 +: 16];
+										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 16] = arith_vd3[0 +: 16];
+									end
+									3'b010: begin
+										if (arith_res0) temp_vreg[arith_regi0 +: 32] = arith_vd0[0 +: 32];
+										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 32] = arith_vd1[0 +: 32];
+										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 32] = arith_vd2[0 +: 32];
+										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 32] = arith_vd3[0 +: 32];
+									end
+									3'b011: begin
+										if (arith_res0) temp_vreg[arith_regi0 +: 64] = arith_vd0[0 +: 64];
+										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 64] = arith_vd1[0 +: 64];
+										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 64] = arith_vd2[0 +: 64];
+										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 64] = arith_vd3[0 +: 64];
+									end
+								endcase
+							end else begin
+								if (arith_res0) temp_vreg[arith_regi0 +: SHIFTED_LANE_WIDTH] = arith_vd0[0 +: SHIFTED_LANE_WIDTH];
+								if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: SHIFTED_LANE_WIDTH] = arith_vd1[0 +: SHIFTED_LANE_WIDTH];
+								if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: SHIFTED_LANE_WIDTH] = arith_vd2[0 +: SHIFTED_LANE_WIDTH];
+								if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: SHIFTED_LANE_WIDTH] = arith_vd3[0 +: SHIFTED_LANE_WIDTH];
+							end
+
+							vregs[vd + reg_index] = temp_vreg;
+
+							if (arith_res0) $display("index1 : %d", arith_regi0);
+							if (arith_res1 && arith_remaining > 1) $display("index2 : %d", arith_regi1);
+							if (arith_res2 && arith_remaining > 2) $display("index3 : %d", arith_regi2);
+							if (arith_res3 && arith_remaining > 3) $display("index4 : %d", arith_regi3);
+							$display("vd : %h", temp_vreg);
+						end
+
+						if (!arith_init && arith_remaining <= 1 << NB_LANES) begin // all vec done
+							reg_index <= 0;
+							arith_remaining <= 0;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+						end else if (arith_done) begin // 1 vec done
+							reg_index <= reg_index + 1;
+							pcpi_wait <= 1;
+							pcpi_ready <= 0;
+						end
+
+						if (arith_init) begin
+							arith_remaining <= vl;
+							arith_init <= 0;
+						end else if (alu_run)
+							arith_remaining <= arith_remaining - (1 << NB_LANES);
+						
+						pcpi_rd <= 0;
 						pcpi_wr <= 0;
 					end
 				end
@@ -3821,8 +3907,36 @@ integer i;
 		end
 	end
 
+	vec_alu_wrapper #(
+		.VLEN(VLEN),
+		.LANE_WIDTH(LANE_WIDTH),
+		.NB_LANES(NB_LANES)
+	) valu_w (
+		.clk(clk),
+		.resetn(resetn),
+		.opcode(pcpi_insn[31:26]),
+		.run(alu_run),
+		.vs1(vregs[vs1 + reg_index]),
+		.vs2(vregs[vs2 + reg_index]),
+		.vsew(vsew),
+		.op_type({arith_vi,arith_vs,arith_vv}),
+		.vd0(arith_vd0),
+		.vd1(arith_vd1),
+		.vd2(arith_vd2),
+		.vd3(arith_vd3),
+		.regi0(arith_regi0),
+		.regi1(arith_regi1),
+		.regi2(arith_regi2),
+		.regi3(arith_regi3),
+		.res0(arith_res0),
+		.res1(arith_res1),
+		.res2(arith_res2),
+		.res3(arith_res3),
+		.done_out(arith_done)
+	);
+
 	// arithmetic operations
-	genvar lane_i;
+	/* genvar lane_i;
 	generate
 		for (lane_i = 0; lane_i < (1 << NB_LANES); lane_i = lane_i + 1) begin
 			always @(posedge clk) begin
@@ -3858,5 +3972,5 @@ integer i;
 				end
 			end
 		end
-	endgenerate
+	endgenerate */
 endmodule
