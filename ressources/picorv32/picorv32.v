@@ -3891,6 +3891,16 @@ module picorv32_pcpi_rvv #(
 							`debug_rvv(if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) $display("index6 : %d", arith_regi[50 +: 10]);)
 							`debug_rvv(if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) $display("index7 : %d", arith_regi[60 +: 10]);)
 							`debug_rvv(if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) $display("index8 : %d", arith_regi[70 +: 10]);)
+							
+							`debug_rvv(if (arith_res[0]) $display("vd1 : %h", arith_vd[0 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) $display("vd2 : %h", arith_vd[64 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) $display("vd3 : %h", arith_vd[128 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) $display("vd4 : %h", arith_vd[192 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) $display("vd5 : %h", arith_vd[256 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) $display("vd6 : %h", arith_vd[320 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) $display("vd7 : %h", arith_vd[384 +: 16]);)
+							`debug_rvv(if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) $display("vd8 : %h", arith_vd[448 +: 16]);)
+
 							`debug_rvv($display("vd : %h", temp_vreg);)
 						end
 

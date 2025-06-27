@@ -2,7 +2,7 @@
 
 module vec_alu_wrapper #(
     parameter [9:0] VLEN = 10'd 128,
-    parameter [2:0] LANE_WIDTH = 3'b011,
+    parameter [2:0] LANE_WIDTH = 3'b100,
     parameter integer NB_LANES = 2
 ) (
     input                               clk, resetn,
@@ -21,6 +21,14 @@ module vec_alu_wrapper #(
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
+
+    localparam integer BASE1 = NB_LANES >= 1 ? 64 : 0;
+    localparam integer BASE2 = NB_LANES >= 2 ? 128 : 0;
+    localparam integer BASE3 = NB_LANES >= 2 ? 192 : 0;
+    localparam integer BASE4 = NB_LANES >= 3 ? 256 : 0;
+    localparam integer BASE5 = NB_LANES >= 3 ? 320 : 0;
+    localparam integer BASE6 = NB_LANES >= 3 ? 384 : 0;
+    localparam integer BASE7 = NB_LANES >= 3 ? 448 : 0;
 
     reg [9:0] byte_i;
     reg [3:0] in_reg_offset;
@@ -48,6 +56,10 @@ module vec_alu_wrapper #(
     wire run6 = run && VLEN >> (vsew+3) > 6 && NB_LANES >= 3;
     wire run7 = run && VLEN >> (vsew+3) > 7 && NB_LANES >= 3;
 
+    assign vd = {vd7,vd6,vd5,vd4,vd3,vd2,vd1,vd0};
+
+    wire [63:0] vd0,vd1,vd2,vd3,vd4,vd5,vd6,vd7;
+
     assign res = {run7, run6, run5, run4, run3, run2, run1, run0};
 
     wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
@@ -60,7 +72,7 @@ module vec_alu_wrapper #(
         if (!resetn) begin
             byte_i <= 0;
             done <= 0;
-        end else if (run0 | run1 | run2 | run3) begin
+        end else if (run0 | run1 | run2 | run3 | run4 | run5 | run6 | run7) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
                     done <= byte_i + (1 << (nb_lanes+1)) >= (VLEN >> (vsew + 3));
@@ -99,7 +111,7 @@ module vec_alu_wrapper #(
 		.op_type(op_type),
         .index(index0),
         .in_reg_offset(in_reg_offset),
-		.vd(vd[63:0])
+		.vd(vd0)
 	);
 	
     generate if (NB_LANES >= 1)
@@ -119,7 +131,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index1),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[127:64])
+            .vd(vd1)
         );
     endgenerate
 	
@@ -140,7 +152,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index2),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[191:128])
+            .vd(vd2)
         );
         
        vec_alu #(
@@ -159,7 +171,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index3),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[255:192])
+            .vd(vd3)
         );
     endgenerate
 	
@@ -180,7 +192,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index4),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[319:256])
+            .vd(vd4)
         );
         
         vec_alu #(
@@ -199,7 +211,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index5),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[383:320])
+            .vd(vd5)
         );
         
         vec_alu #(
@@ -218,7 +230,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index6),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[447:384])
+            .vd(vd6)
         );
         
         vec_alu #(
@@ -237,7 +249,7 @@ module vec_alu_wrapper #(
             .op_type(op_type),
             .index(index7),
             .in_reg_offset(in_reg_offset),
-            .vd(vd[511:448])
+            .vd(vd7)
         );
     endgenerate
 endmodule

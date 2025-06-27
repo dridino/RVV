@@ -885,7 +885,8 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 
 ## 27/06
 
-
+> Intégration de l'ALU dans le pico, supporte différents LMUL et vl (même n'occupant pas les vecteurs en entier)
+> L'architecture va jusqu'à 8 *lanes*
 
 ## Réponses
 
@@ -960,6 +961,10 @@ Un seul signal done
 ```
 
 - Quand je tronque le résultat de l'addition entre la retenue et un élément pour garder des additionneurs de même taille (largeur de la lane) plutôt qu'avoir un de (largeur de lane) et un 1 bit plus large, ça rajoute 100 *cells* et *wire bits* par ALU. Je le fais quand-même ou non ?
+
+- truc bizarre :
+  - 1 seul gros vecteur en sortie de wrapper dans lequel chaque ALU écrit **directement** : introduction de `x` dans les bits de poids faibles de la première ALU.
+  - `NB_LANES` vecteurs dans lesquels chaque ALU écrit (dans le vec correspondant) tous concaténés dans la grosse sortie : fonctionne nickel
 
 ## Améliorations
 
