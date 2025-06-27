@@ -28,11 +28,18 @@
 // `define DEBUGREGS
 // `define DEBUGASM
 // `define DEBUG
+`define DEBUG_RVV
 
 `ifdef DEBUG
   `define debug(debug_command) debug_command
 `else
   `define debug(debug_command)
+`endif
+
+`ifdef DEBUG_RVV
+  `define debug_rvv(debug_command) debug_command
+`else
+  `define debug_rvv(debug_command)
 `endif
 
 `ifdef FORMAL
@@ -92,7 +99,7 @@ module picorv32 #(
 	parameter [0:0]	ENABLE_RVV = 0,
 	// arithmetic op
 	parameter [1:0] NB_LANES = 2'b01, // 2^NB_LANES lanes used for arith op
-	parameter [2:0] LANE_WIDTH = 3'b011 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
+	parameter [2:0] LANE_WIDTH = 3'b100 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
 	// LANE_WIDTH * 2^NB_LANES must be less than or equal to VLEN
 ) (
 	input clk, resetn,
@@ -3281,6 +3288,7 @@ module picorv32_pcpi_rvv #(
 	wire arith_done;
 	reg [31:0] arith_remaining;
 	reg arith_init;
+	reg [2:0] arith_step; 
 	
 	integer i;
 	initial begin
@@ -3373,7 +3381,7 @@ module picorv32_pcpi_rvv #(
 
 			if (instr_mem_whole_reg) begin
 				mem_transfer_n = ({1'b0, pcpi_insn[31:29]} + 1) * (VLEN >> mem_sew);
-				$display("mem_transfer_n : %d", mem_transfer_n);
+				`debug_rvv($display("mem_transfer_n : %d", mem_transfer_n);)
 			end
 			else
 				mem_transfer_n = vl;
@@ -3440,20 +3448,21 @@ module picorv32_pcpi_rvv #(
 			// arith
 			arith_remaining <= 0;
 			arith_init <= 1;
+			arith_step <= 0;
 		end else begin
 			if (should_trap)
 				pcpi_trap_out <= 1;
 			
 			if (should_trap || pcpi_trap_in || pcpi_trap_out) begin
 				if (!pcpi_trap_in_q) begin
-					$display("trap taken");
+					`debug_rvv($display("trap taken");)
 					if (instr_mem) begin
 						vstart <= {2'b00, mem_indexed_reg_index, mem_indexed_byte_index, reg_index, byte_index};
 					end
 				end
 			end else begin
 				if (pcpi_trap_in_q) begin
-					$display("context restored");
+					`debug_rvv($display("context restored");)
 					if (instr_mem) begin
 						mem_indexed_reg_index 	= vstart[29:25];
 						mem_indexed_byte_index 	= vstart[24:15];
@@ -3583,43 +3592,43 @@ module picorv32_pcpi_rvv #(
 								pcpi_wait <= 1;
 								pcpi_ready <= 0;
 							end else if (pcpi_mem_done) begin
-								$display("byte_i : %d | reg_i : %d", byte_index, reg_index);
-								$display("mask_i : %d | seg_i : %d", mem_stride_i, mem_seg_i);
-								$display("mem_base : %h", pcpi_rs1);
-								$display("mem_offset : %d | reg_offset : %d", mem_offset_q, offset << 3);
-								$display("rdata : %h", pcpi_mem_rdata);
+								`debug_rvv($display("byte_i : %d | reg_i : %d", byte_index, reg_index);)
+								`debug_rvv($display("mask_i : %d | seg_i : %d", mem_stride_i, mem_seg_i);)
+								`debug_rvv($display("mem_base : %h", pcpi_rs1);)
+								`debug_rvv($display("mem_offset : %d | reg_offset : %d", mem_offset_q, offset << 3);)
+								`debug_rvv($display("rdata : %h", pcpi_mem_rdata);)
 								pcpi_mem_ftrans <= 0;
 								index = pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0]));
 
 								temp_vreg = vregs[index];
 								
 								if (mem_stride_mask[{mem_stride_i, 2'b00}]) begin
-									$display("byte0");
+									`debug_rvv($display("byte0");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
 									offset_incr += 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
-									$display("byte1");
+									`debug_rvv($display("byte1");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[8 +: 8];
 									offset_incr += 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
-									$display("byte2");
+									`debug_rvv($display("byte2");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[16 +: 8];
 									offset_incr += 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
-									$display("byte3");
+									`debug_rvv($display("byte3");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[24 +: 8];
 									offset_incr += 1;
 								end
 
-								$display("mask : %h", mem_stride_mask);
-								$display("mask_i : %d", mem_stride_i);
+								`debug_rvv($display("mask : %h", mem_stride_mask);)
+								`debug_rvv($display("mask_i : %d", mem_stride_i);)
 
 
 								if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
@@ -3631,7 +3640,7 @@ module picorv32_pcpi_rvv #(
 								vregs[index] = temp_vreg;
 
 								// $display("seg_n_access : %d", mem_seg_n_access);
-								$display("seg_n_fields : %d", mem_seg_nfields);
+								`debug_rvv($display("seg_n_fields : %d", mem_seg_nfields);)
 
 								last_op = (byte_index + (VLEN >> mem_sew) * reg_index) == mem_transfer_n - 1 && ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) && (mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg);
 
@@ -3683,14 +3692,14 @@ module picorv32_pcpi_rvv #(
 									mem_seg_i = 0;
 								end
 
-								$display("v1 : %h", vregs[1]);
-								$display("v2 : %h", vregs[2]);
-								$display("v3 : %h", vregs[3]);
-								$display("v4 : %h", vregs[4]);
-								$display("v5 : %h", vregs[5]);
-								$display("v6 : %h", vregs[6]);
-								$display("v7 : %h", vregs[7]);
-								$display("v8 : %h\n", vregs[8]);
+								`debug_rvv($display("v1 : %h", vregs[1]);)
+								`debug_rvv($display("v2 : %h", vregs[2]);)
+								`debug_rvv($display("v3 : %h", vregs[3]);)
+								`debug_rvv($display("v4 : %h", vregs[4]);)
+								`debug_rvv($display("v5 : %h", vregs[5]);)
+								`debug_rvv($display("v6 : %h", vregs[6]);)
+								`debug_rvv($display("v7 : %h", vregs[7]);)
+								`debug_rvv($display("v8 : %h\n", vregs[8]);)
 								
 								mem_sending <= 1;
 								// outputs
@@ -3738,8 +3747,8 @@ module picorv32_pcpi_rvv #(
 									offset_incr = 0;
 								end
 
-								$display("store offset : %h", mem_offset_q);
-								$display("store wdata : %h", mem_wdata_q);
+								`debug_rvv($display("store offset : %h", mem_offset_q);)
+								`debug_rvv($display("store wdata : %h", mem_wdata_q);)
 
 								pcpi_mem_strb <= mem_strb_q;
 								pcpi_mem_wdata <= mem_wdata_q;
@@ -3811,77 +3820,58 @@ module picorv32_pcpi_rvv #(
 							end
 						end
 					end else if (instr_arith) begin
-						/* last_op = (byte_index + (VLEN >> (vsew+3)) * reg_index) >= vl - 1;
-
-						if (!last_op) begin
-							// update indices
-							if (byte_index >= (VLEN << (vsew+3 < LANE_WIDTH ? 0 : LANE_WIDTH - vsew - 3)) - 1) begin
-								byte_index = 0;
-								reg_index += NB_LANES;
-							end else begin
-								reg_index = reg_index;
-								byte_index += 1;
-							end
-							pcpi_wait <= 1;
-							pcpi_ready <= 0;
-						end else begin
-							$display("arith last");
-							reg_index <= 0;
-							byte_index <= 0;
-							pcpi_wait <= 0;
-							pcpi_ready <= 1;
-						end
-						pcpi_rd <= 0;
-						pcpi_wr <= 0; */
-						$display("arith : done=%b | run=%b", arith_done, alu_run);
-						$display("arith vl:%d | remaining:%d", vl, arith_remaining);
-						alu_run <= !arith_done && ((arith_init ? vl : arith_remaining) > 1 << NB_LANES);
+						`debug_rvv($display("arith : done=%b | run=%b", arith_done, alu_run);)
+						`debug_rvv($display("arith vl:%d | remaining:%d", vl, arith_remaining);)
+						`debug_rvv($display("arith step:%d", arith_step);)
+						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) > 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run) begin
 							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
 								case (vsew)
 									3'b000: begin
 										if (arith_res0) temp_vreg[arith_regi0 +: 8] = arith_vd0[0 +: 8];
-										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 8] = arith_vd1[0 +: 8];
-										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 8] = arith_vd2[0 +: 8];
-										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 8] = arith_vd3[0 +: 8];
+										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 8] = arith_vd1[0 +: 8];
+										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 8] = arith_vd2[0 +: 8];
+										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 8] = arith_vd3[0 +: 8];
 									end
 									3'b001: begin
 										if (arith_res0) temp_vreg[arith_regi0 +: 16] = arith_vd0[0 +: 16];
-										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 16] = arith_vd1[0 +: 16];
-										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 16] = arith_vd2[0 +: 16];
-										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 16] = arith_vd3[0 +: 16];
+										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 16] = arith_vd1[0 +: 16];
+										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 16] = arith_vd2[0 +: 16];
+										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 16] = arith_vd3[0 +: 16];
 									end
 									3'b010: begin
 										if (arith_res0) temp_vreg[arith_regi0 +: 32] = arith_vd0[0 +: 32];
-										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 32] = arith_vd1[0 +: 32];
-										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 32] = arith_vd2[0 +: 32];
-										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 32] = arith_vd3[0 +: 32];
+										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 32] = arith_vd1[0 +: 32];
+										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 32] = arith_vd2[0 +: 32];
+										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 32] = arith_vd3[0 +: 32];
 									end
 									3'b011: begin
 										if (arith_res0) temp_vreg[arith_regi0 +: 64] = arith_vd0[0 +: 64];
-										if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 64] = arith_vd1[0 +: 64];
-										if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 64] = arith_vd2[0 +: 64];
-										if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 64] = arith_vd3[0 +: 64];
+										if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: 64] = arith_vd1[0 +: 64];
+										if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: 64] = arith_vd2[0 +: 64];
+										if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: 64] = arith_vd3[0 +: 64];
 									end
 								endcase
 							end else begin
 								if (arith_res0) temp_vreg[arith_regi0 +: SHIFTED_LANE_WIDTH] = arith_vd0[0 +: SHIFTED_LANE_WIDTH];
-								if (arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: SHIFTED_LANE_WIDTH] = arith_vd1[0 +: SHIFTED_LANE_WIDTH];
-								if (arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: SHIFTED_LANE_WIDTH] = arith_vd2[0 +: SHIFTED_LANE_WIDTH];
-								if (arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: SHIFTED_LANE_WIDTH] = arith_vd3[0 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) temp_vreg[arith_regi1 +: SHIFTED_LANE_WIDTH] = arith_vd1[0 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) temp_vreg[arith_regi2 +: SHIFTED_LANE_WIDTH] = arith_vd2[0 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) temp_vreg[arith_regi3 +: SHIFTED_LANE_WIDTH] = arith_vd3[0 +: SHIFTED_LANE_WIDTH];
 							end
 
 							vregs[vd + reg_index] = temp_vreg;
 
-							if (arith_res0) $display("index1 : %d", arith_regi0);
-							if (arith_res1 && arith_remaining > 1) $display("index2 : %d", arith_regi1);
-							if (arith_res2 && arith_remaining > 2) $display("index3 : %d", arith_regi2);
-							if (arith_res3 && arith_remaining > 3) $display("index4 : %d", arith_regi3);
-							$display("vd : %h", temp_vreg);
+							`debug_rvv(if (arith_res0) $display("index1 : %d", arith_regi0);)
+							`debug_rvv(if (NB_LANES >= 1 && arith_res1 && arith_remaining > 1) $display("index2 : %d", arith_regi1);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res2 && arith_remaining > 2) $display("index3 : %d", arith_regi2);)
+							`debug_rvv(if (NB_LANES >= 2 && arith_res3 && arith_remaining > 3) $display("index4 : %d", arith_regi3);)
+							`debug_rvv($display("vd : %h", temp_vreg);)
 						end
 
-						if (!arith_init && arith_remaining <= 1 << NB_LANES) begin // all vec done
+						`debug_rvv($display();)
+
+						if (!arith_init && arith_remaining <= 1 << NB_LANES && arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin // all vec done
 							reg_index <= 0;
 							arith_remaining <= 0;
 							pcpi_wait <= 0;
@@ -3894,10 +3884,17 @@ module picorv32_pcpi_rvv #(
 
 						if (arith_init) begin
 							arith_remaining <= vl;
+							arith_step <= 0;
 							arith_init <= 0;
 						end else if (alu_run)
-							arith_remaining <= arith_remaining - (1 << NB_LANES);
-						
+							if (arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
+								arith_step <= 0;
+								arith_remaining <= arith_remaining - (1 << NB_LANES);
+							end else begin
+								arith_step <= arith_step + 1;
+								arith_remaining <= arith_remaining;
+							end
+
 						pcpi_rd <= 0;
 						pcpi_wr <= 0;
 					end
@@ -3934,43 +3931,4 @@ module picorv32_pcpi_rvv #(
 		.res3(arith_res3),
 		.done_out(arith_done)
 	);
-
-	// arithmetic operations
-	/* genvar lane_i;
-	generate
-		for (lane_i = 0; lane_i < (1 << NB_LANES); lane_i = lane_i + 1) begin
-			always @(posedge clk) begin
-				if (!resetn) begin
-					// reset
-				end else if (!(should_trap || pcpi_trap_in || pcpi_trap_out) && instr_run) begin
-					if (instr_arith) begin
-						index = (lane_i + byte_index) << (vsew + 3);
-						case (pcpi_insn[31:26])
-							6'b001001: begin // vand
-								case (vsew)
-									// 8 bits
-									3'b000: begin
-										temp_vreg[0 +: 32] = ({{24{1'b0}}, vregs[pcpi_insn[24:20] + reg_index][index +: 8]} & {{24{1'b0}}, vregs[pcpi_insn[19:15] + reg_index][index +: 8]});
-										vregs[pcpi_insn[11:7] + reg_index][index +: 8] = temp_vreg[0 +: 8];
-									end
-									// 16 bits
-									3'b001: begin
-										temp_vreg[0 +: 32] = ({{16{1'b0}}, vregs[pcpi_insn[24:20] + reg_index][index +: 16]} & {{16{1'b0}},vregs[pcpi_insn[19:15] + reg_index][index +: 16]});
-										vregs[pcpi_insn[11:7] + reg_index][index +: 16] = temp_vreg[0 +: 16];
-									end
-									// 32 bits
-									3'b010: vregs[pcpi_insn[11:7] + reg_index][index +: 32] = ({{8{1'b0}},vregs[pcpi_insn[24:20] + reg_index][index +: 32]} & {{8{1'b0}},vregs[pcpi_insn[19:15] + reg_index][index +: 32]});
-									// 64 bits TODO
-									3'b011: vregs[pcpi_insn[11:7] + reg_index][index +: 64] = vregs[pcpi_insn[24:20] + reg_index][index +: 64] & vregs[pcpi_insn[19:15] + reg_index][index +: 64];
-								endcase
-								$display("lane%d : index=%d", lane_i, (lane_i + byte_index) << (vsew + 3));
-								$display("lane%d byte_i: %d", lane_i, byte_index);
-								$display("lane%d v5 : %h\n", lane_i, vregs[5]);
-							end
-						endcase						
-					end
-				end
-			end
-		end
-	endgenerate */
 endmodule
