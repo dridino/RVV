@@ -888,6 +888,39 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 > Intégration de l'ALU dans le pico, supporte différents LMUL et vl (même n'occupant pas les vecteurs en entier)
 > L'architecture va jusqu'à 8 *lanes*
 
+## 29/06
+
+> Synthèse des ALUs, marche nickel
+> Test de plusieurs instructions arithmétiques vectorielles à la suite : OK
+> pb en post-synth : plusieurs drivers pour `mem_rdata_q`, `mem_wstrb`, `mem_wdata`, `mem_addr`, `mem_instr`, `mem_valid` et `trap`
+
+## 30/06
+
+case3
+next_insn : 00100013
+case3
+next_insn : 00100013
+case3if1
+case0
+next_insn : 00100013
+if1
+case0
+case0if1
+case1
+case1if1
+case1if1else1
+case0
+next_insn : 00100013
+if1
+case0
+case0if1
+case1
+next_insn : 00100013
+case1if1
+case1if1else1
+case3
+case3
+
 ## Réponses
 
 - regarder vcd pour l'apparition de `x` quand on déborde
@@ -962,7 +995,7 @@ Un seul signal done
 
 - Quand je tronque le résultat de l'addition entre la retenue et un élément pour garder des additionneurs de même taille (largeur de la lane) plutôt qu'avoir un de (largeur de lane) et un 1 bit plus large, ça rajoute 100 *cells* et *wire bits* par ALU. Je le fais quand-même ou non ?
 
-- truc bizarre :
+- truc bizarre quand on utilise moins de 8 ALUs :
   - 1 seul gros vecteur en sortie de wrapper dans lequel chaque ALU écrit **directement** : introduction de `x` dans les bits de poids faibles de la première ALU.
   - `NB_LANES` vecteurs dans lesquels chaque ALU écrit (dans le vec correspondant) tous concaténés dans la grosse sortie : fonctionne nickel
 

@@ -28,7 +28,7 @@
 // `define DEBUGREGS
 // `define DEBUGASM
 // `define DEBUG
-`define DEBUG_RVV
+// `define DEBUG_RVV
 
 `ifdef DEBUG
   `define debug(debug_command) debug_command
@@ -293,7 +293,7 @@ module picorv32 #(
 	// memory transfers
 	wire		pcpi_rvv_mem_op;
 	wire		pcpi_rvv_mem_ftrans;
-	reg	[31:0]	rvv_mem_next_insn;
+	reg	 [31:0]	rvv_mem_next_insn;
 	wire		pcpi_rvv_mem_load;
 	wire		pcpi_rvv_mem_store;
 	wire		pcpi_rvv_mem_wen;
@@ -504,7 +504,12 @@ module picorv32 #(
 	end
 
 	always @(posedge clk) begin
-		if (mem_xfer) begin
+		// $display("mem_rdata : %h | mem_rdata_q : %h", mem_rdata, mem_rdata_q);
+		if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans) begin
+			// $display("next_insn : %h", rvv_mem_next_insn);
+			mem_rdata_q = rvv_mem_next_insn;
+			next_insn_opcode = rvv_mem_next_insn;
+		end else if (mem_xfer) begin
 			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 		end
@@ -710,6 +715,17 @@ module picorv32 #(
 					end
 				end
 			endcase
+			if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !(mem_la_read || mem_la_write)) begin
+				if (pcpi_rvv_mem_wen) begin
+					mem_wstrb <= pcpi_rvv_mem_store ? pcpi_rvv_mem_strb : 0;
+					if (pcpi_rvv_mem_store) begin
+						mem_wdata <= pcpi_rvv_mem_wdata;
+					end
+					mem_addr <= pcpi_rvv_mem_addr;
+				end
+				mem_instr <= 0;
+				mem_valid <= pcpi_rvv_mem_wen;
+			end
 		end
 
 		if (clear_prefetched_high_word)
@@ -1565,6 +1581,9 @@ module picorv32 #(
 			end
 
 			cpu_state_fetch: begin
+				if (ENABLE_RVV) begin
+					trap <= trap || pcpi_rvv_trap;
+				end
 				mem_do_rinst <= !decoder_trigger && !do_waitirq;
 				mem_wordsize <= 0;
 
@@ -2245,36 +2264,14 @@ module picorv32 #(
 generate
 	if (ENABLE_RVV) begin
 		always @(posedge clk) begin
-			pcpi_rvv_mem_ifetch <= pcpi_rvv_mem_ifetch && !mem_ready;
-			if (pcpi_rvv_is_rvv_insn) begin
-				if (pcpi_rvv_mem_load) begin
-					// vector load
-					if (pcpi_rvv_mem_ftrans)
-						rvv_mem_next_insn <= mem_rdata;
-					if (pcpi_rvv_mem_wen) begin
-						mem_addr <= pcpi_rvv_mem_addr;
-						mem_wstrb <= 0;
-					end
-					mem_instr <= 0;
-					mem_valid <= pcpi_rvv_mem_wen;
-					if (!pcpi_rvv_mem_op)
-						mem_rdata_q = rvv_mem_next_insn;
-				end else if (pcpi_rvv_mem_store) begin
-					// vector store
-					if (pcpi_rvv_mem_ftrans)
-						rvv_mem_next_insn <= mem_rdata;
-					if (pcpi_rvv_mem_wen) begin
-						mem_addr <= pcpi_rvv_mem_addr;
-						mem_wstrb <= pcpi_rvv_mem_strb;
-						mem_wdata <= pcpi_rvv_mem_wdata;
-					end
-					mem_instr <= 0;
-					mem_valid <= pcpi_rvv_mem_wen;
-					if (!pcpi_rvv_mem_op)
-						mem_rdata_q = rvv_mem_next_insn;
-				end
+			rvv_mem_next_insn <= rvv_mem_next_insn;
+			if (!resetn) begin
+				rvv_mem_next_insn <= 0;
+			end else begin
+				pcpi_rvv_mem_ifetch <= pcpi_rvv_mem_ifetch && !mem_ready;
+				if ((pcpi_rvv_mem_load || pcpi_rvv_mem_store) && pcpi_rvv_mem_ftrans)
+					rvv_mem_next_insn <= mem_rdata;
 			end
-			trap <= trap || pcpi_rvv_trap;
 		end
 	end
 endgenerate
@@ -2657,7 +2654,9 @@ module picorv32_axi #(
 
 	// RVV
 	parameter [9:0] VLEN = 10'd 128,
-	parameter [0:0] ENABLE_RVV = 0
+	parameter [0:0] ENABLE_RVV = 0,
+	parameter [2:0] LANE_WIDTH = 3'b100,
+	parameter integer NB_LANES = 3
 ) (
 	input clk, resetn,
 	output trap,
@@ -2791,7 +2790,9 @@ module picorv32_axi #(
 		.STACKADDR           (STACKADDR           ),
 
 		.ENABLE_RVV			 (ENABLE_RVV		  ),
-		.VLEN				 (VLEN				  )
+		.VLEN				 (VLEN				  ),
+		.LANE_WIDTH			 (LANE_WIDTH		  ),
+		.NB_LANES			 (NB_LANES			  )
 	) picorv32_core (
 		.clk      (clk   ),
 		.resetn   (resetn),
@@ -3214,7 +3215,7 @@ module picorv32_pcpi_rvv #(
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 
-	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
+	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem/*, instr_arith */};
 
 	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
@@ -3277,7 +3278,7 @@ module picorv32_pcpi_rvv #(
 	integer offset_incr;
 	
 	// ARITHMETIC OPERATIONS
-	reg instr_arith;
+	/* reg instr_arith;
 	reg arith_vv;
 	reg arith_vi;
 	reg arith_vs;
@@ -3288,7 +3289,13 @@ module picorv32_pcpi_rvv #(
 	wire arith_done;
 	reg [31:0] arith_remaining;
 	reg arith_init;
-	reg [2:0] arith_step; 
+	reg [2:0] arith_step;
+
+	wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
+    wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
+                          tmp_nb_lanes[2] ? 2'b10 :
+                          tmp_nb_lanes[1] ? 2'b01 :
+                          2'b00; */
 	
 	integer i;
 	initial begin
@@ -3320,10 +3327,10 @@ module picorv32_pcpi_rvv #(
 		mem_seg_nfields = 0;
 
 		// arith
-		instr_arith = 0;
+		/* instr_arith = 0;
 		arith_vv = 0;
 		arith_vi = 0;
-		arith_vs = 0;
+		arith_vs = 0; */
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -3337,10 +3344,6 @@ module picorv32_pcpi_rvv #(
 
 		// mem
 		if (resetn && (pcpi_insn[6:0] == 7'b0000111 || pcpi_insn[6:0] == 7'b0100111)) begin
-			
-			// TODO: gerer les cas whole-register load/store/move
-			should_trap = vill == 1'b1;
-
 			instr_vload = !pcpi_insn[5];
 			instr_vstore = pcpi_insn[5];
 
@@ -3388,7 +3391,7 @@ module picorv32_pcpi_rvv #(
 		end
 
 		// arith
-		if (resetn && pcpi_insn[6:0] == 7'b1010111 && pcpi_insn[14:12] != 3'b111) begin
+		/* if (resetn && pcpi_insn[6:0] == 7'b1010111 && pcpi_insn[14:12] != 3'b111) begin
 			instr_arith = 1;
 			case (pcpi_insn[14:12])
 				3'b000, 3'b001, 3'b010: arith_vv = 1;
@@ -3396,7 +3399,7 @@ module picorv32_pcpi_rvv #(
 				3'b100, 3'b110: arith_vs = 1;
 				3'b101: should_trap = 1; // float op
 			endcase
-		end
+		end */
 	end
 
 	always @(posedge clk) begin
@@ -3412,7 +3415,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// arith
-		alu_run <= 0;
+		/* alu_run <= 0; */
 		
 		if (!resetn) begin
 			pcpi_trap_in_q <= 0;
@@ -3446,22 +3449,22 @@ module picorv32_pcpi_rvv #(
 			mem_seg_n_access = 0;
 
 			// arith
-			arith_remaining <= 0;
+			/* arith_remaining <= 0;
 			arith_init <= 1;
-			arith_step <= 0;
+			arith_step <= 0; */
 		end else begin
-			if (should_trap)
-				pcpi_trap_out <= 1;
+			/* if (should_trap)
+				pcpi_trap_out <= 1; */
 			
 			if (should_trap || pcpi_trap_in || pcpi_trap_out) begin
-				if (!pcpi_trap_in_q) begin
+				/* if (!pcpi_trap_in_q) begin
 					`debug_rvv($display("trap taken");)
 					if (instr_mem) begin
 						vstart <= {2'b00, mem_indexed_reg_index, mem_indexed_byte_index, reg_index, byte_index};
 					end
-				end
+				end */
 			end else begin
-				if (pcpi_trap_in_q) begin
+				/* if (pcpi_trap_in_q) begin
 					`debug_rvv($display("context restored");)
 					if (instr_mem) begin
 						mem_indexed_reg_index 	= vstart[29:25];
@@ -3472,7 +3475,7 @@ module picorv32_pcpi_rvv #(
 						if ((byte_index + (VLEN >> mem_sew) * reg_index) >= mem_transfer_n || byte_index >= VLENB || reg_index >= 8)
 							 pcpi_trap_out <= 1;
 					end
-				end
+				end */
 				if (instr_run) begin
 					if (instr_cfg) begin
 						if (instr_vsetvli || instr_vsetivli) begin
@@ -3536,12 +3539,12 @@ module picorv32_pcpi_rvv #(
 								3'b101: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 32 bits index
 								3'b110: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 64 bits index but we only keep 32 LSB
 							endcase
-							mem_offset_q += (mem_stride_i << 2);
+							mem_offset_q = mem_offset_q + (mem_stride_i << 2);
 						end else
 							mem_offset_q = mem_stride_amount * ((!instr_mem_whole_reg ? mem_seg_nfields : 1) * (byte_index + reg_index * (VLEN >> mem_sew))) + (mem_stride_i << 2);
 
 						// for segment ops
-						mem_offset_q += (mem_seg_i << (mem_sew - 3));
+						mem_offset_q = mem_offset_q + (mem_seg_i << (mem_sew - 3));
 						
 						if (mem_sending && mem_stride_i == 0) begin
 							case (mem_offset_q[1:0] + pcpi_rs1[1:0])
@@ -3606,25 +3609,25 @@ module picorv32_pcpi_rvv #(
 									`debug_rvv($display("byte0");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
 									`debug_rvv($display("byte1");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[8 +: 8];
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
 									`debug_rvv($display("byte2");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[16 +: 8];
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
 									`debug_rvv($display("byte3");)
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[24 +: 8];
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 
 								`debug_rvv($display("mask : %h", mem_stride_mask);)
@@ -3633,7 +3636,7 @@ module picorv32_pcpi_rvv #(
 
 								if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
 									if (mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg)
-										offset += offset_incr;
+										offset = offset + offset_incr;
 									offset_incr = 0;
 								end
 
@@ -3655,10 +3658,10 @@ module picorv32_pcpi_rvv #(
 											if (byte_index == (VLEN >> mem_sew) - 1) begin
 												byte_index = 0;
 												offset = 0;
-												reg_index += 1;
+												reg_index = reg_index + 1;
 											end else begin
 												reg_index = reg_index;
-												byte_index += 1;
+												byte_index = byte_index + 1;
 											end
 										end else
 											mem_seg_i <= mem_seg_i + 1; // TODO ERREUR ?
@@ -3666,14 +3669,14 @@ module picorv32_pcpi_rvv #(
 										if (instr_mem_indexed && (mem_seg_i == mem_seg_nfields - 1)) begin
 											if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
 												mem_indexed_byte_index = 0;
-												mem_indexed_reg_index += 1;
+												mem_indexed_reg_index = mem_indexed_reg_index + 1;
 											end else begin
-												mem_indexed_byte_index += 1;
+												mem_indexed_byte_index = mem_indexed_byte_index + 1;
 												mem_indexed_reg_index = mem_indexed_reg_index;
 											end
 										end
 									end else
-										mem_stride_i += 1;
+										mem_stride_i = mem_stride_i + 1;
 								
 									pcpi_wait <= 1;
 									pcpi_ready <= 0;
@@ -3720,30 +3723,30 @@ module picorv32_pcpi_rvv #(
 									tmp_offset = (offset + offset_incr) << 3;
 									mem_wdata_q[0 +: 8] = temp_vreg[tmp_offset +: 8];
 									mem_strb_q[0] = 1'b1;
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									mem_wdata_q[8 +: 8] = temp_vreg[tmp_offset +: 8];
 									mem_strb_q[1] = 1'b1;
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									mem_wdata_q[16 +: 8] = temp_vreg[tmp_offset +: 8];
 									mem_strb_q[2] = 1'b1;
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									mem_wdata_q[24 +: 8] = temp_vreg[tmp_offset +: 8];
 									mem_strb_q[3] = 1'b1;
-									offset_incr += 1;
+									offset_incr = offset_incr + 1;
 								end
 
 								if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
 									if (mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg)
-										offset += offset_incr;
+										offset = offset + offset_incr;
 									offset_incr = 0;
 								end
 
@@ -3775,10 +3778,10 @@ module picorv32_pcpi_rvv #(
 											if (byte_index == (VLEN >> mem_sew) - 1) begin
 												byte_index = 0;
 												offset = 0;
-												reg_index += 1;
+												reg_index = reg_index + 1;
 											end else begin
 												reg_index = reg_index;
-												byte_index += 1;
+												byte_index = byte_index + 1;
 											end
 										end else
 											mem_seg_i <= mem_seg_i + 1;
@@ -3786,14 +3789,14 @@ module picorv32_pcpi_rvv #(
 										if (instr_mem_indexed && (mem_seg_i == mem_seg_nfields - 1)) begin
 											if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
 												mem_indexed_byte_index = 0;
-												mem_indexed_reg_index += 1;
+												mem_indexed_reg_index = mem_indexed_reg_index + 1;
 											end else begin
-												mem_indexed_byte_index += 1;
+												mem_indexed_byte_index = mem_indexed_byte_index + 1;
 												mem_indexed_reg_index = mem_indexed_reg_index;
 											end
 										end
 									end else
-										mem_stride_i += 1;
+										mem_stride_i = mem_stride_i + 1;
 										
 									pcpi_wait <= 1;
 									pcpi_ready <= 0;
@@ -3819,7 +3822,7 @@ module picorv32_pcpi_rvv #(
 								pcpi_wr <= 0;
 							end
 						end
-					end else if (instr_arith) begin
+					end /* else if (instr_arith) begin
 						`debug_rvv($display("nb_lanes=%d", NB_LANES);)
 						`debug_rvv($display("arith : done=%b | run=%b", arith_done, alu_run);)
 						`debug_rvv($display("arith vl:%d | remaining:%d", vl, arith_remaining);)
@@ -3910,6 +3913,7 @@ module picorv32_pcpi_rvv #(
 							reg_index <= 0;
 							arith_remaining <= 0;
 							pcpi_wait <= 0;
+							arith_init <= 1;
 							pcpi_ready <= 1;
 						end else if (arith_done) begin // 1 vec done
 							reg_index <= reg_index + 1;
@@ -3924,7 +3928,7 @@ module picorv32_pcpi_rvv #(
 						end else if (alu_run)
 							if (arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
 								arith_step <= 0;
-								arith_remaining <= arith_remaining - (1 << NB_LANES);
+								arith_remaining <= arith_remaining - (1 << nb_lanes);
 							end else begin
 								arith_step <= arith_step + 1;
 								arith_remaining <= arith_remaining;
@@ -3932,14 +3936,14 @@ module picorv32_pcpi_rvv #(
 
 						pcpi_rd <= 0;
 						pcpi_wr <= 0;
-					end
+					end */
 				end
 			end
 			pcpi_trap_in_q <= pcpi_trap_in || pcpi_trap_out;
 		end
 	end
 
-	vec_alu_wrapper #(
+	/* vec_alu_wrapper #(
 		.VLEN(VLEN),
 		.LANE_WIDTH(LANE_WIDTH),
 		.NB_LANES(NB_LANES)
@@ -3956,5 +3960,5 @@ module picorv32_pcpi_rvv #(
 		.regi(arith_regi),
 		.res(arith_res),
 		.done_out(arith_done)
-	);
+	); */
 endmodule

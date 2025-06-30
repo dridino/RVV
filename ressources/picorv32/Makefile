@@ -74,7 +74,7 @@ test_axi: testbench.vvp firmware/firmware.hex
 	$(VVP) -N $< +axi_test
 
 test_synth: testbench_synth.vvp firmware/firmware.hex
-	$(VVP) -N $<
+	$(VVP) -N $< +vcd
 
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
@@ -99,7 +99,7 @@ testbench_sp.vvp: testbench.v picorv32.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST $^
 	chmod -x $@
 
-testbench_synth.vvp: testbench.v synth.v
+testbench_synth.vvp: testbench.v  synth.v vec_alu_wrapper_synth.v vec_alu.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 

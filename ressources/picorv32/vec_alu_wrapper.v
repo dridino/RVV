@@ -3,7 +3,7 @@
 module vec_alu_wrapper #(
     parameter [9:0] VLEN = 10'd 128,
     parameter [2:0] LANE_WIDTH = 3'b100,
-    parameter integer NB_LANES = 2
+    parameter integer NB_LANES = 3
 ) (
     input                               clk, resetn,
     input       [5:0]                   opcode,

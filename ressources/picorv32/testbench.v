@@ -255,6 +255,9 @@ module picorv32_wrapper #(
 		$readmemh(firmware_file, mem.memory);
 	end
 
+	// always @(posedge clk)
+	// 	$display("%h | %h", mem_axi_araddr, mem_axi_rdata);
+
 	integer cycle_counter;
 	always @(posedge clk) begin
 		cycle_counter <= resetn ? cycle_counter + 1 : 0;

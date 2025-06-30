@@ -5,9 +5,9 @@
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
 
-#define ENABLE_ADRIEN
+// #define ENABLE_ADRIEN
 #define ENABLE_QREGS
-#define ENABLE_HELLO
+// #define ENABLE_HELLO
 #define ENABLE_RVTST
 #define ENABLE_SIEVE
 #define ENABLE_MULTST
