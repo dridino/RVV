@@ -30,6 +30,8 @@
 // `define DEBUG
 // `define DEBUG_RVV
 
+`define min(a,b) (a < b ? a : b)
+
 `ifdef DEBUG
   `define debug(debug_command) debug_command
 `else
@@ -3215,7 +3217,7 @@ module picorv32_pcpi_rvv #(
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 
-	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem/*, instr_arith */};
+	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
 
 	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
@@ -3278,7 +3280,7 @@ module picorv32_pcpi_rvv #(
 	integer offset_incr;
 	
 	// ARITHMETIC OPERATIONS
-	/* reg instr_arith;
+	reg instr_arith;
 	reg arith_vv;
 	reg arith_vi;
 	reg arith_vs;
@@ -3295,7 +3297,9 @@ module picorv32_pcpi_rvv #(
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
                           tmp_nb_lanes[2] ? 2'b10 :
                           tmp_nb_lanes[1] ? 2'b01 :
-                          2'b00; */
+                          2'b00;
+
+	integer lane_num;
 	
 	integer i;
 	initial begin
@@ -3327,10 +3331,10 @@ module picorv32_pcpi_rvv #(
 		mem_seg_nfields = 0;
 
 		// arith
-		/* instr_arith = 0;
+		instr_arith = 0;
 		arith_vv = 0;
 		arith_vi = 0;
-		arith_vs = 0; */
+		arith_vs = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -3391,7 +3395,7 @@ module picorv32_pcpi_rvv #(
 		end
 
 		// arith
-		/* if (resetn && pcpi_insn[6:0] == 7'b1010111 && pcpi_insn[14:12] != 3'b111) begin
+		if (resetn && pcpi_insn[6:0] == 7'b1010111 && pcpi_insn[14:12] != 3'b111) begin
 			instr_arith = 1;
 			case (pcpi_insn[14:12])
 				3'b000, 3'b001, 3'b010: arith_vv = 1;
@@ -3399,7 +3403,7 @@ module picorv32_pcpi_rvv #(
 				3'b100, 3'b110: arith_vs = 1;
 				3'b101: should_trap = 1; // float op
 			endcase
-		end */
+		end
 	end
 
 	always @(posedge clk) begin
@@ -3415,7 +3419,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// arith
-		/* alu_run <= 0; */
+		alu_run <= 0;
 		
 		if (!resetn) begin
 			pcpi_trap_in_q <= 0;
@@ -3449,9 +3453,9 @@ module picorv32_pcpi_rvv #(
 			mem_seg_n_access = 0;
 
 			// arith
-			/* arith_remaining <= 0;
+			arith_remaining <= 0;
 			arith_init <= 1;
-			arith_step <= 0; */
+			arith_step <= 0;
 		end else begin
 			/* if (should_trap)
 				pcpi_trap_out <= 1; */
@@ -3822,7 +3826,7 @@ module picorv32_pcpi_rvv #(
 								pcpi_wr <= 0;
 							end
 						end
-					end /* else if (instr_arith) begin
+					end else if (instr_arith) begin
 						`debug_rvv($display("nb_lanes=%d", NB_LANES);)
 						`debug_rvv($display("arith : done=%b | run=%b", arith_done, alu_run);)
 						`debug_rvv($display("arith vl:%d | remaining:%d", vl, arith_remaining);)
@@ -3831,7 +3835,12 @@ module picorv32_pcpi_rvv #(
 						if (alu_run) begin
 							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 <= LANE_WIDTH) begin // lane larger than vsew
-								case (vsew)
+										for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
+											if (arith_res[lane_num] && arith_remaining > lane_num) begin
+												temp_vreg[arith_regi[lane_num*10 +: 10] +: (1 << (vsew+3))] = arith_vd[lane_num << 6 +: (1 << (vsew+3))];
+											end
+										end
+								/* case (vsew)
 									3'b000: begin
 										if (arith_res[0]) temp_vreg[arith_regi[0 +: 10] +: 8] = arith_vd[0 +: 8];
 										if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: 8] = arith_vd[64 +: 8];
@@ -3872,16 +3881,21 @@ module picorv32_pcpi_rvv #(
 										if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: 64] = arith_vd[384 +: 64];
 										if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: 64] = arith_vd[448 +: 64];
 									end
-								endcase
+								endcase */
 							end else begin
-								if (arith_res[0]) temp_vreg[arith_regi[0+:10] +: SHIFTED_LANE_WIDTH] = arith_vd[0 +: SHIFTED_LANE_WIDTH];
+								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
+									if (arith_res[lane_num] && arith_remaining > lane_num) begin
+										temp_vreg[arith_regi[lane_num*10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[lane_num << 6 +: SHIFTED_LANE_WIDTH];
+									end
+								end
+								/* if (arith_res[0]) temp_vreg[arith_regi[0+:10] +: SHIFTED_LANE_WIDTH] = arith_vd[0 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 1 && arith_res[1] && arith_remaining > 1) temp_vreg[arith_regi[10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[64 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 2 && arith_res[2] && arith_remaining > 2) temp_vreg[arith_regi[20 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[128 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 2 && arith_res[3] && arith_remaining > 3) temp_vreg[arith_regi[30 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[192 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 3 && arith_res[4] && arith_remaining > 4) temp_vreg[arith_regi[40 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[256 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 3 && arith_res[5] && arith_remaining > 5) temp_vreg[arith_regi[50 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[320 +: SHIFTED_LANE_WIDTH];
 								if (NB_LANES >= 3 && arith_res[6] && arith_remaining > 6) temp_vreg[arith_regi[60 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[384 +: SHIFTED_LANE_WIDTH];
-								if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[448 +: SHIFTED_LANE_WIDTH];
+								if (NB_LANES >= 3 && arith_res[7] && arith_remaining > 7) temp_vreg[arith_regi[70 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[448 +: SHIFTED_LANE_WIDTH]; */
 							end
 
 							vregs[vd + reg_index] = temp_vreg;
@@ -3936,14 +3950,14 @@ module picorv32_pcpi_rvv #(
 
 						pcpi_rd <= 0;
 						pcpi_wr <= 0;
-					end */
+					end
 				end
 			end
 			pcpi_trap_in_q <= pcpi_trap_in || pcpi_trap_out;
 		end
 	end
 
-	/* vec_alu_wrapper #(
+	vec_alu_wrapper #(
 		.VLEN(VLEN),
 		.LANE_WIDTH(LANE_WIDTH),
 		.NB_LANES(NB_LANES)
@@ -3960,5 +3974,5 @@ module picorv32_pcpi_rvv #(
 		.regi(arith_regi),
 		.res(arith_res),
 		.done_out(arith_done)
-	); */
+	);
 endmodule

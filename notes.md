@@ -896,30 +896,7 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 
 ## 30/06
 
-case3
-next_insn : 00100013
-case3
-next_insn : 00100013
-case3if1
-case0
-next_insn : 00100013
-if1
-case0
-case0if1
-case1
-case1if1
-case1if1else1
-case0
-next_insn : 00100013
-if1
-case0
-case0if1
-case1
-next_insn : 00100013
-case1if1
-case1if1else1
-case3
-case3
+> Synthèse de tout le proc avec RVV fonctionne (validé par simu post-synthèse)
 
 ## Réponses
 

@@ -26,8 +26,8 @@ RVTEST_CODE_BEGIN
   
   li x4, 11
   vsetvli t0, x0, e32, m1
-  // vand.vv v5, v1, v3
-  // vand.vv v6, v2, v4
+  vand.vv v5, v1, v3
+  vand.vv v6, v2, v4
 
   // to print vectors state
   vsetvli t0, x0, e64, mf4

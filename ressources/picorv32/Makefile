@@ -99,7 +99,7 @@ testbench_sp.vvp: testbench.v picorv32.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) -DSP_TEST $^
 	chmod -x $@
 
-testbench_synth.vvp: testbench.v  synth.v vec_alu_wrapper_synth.v vec_alu.v
+testbench_synth.vvp: testbench.v  synth.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
