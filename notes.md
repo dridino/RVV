@@ -898,6 +898,21 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 
 > Synthèse de tout le proc avec RVV fonctionne (validé par simu post-synthèse)
 
+## 03/07
+
+> Le processeur avec extension RVV tourne sur la DE10-Lite : sans module de multiplication ni division on peut mettre 2 lanes de 32 bits avec des vecteurs de 128 bits
+> 4 lanes de 16 bits ne passe pas à cause du placement routage (45+ minutes, toujours pas fini)
+
+
+
+
+
+
+
+
+
+
+
 ## Réponses
 
 - regarder vcd pour l'apparition de `x` quand on déborde

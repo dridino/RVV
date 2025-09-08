@@ -101,7 +101,7 @@ module picorv32 #(
 	parameter [0:0]	ENABLE_RVV = 0,
 	// arithmetic op
 	parameter integer NB_LANES = 1, // 2^NB_LANES lanes used for arith op
-	parameter [2:0] LANE_WIDTH = 3'b011 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
+	parameter [2:0] LANE_WIDTH = 3'b100 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
 	// LANE_WIDTH * 2^NB_LANES must be less than or equal to VLEN
 ) (
 	input clk, resetn,
@@ -726,7 +726,7 @@ module picorv32 #(
 					mem_addr <= pcpi_rvv_mem_addr;
 				end
 				mem_instr <= 0;
-				mem_valid <= pcpi_rvv_mem_wen;
+				mem_valid <= 1;
 			end
 		end
 
@@ -2658,7 +2658,7 @@ module picorv32_axi #(
 	// RVV
 	parameter [9:0] VLEN = 10'd 128,
 	parameter [0:0] ENABLE_RVV = 0,
-	parameter [2:0] LANE_WIDTH = 3'b011,
+	parameter [2:0] LANE_WIDTH = 3'b100,
 	parameter integer NB_LANES = 1
 ) (
 	input clk, resetn,
@@ -3183,8 +3183,8 @@ module picorv32_pcpi_rvv #(
 	parameter [9:0] VLEN = 10'd 128,
 	// arithmetic op
 	parameter [1:0] NB_LANES = 2'b01, // 2^NB_LANES lanes used for arith op
-	parameter [2:0] LANE_WIDTH = 3'b011 // 2^LANE_WIDTH bits per lane, possible values : 8,16,32,64,128
-	// This must verify LANE_WIDTH * 2^NB_LANES <= VLEN
+	parameter [2:0] LANE_WIDTH = 3'b011 // log2 of the number of bits per lane, possible values : 8,16,32,64,128
+	// LANE_WIDTH * 2^NB_LANES must be less than or equal to VLEN
 ) (
 	input clk, resetn,
 
@@ -3644,7 +3644,7 @@ module picorv32_pcpi_rvv #(
 									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
 									vregs[index][tmp_offset +: 8] <= pcpi_mem_rdata[0 +: 8];
 									// temp_vreg[tmp_offset +: 8] = pcpi_mem_rdata[0 +: 8];
-									// temp_vreg[tmp_offset +: 8] = 8'h11;
+									temp_vreg[tmp_offset +: 8] = 8'h11;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
@@ -3799,7 +3799,7 @@ module picorv32_pcpi_rvv #(
 								end
 
 								if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
-									if (!pcpi_mem_ifetch && mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg)
+									if (mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg)
 										offset <= offset + offset_incr;
 									offset_incr = 0;
 								end
@@ -3987,7 +3987,7 @@ module picorv32_pcpi_rvv #(
 
 						`debug_rvv($display();)
 
-						if (!arith_init && arith_remaining <= 1 << NB_LANES && (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin // all vec done
+						if (!arith_init && arith_remaining <= 1 << NB_LANES && arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin // all vec done
 							reg_index <= 0;
 							arith_remaining <= 0;
 							pcpi_wait <= 0;
@@ -4007,7 +4007,7 @@ module picorv32_pcpi_rvv #(
 							arith_step <= 0;
 							arith_init <= 0;
 						end else if (alu_run)
-							if (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
+							if (arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
 								arith_step <= 0;
 								arith_remaining <= arith_remaining - (1 << nb_lanes);
 							end else begin

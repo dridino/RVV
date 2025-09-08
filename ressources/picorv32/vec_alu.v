@@ -1,6 +1,6 @@
 module vec_alu #(
 	parameter [9:0] VLEN = 10'd 128,
-    parameter [2:0] LANE_WIDTH = 3'b100, // 2^LANE_WIDTH bits per lane (8,16,32,64)
+    parameter [2:0] LANE_WIDTH = 3'b011, // 2^LANE_WIDTH bits per lane (8,16,32,64)
     // LANE_WIDTH * 2^nb_lanes must be less than or equal to VLEN
     parameter [2:0] LANE_I = 3'b000
 ) (
@@ -58,6 +58,7 @@ module vec_alu #(
                 end
                 // vadd
                 6'b000000: begin
+                    // temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = {8'b00000000, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]} + {8'b00000000, vs2_in[index +: 8]} + cout_q;
                     temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2_in[index +: SHIFTED_LANE_WIDTH] + cout_q;
                 end
                 default: begin

@@ -1,80 +1,18 @@
-// This is free and unencumbered software released into the public domain.
-//
-// Anyone is free to copy, modify, publish, use, compile, sell, or
-// distribute this software, either in source code form or as a compiled
-// binary, for any purpose, commercial or non-commercial, and by any
-// means.
-
-`timescale 1 ns / 1 ps
-
-`ifndef VERILATOR
-module testbench #(
-	parameter AXI_TEST = 0,
-	parameter VERBOSE = 1
-);
-	reg clk = 1;
-	reg resetn = 0;
-	wire trap;
-
-	always #5 clk = ~clk;
-
-	initial begin
-		repeat (100) @(posedge clk);
-		resetn <= 1;
-	end
-
-	initial begin
-		if ($test$plusargs("vcd")) begin
-			$dumpfile("testbench.vcd");
-			$dumpvars(0, testbench);
-		end
-		repeat (1000000) @(posedge clk);
-		$display("TIMEOUT");
-		$finish;
-	end
-
-	wire trace_valid;
-	wire [35:0] trace_data;
-	integer trace_file;
-
-	initial begin
-		if ($test$plusargs("trace")) begin
-			trace_file = $fopen("testbench.trace", "w");
-			repeat (10) @(posedge clk);
-			while (!trap) begin
-				@(posedge clk);
-				if (trace_valid)
-					$fwrite(trace_file, "%x\n", trace_data);
-			end
-			$fclose(trace_file);
-			$display("Finished writing testbench.trace.");
-		end
-	end
-
-	picorv32_wrapper #(
-		.AXI_TEST (AXI_TEST),
-		.VERBOSE  (VERBOSE)
-	) top (
-		.clk(clk),
-		.resetn(resetn),
-		.trap(trap),
-		.trace_valid(trace_valid),
-		.trace_data(trace_data)
-	);
-endmodule
-`endif
-
-module picorv32_wrapper #(
-	parameter AXI_TEST = 0,
-	parameter VERBOSE = 0
-) (
+module top (
 	input clk,
-	input resetn,
+	output reg [9:0] leds
+	/*,
 	output trap,
 	output trace_valid,
-	output [35:0] trace_data
+	output [35:0] trace_data */
 );
-	wire tests_passed;
+	localparam AXI_TEST = 0;
+	localparam VERBOSE = 0;
+
+	wire tests_passed = mem_axi_awaddr == 32'h20000000 && mem_axi_wdata == 12345678;
+	wire trap, trace_valid;
+	wire [35:0] trace_data;
+	
 	reg [31:0] irq = 0;
 
 	reg [15:0] count_cycle = 0;
@@ -84,6 +22,17 @@ module picorv32_wrapper #(
 		irq = 0;
 		irq[4] = &count_cycle[12:0];
 		irq[5] = &count_cycle[15:0];
+	end
+	
+	integer reset_cpt = 0;
+	reg resetn = 0;
+	always @(posedge clk) begin
+		if (reset_cpt == 500_000_000) // 10 secs
+			resetn <= 1;
+		else begin
+			reset_cpt <= reset_cpt + 1;
+			resetn <= 0;
+		end
 	end
 
 	wire        mem_axi_awvalid;
@@ -107,8 +56,96 @@ module picorv32_wrapper #(
 	wire        mem_axi_rvalid;
 	wire        mem_axi_rready;
 	wire [31:0] mem_axi_rdata;
+	
+	// RAM interface
+	wire [31:0] ram_addr;
+	wire [31:0] ram_data;
+	wire 			ram_wren;
+	wire [31:0] ram_q = {ram3_q, ram2_q, ram1_q, ram0_q};
+	wire [3:0]  ram_wstrb;
+	
+	// RAM blocks interface
+	wire [7:0] ram0_q, ram1_q, ram2_q, ram3_q;
+	wire [14:0] shifted_ram_addr = {2'b00, ram_addr[14:2]};
+	wire ram0_wren = ram_wren && ram_wstrb[0];
+	wire ram1_wren = ram_wren && ram_wstrb[1];
+	wire ram2_wren = ram_wren && ram_wstrb[2];
+	wire ram3_wren = ram_wren && ram_wstrb[3];
+	
+	
+	axi_to_ram axi2ram (
+		 .clk(clk),
+		 .resetn(resetn),
+		 
+		 .s_axi_awvalid(mem_axi_awvalid),
+		 .s_axi_awready(mem_axi_awready),
+		 .s_axi_awaddr(mem_axi_awaddr),
+		 .s_axi_awprot(mem_axi_awprot),
+		 
+		 .s_axi_wvalid(mem_axi_wvalid),
+		 .s_axi_wready(mem_axi_wready),
+		 .s_axi_wdata(mem_axi_wdata),
+		 .s_axi_wstrb(mem_axi_wstrb),
+		 
+		 .s_axi_bvalid(mem_axi_bvalid),
+		 .s_axi_bready(mem_axi_bready),
+		 
+		 .s_axi_arvalid(mem_axi_arvalid),
+		 .s_axi_arready(mem_axi_arready),
+		 .s_axi_araddr(mem_axi_araddr),
+		 .s_axi_arprot(mem_axi_arprot),
+		 
+		 .s_axi_rvalid(mem_axi_rvalid),
+		 .s_axi_rready(mem_axi_rready),
+		 .s_axi_rdata(mem_axi_rdata),
+		 
+		 .ram_address(ram_addr),
+		 .ram_data(ram_data),
+		 .ram_wren(ram_wren),
+		 .ram_wstrb(ram_wstrb),
+		 .ram_q(ram_q)
+	);
+	
+	// first byte
+	ram0_ip ram0 (
+		.clock(clk),
+		.address(shifted_ram_addr),
+		.data(ram_data[7:0]),
+		.wren(ram0_wren),
+		.q(ram0_q)
+	);
+	
+	// second byte
+	ram1_ip ram1 (
+		.clock(clk),
+		.address(shifted_ram_addr),
+		.data(ram_data[15:8]),
+		.wren(ram1_wren),
+		.q(ram1_q)
+	);
+	
+	// third byte
+	ram2_ip ram2 (
+		.clock(clk),
+		.address(shifted_ram_addr),
+		.data(ram_data[23:16]),
+		.wren(ram2_wren),
+		.q(ram2_q)
+	);
+	
+	// fourth byte
+	ram3_ip ram3 (
+		.clock(clk),
+		.address(shifted_ram_addr),
+		.data(ram_data[31:24]),
+		.wren(ram3_wren),
+		.q(ram3_q)
+	);
 
-	axi4_memory #(
+	
+	
+
+	/* axi4_memory #(
 		.AXI_TEST (AXI_TEST),
 		.VERBOSE  (VERBOSE)
 	) mem (
@@ -136,9 +173,9 @@ module picorv32_wrapper #(
 		.mem_axi_rdata   (mem_axi_rdata   ),
 
 		.tests_passed    (tests_passed    )
-	);
+	); */
 
-`ifdef RISCV_FORMAL
+/* `ifdef RISCV_FORMAL
 	wire        rvfi_valid;
 	wire [63:0] rvfi_order;
 	wire [31:0] rvfi_insn;
@@ -158,7 +195,7 @@ module picorv32_wrapper #(
 	wire [3:0]  rvfi_mem_wmask;
 	wire [31:0] rvfi_mem_rdata;
 	wire [31:0] rvfi_mem_wdata;
-`endif
+`endif */
 
 	picorv32_axi #(
 `ifndef SYNTH_TEST
@@ -168,12 +205,16 @@ module picorv32_wrapper #(
 `ifdef COMPRESSED_ISA
 		.COMPRESSED_ISA(1),
 `endif
-		.ENABLE_MUL(1),
-		.ENABLE_DIV(1),
+		.ENABLE_MUL(0),
+		.ENABLE_DIV(0),
 		.ENABLE_IRQ(1),
+		.REGS_INIT_ZERO(1),
 		.ENABLE_TRACE(1),
 		// RVV
-		.ENABLE_RVV(1)
+		.ENABLE_RVV(1),
+		.NB_LANES(1),
+		.LANE_WIDTH(3'b100),
+		.VLEN(128)
 `endif
 	) uut (
 		.clk            (clk            ),
@@ -196,7 +237,7 @@ module picorv32_wrapper #(
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
-		.irq            (irq            ),
+		.irq            (irq            ), /*
 `ifdef RISCV_FORMAL
 		.rvfi_valid     (rvfi_valid     ),
 		.rvfi_order     (rvfi_order     ),
@@ -217,12 +258,12 @@ module picorv32_wrapper #(
 		.rvfi_mem_wmask (rvfi_mem_wmask ),
 		.rvfi_mem_rdata (rvfi_mem_rdata ),
 		.rvfi_mem_wdata (rvfi_mem_wdata ),
-`endif
+`endif */
 		.trace_valid    (trace_valid    ),
 		.trace_data     (trace_data     )
 	);
 
-`ifdef RISCV_FORMAL
+/* `ifdef RISCV_FORMAL
 	picorv32_rvfimon rvfi_monitor (
 		.clock          (clk           ),
 		.reset          (!resetn       ),
@@ -246,39 +287,167 @@ module picorv32_wrapper #(
 		.rvfi_mem_rdata (rvfi_mem_rdata),
 		.rvfi_mem_wdata (rvfi_mem_wdata)
 	);
-`endif
+`endif */
 
-	reg [1023:0] firmware_file;
+	/* reg [1023:0] firmware_file;
 	initial begin
 		if (!$value$plusargs("firmware=%s", firmware_file))
 			firmware_file = "firmware/firmware.hex";
 		$readmemh(firmware_file, mem.memory);
-	end
+	end */
 
 	// always @(posedge clk)
 	// 	$display("%h | %h", mem_axi_araddr, mem_axi_rdata);
 
-	integer cycle_counter;
+	// integer cycle_counter;
 	always @(posedge clk) begin
-		cycle_counter <= resetn ? cycle_counter + 1 : 0;
+		leds <= 0;
+		// cycle_counter <= resetn ? cycle_counter + 1 : 0;
 		if (resetn && trap) begin
-			$display("TRAP");
-`ifndef VERILATOR
-			repeat (10) @(posedge clk);
-`endif
-			$display("TRAP after %1d clock cycles", cycle_counter);
+			// $display("TRAP after %1d clock cycles", cycle_counter);
 			if (tests_passed) begin
-				$display("ALL TESTS PASSED.");
-				$finish;
+				// $display("ALL TESTS PASSED.");
+				// $finish;
+				leds <= 10'b1111111111;
 			end else begin
-				$display("ERROR!");
-				if ($test$plusargs("noerror"))
-					$finish;
-				$stop;
+				leds <= 10'b0101010101;
 			end
-		end
+		end else leds <= resetn ? 10'b0011001100 : 10'b0000000001;
 	end
 endmodule
+
+
+module axi_to_ram (
+    input         clk,
+    input         resetn,
+
+    // AXI4-Lite Interface
+    input         s_axi_awvalid,
+    output reg    s_axi_awready,
+    input  [31:0] s_axi_awaddr,
+    input  [2:0]  s_axi_awprot,
+
+    input         s_axi_wvalid,
+    output reg    s_axi_wready,
+    input  [31:0] s_axi_wdata,
+    input  [3:0]  s_axi_wstrb,
+
+    output  reg   s_axi_bvalid,
+    input         s_axi_bready,
+
+    input         s_axi_arvalid,
+    output reg    s_axi_arready,
+    input  [31:0] s_axi_araddr,
+    input  [2:0]  s_axi_arprot,
+
+    output  reg   s_axi_rvalid,
+    input         s_axi_rready,
+    output [31:0] s_axi_rdata,
+
+    // RAM interface
+    output [31:0] ram_address,
+    output        ram_wren,
+    output [31:0] ram_data,
+	 output [3:0]  ram_wstrb,
+    input  [31:0] ram_q
+);
+    // Internal state
+    reg         aw_ready, w_ready, b_valid;
+    reg         ar_ready, r_valid, r_valid_q;
+
+    /* assign s_axi_awready = !aw_ready && s_axi_awvalid;
+    assign s_axi_wready  = !w_ready && s_axi_wvalid;
+    assign s_axi_bvalid  = b_valid;
+    assign s_axi_arready = !ar_ready && s_axi_arvalid;
+    assign s_axi_rvalid  = r_valid; */
+    assign s_axi_rdata   = ram_q;
+
+    assign ram_address = (s_axi_awvalid ? s_axi_awaddr : s_axi_araddr);
+    assign ram_data    = s_axi_wdata;
+    assign ram_wren    = s_axi_awvalid && s_axi_wvalid;
+	 assign ram_wstrb   = s_axi_wstrb;
+	 
+	 always @(negedge clk) begin
+		if (!resetn) begin
+			s_axi_awready <= 0;
+			s_axi_wready <= 0;
+			s_axi_bvalid <= 0;
+			s_axi_arready <= 0;
+			s_axi_rvalid <= 0;
+		end else begin
+			s_axi_awready <= !aw_ready && s_axi_awvalid;
+			s_axi_wready  <= !w_ready && s_axi_wvalid;
+			s_axi_bvalid  <= b_valid;
+			s_axi_arready <= !ar_ready && s_axi_arvalid;
+			s_axi_rvalid  <= r_valid;
+		end
+	 end
+
+    always @(negedge clk) begin
+        if (!resetn) begin
+            aw_ready <= 0;
+            w_ready  <= 0;
+            b_valid  <= 0;
+            ar_ready <= 0;
+            r_valid  <= 0;
+            r_valid_q  <= 0;
+            // rdata    <= 0;
+        end else begin
+				r_valid <= r_valid_q;
+            // WRITE transaction
+            if (s_axi_awvalid && s_axi_wvalid && !b_valid) begin
+                aw_ready <= 1;
+                w_ready  <= 1;
+                b_valid  <= 1;  // Write complete immediately
+            end else if (s_axi_bready && b_valid) begin
+                b_valid  <= 0;
+                aw_ready <= 0;
+                w_ready  <= 0;
+            end
+
+            // READ transaction
+            if (s_axi_arvalid && !r_valid_q) begin
+                ar_ready <= 1;
+                r_valid_q  <= 1;
+            end else if (s_axi_rready && r_valid_q) begin
+                r_valid_q  <= 0;
+                ar_ready <= 0;
+            end
+        end
+    end
+endmodule
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module axi4_memory #(
 	parameter AXI_TEST = 0,
@@ -387,21 +556,21 @@ module axi4_memory #(
 	end endtask
 
 	task handle_axi_rvalid; begin
-		if (verbose)
-			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
+		// if (verbose)
+		// 	$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
 		if (latched_raddr < 128*1024) begin
 			mem_axi_rdata <= memory[latched_raddr >> 2];
 			mem_axi_rvalid <= 1;
 			latched_raddr_en = 0;
 		end else begin
-			$display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
-			$finish;
+			// $display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
+			// $finish;
 		end
 	end endtask
 
 	task handle_axi_bvalid; begin
 		if (verbose)
-			$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
+			// $display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
 		if (latched_waddr < 128*1024) begin
 			if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
 			if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
@@ -410,23 +579,23 @@ module axi4_memory #(
 		end else
 		if (latched_waddr == 32'h1000_0000) begin
 			if (verbose) begin
-				if (32 <= latched_wdata && latched_wdata < 128)
-					$display("OUT: '%c'", latched_wdata[7:0]);
-				else
-					$display("OUT: %3d", latched_wdata);
+				// if (32 <= latched_wdata && latched_wdata < 128)
+				// 	$display("OUT: '%c'", latched_wdata[7:0]);
+				// else
+				// 	$display("OUT: %3d", latched_wdata);
 			end else begin
-				$write("%c", latched_wdata[7:0]);
-`ifndef VERILATOR
-				$fflush();
-`endif
+				// $write("%c", latched_wdata[7:0]);
+// `ifndef VERILATOR
+				// $fflush();
+// `endif
 			end
 		end else
 		if (latched_waddr == 32'h2000_0000) begin
 			if (latched_wdata == 123456789)
 				tests_passed = 1;
 		end else begin
-			$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
-			$finish;
+			// $display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
+			// $finish;
 		end
 		mem_axi_bvalid <= 1;
 		latched_waddr_en = 0;

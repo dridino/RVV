@@ -2,8 +2,8 @@
 
 module vec_alu_wrapper #(
     parameter [9:0] VLEN = 10'd 128,
-    parameter [2:0] LANE_WIDTH = 3'b100,
-    parameter integer NB_LANES = 3
+    parameter [2:0] LANE_WIDTH = 3'b011,
+    parameter integer NB_LANES = 1
 ) (
     input                               clk, resetn,
     input       [5:0]                   opcode,
@@ -135,7 +135,7 @@ module vec_alu_wrapper #(
         );
     endgenerate
 	
-    generate if (NB_LANES >= 2)
+    generate if (NB_LANES >= 2) begin
         vec_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
@@ -173,9 +173,10 @@ module vec_alu_wrapper #(
             .in_reg_offset(in_reg_offset),
             .vd(vd3)
         );
+		end
     endgenerate
 	
-    generate if (NB_LANES >= 3)
+    generate if (NB_LANES >= 3) begin
         vec_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
@@ -251,5 +252,6 @@ module vec_alu_wrapper #(
             .in_reg_offset(in_reg_offset),
             .vd(vd7)
         );
+		end
     endgenerate
 endmodule
