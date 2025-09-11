@@ -20,10 +20,25 @@ RVTEST_CODE_BEGIN */
   la    x3, result
 
   vsetvli t0, x0, e8, m1
-  
-  vle8.v v1, (x1)
-  vle8.v v2, (x2)
 
+  nop
+  nop
+  nop
+  
+  lw x8, (x3) // 1C
+
+  nop // 20
+  nop // 24
+  nop // 28
+
+  vle8.v v1, (x1) // 2C
+  nop
+  nop
+  nop
+  vle8.v v2, (x2)
+  nop
+  nop
+  nop
   vadd.vv v3, v1, v2
 
   vse8.v v3, (x3)
@@ -68,10 +83,10 @@ RVTEST_CODE_BEGIN */
   addi x9, x9, 0x49
   slli x9, x9, 8
   addi x9, x9, 0x26
-  bne x8,x9,.trap
+  beq x8,x9,.start
   nop
   
-  lw x8, 8(x3)
+  /* lw x8, 8(x3)
   addi x9, x0, 0xB7
   slli x9, x9, 8
   addi x9, x9, 0xD8
@@ -91,7 +106,7 @@ RVTEST_CODE_BEGIN */
   slli x9, x9, 8
   addi x9, x9, 0xFC
   beq x8,x9,.start
-  nop
+  nop */
 
 .trap:
   la x3, err

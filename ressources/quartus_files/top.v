@@ -72,6 +72,8 @@ module top (
 	wire ram2_wren = ram_wren && ram_wstrb[2];
 	wire ram3_wren = ram_wren && ram_wstrb[3];
 	
+	reg err;
+	
 	
 	axi_to_ram axi2ram (
 		 .clk(clk),
@@ -207,13 +209,13 @@ module top (
 `endif
 		.ENABLE_MUL(0),
 		.ENABLE_DIV(0),
-		.ENABLE_IRQ(1),
+		.ENABLE_IRQ(0),
 		.REGS_INIT_ZERO(1),
 		.ENABLE_TRACE(1),
 		// RVV
 		.ENABLE_RVV(1),
-		.NB_LANES(1),
-		.LANE_WIDTH(3'b100),
+		.NB_LANES(0),
+		.LANE_WIDTH(3'b011),
 		.VLEN(128)
 `endif
 	) uut (
@@ -302,17 +304,12 @@ module top (
 	// integer cycle_counter;
 	always @(posedge clk) begin
 		leds <= 0;
+		if (!resetn) err <= 0;
 		// cycle_counter <= resetn ? cycle_counter + 1 : 0;
-		if (resetn && trap) begin
-			// $display("TRAP after %1d clock cycles", cycle_counter);
-			if (tests_passed) begin
-				// $display("ALL TESTS PASSED.");
-				// $finish;
-				leds <= 10'b1111111111;
-			end else begin
-				leds <= 10'b0101010101;
-			end
-		end else leds <= resetn ? 10'b0011001100 : 10'b0000000001;
+		if (resetn && (ram_q == 32'hE0E0E0E0 || err)) begin
+			leds <= 10'b1111111111;
+			err <= 1;
+		end else if (!err) leds <= resetn ? 10'b0011001100 : 10'b0000000001;
 	end
 endmodule
 
@@ -365,9 +362,9 @@ module axi_to_ram (
     assign ram_address = (s_axi_awvalid ? s_axi_awaddr : s_axi_araddr);
     assign ram_data    = s_axi_wdata;
     assign ram_wren    = s_axi_awvalid && s_axi_wvalid;
-	 assign ram_wstrb   = s_axi_wstrb;
+	assign ram_wstrb   = s_axi_wstrb;
 	 
-	 always @(negedge clk) begin
+	always @(negedge clk) begin
 		if (!resetn) begin
 			s_axi_awready <= 0;
 			s_axi_wready <= 0;
@@ -381,7 +378,23 @@ module axi_to_ram (
 			s_axi_arready <= !ar_ready && s_axi_arvalid;
 			s_axi_rvalid  <= r_valid;
 		end
-	 end
+	end
+
+	always @(posedge clk) begin
+		if (!resetn) begin
+			s_axi_awready <= 0;
+			s_axi_wready <= 0;
+			s_axi_bvalid <= 0;
+			s_axi_arready <= 0;
+			s_axi_rvalid <= 0;
+		end else begin
+			s_axi_awready <= !aw_ready && s_axi_awvalid;
+			s_axi_wready  <= !w_ready && s_axi_wvalid;
+			s_axi_bvalid  <= b_valid;
+			s_axi_arready <= !ar_ready && s_axi_arvalid;
+			s_axi_rvalid  <= r_valid;
+		end
+	end
 
     always @(negedge clk) begin
         if (!resetn) begin
@@ -390,10 +403,8 @@ module axi_to_ram (
             b_valid  <= 0;
             ar_ready <= 0;
             r_valid  <= 0;
-            r_valid_q  <= 0;
             // rdata    <= 0;
         end else begin
-				r_valid <= r_valid_q;
             // WRITE transaction
             if (s_axi_awvalid && s_axi_wvalid && !b_valid) begin
                 aw_ready <= 1;
@@ -406,11 +417,42 @@ module axi_to_ram (
             end
 
             // READ transaction
-            if (s_axi_arvalid && !r_valid_q) begin
+            if (s_axi_arvalid && !r_valid) begin
                 ar_ready <= 1;
-                r_valid_q  <= 1;
-            end else if (s_axi_rready && r_valid_q) begin
-                r_valid_q  <= 0;
+                r_valid  <= 1;
+            end else if (s_axi_rready && r_valid) begin
+                r_valid  <= 0;
+                ar_ready <= 0;
+            end
+        end
+    end
+
+	always @(posedge clk) begin
+        if (!resetn) begin
+            aw_ready <= 0;
+            w_ready  <= 0;
+            b_valid  <= 0;
+            ar_ready <= 0;
+            r_valid  <= 0;
+            // rdata    <= 0;
+        end else begin
+            // WRITE transaction
+            if (s_axi_awvalid && s_axi_wvalid && !b_valid) begin
+                aw_ready <= 1;
+                w_ready  <= 1;
+                b_valid  <= 1;  // Write complete immediately
+            end else if (s_axi_bready && b_valid) begin
+                b_valid  <= 0;
+                aw_ready <= 0;
+                w_ready  <= 0;
+            end
+
+            // READ transaction
+            if (s_axi_arvalid && !r_valid) begin
+                ar_ready <= 1;
+                r_valid  <= 1;
+            end else if (s_axi_rready && r_valid) begin
+                r_valid  <= 0;
                 ar_ready <= 0;
             end
         end

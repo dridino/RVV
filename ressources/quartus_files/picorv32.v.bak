@@ -384,7 +384,7 @@ module picorv32 #(
 			// memory transfers
 			.pcpi_mem_rdata		(mem_rdata),
 			.pcpi_mem_ifetch	(pcpi_rvv_mem_ifetch),
-			.pcpi_mem_done		(mem_valid && mem_ready),
+			.pcpi_mem_done		(mem_ready),
 			.pcpi_mem_op		(pcpi_rvv_mem_op),
 			.pcpi_mem_ftrans	(pcpi_rvv_mem_ftrans),
 			.pcpi_mem_load		(pcpi_rvv_mem_load),
@@ -509,8 +509,8 @@ module picorv32 #(
 		// $display("mem_rdata : %h | mem_rdata_q : %h", mem_rdata, mem_rdata_q);
 		if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans) begin
 			// $display("next_insn : %h", rvv_mem_next_insn);
-			mem_rdata_q = rvv_mem_next_insn;
-			next_insn_opcode = rvv_mem_next_insn;
+			mem_rdata_q <= rvv_mem_next_insn;
+			next_insn_opcode <= rvv_mem_next_insn;
 		end else if (mem_xfer) begin
 			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
@@ -3210,7 +3210,9 @@ module picorv32_pcpi_rvv #(
 	output wire		  pcpi_mem_load, 		// 1 if vector memory load
 	output wire		  pcpi_mem_store, 		// 1 if vector memory store
 	output reg		  pcpi_mem_wen, 		// memory access
+	// output			  pcpi_mem_wen, 		// memory access
 	output reg [31:0] pcpi_mem_addr, 		// memory access addr
+	// output     [31:0] pcpi_mem_addr, 		// memory access addr
 	output reg [31:0] pcpi_mem_wdata, 		// data to store
 	output reg [3:0]  pcpi_mem_strb 		// i=1 if byte i should be writtent to memory
 );
@@ -3219,6 +3221,9 @@ module picorv32_pcpi_rvv #(
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
+
+	// assign pcpi_mem_wen = instr_mem ? !pcpi_mem_ifetch && mem_sending : 0;
+	// assign pcpi_mem_addr = pcpi_rs1 + mem_offset_q;
 
 	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
@@ -3758,7 +3763,7 @@ module picorv32_pcpi_rvv #(
 								mem_sending <= 1;
 								// outputs
 								pcpi_mem_wen <= 0;
-								pcpi_mem_addr <= 0;						
+								pcpi_mem_addr <= pcpi_mem_addr;						
 								pcpi_wr <= 0;
 							end else begin						
 								pcpi_ready <= 0;
@@ -3871,7 +3876,7 @@ module picorv32_pcpi_rvv #(
 								end
 
 								pcpi_mem_wen <= 0;
-								pcpi_mem_addr <= 0;
+								pcpi_mem_addr <= pcpi_mem_addr;
 								mem_sending <= 1;
 								pcpi_wr <= 0;
 							end else begin						
