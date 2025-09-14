@@ -16,7 +16,7 @@ Les lectures et écritures vectorielles fonctionnent avec les modes d'adressage 
 
 ### Opérations arithmético-logiques
 
-Les opérations arithmético-logiques supportées sont :
+Les opérations arithmético-logiques de type *vecteur-vecteur* supportées sont :
 
 - `vand`
 - `vor`
