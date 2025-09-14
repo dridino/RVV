@@ -29,4 +29,4 @@ Pour simuler l'exécution de code assembleur riscv sur le processeur, lancer la 
 
 ## Implémentation sur DE10-Lite
 
-Créer un nouveau projet Quartus avec les fichiers `picorv32/picorv32.v`, `picorv32/vec_alu_wrapper.v`, `picorv32/vec_alu.v` et ceux contenus dans le dossier `quartus_files`, qui contient les descriptions de la mémoire et le fichier *top*.
+Créer un nouveau projet Quartus avec les fichiers `picorv32/picorv32.v`, `picorv32/vec_alu_wrapper.v`, `picorv32/vec_alu.v` et ceux contenus dans le dossier `quartus_files`, qui contient les descriptions de la mémoire et le fichier *top*. Les fichiers `picorv32/firmware/firmware[0-3].mif` sont les fichiers d'initialisation des blocs mémoire (des blocs de 1 octet chacun, pour permettre la modification d'un seul octet à la fois) générés à partir du fichier `firmware.hex` via le script python `firmware_split.py`.
