@@ -58,7 +58,6 @@ module vec_alu #(
                 end
                 // vadd
                 6'b000000: begin
-                    // temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = {8'b00000000, vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: 8]} + {8'b00000000, vs2_in[index +: 8]} + cout_q;
                     temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2_in[index +: SHIFTED_LANE_WIDTH] + cout_q;
                 end
                 default: begin
