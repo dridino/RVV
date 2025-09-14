@@ -903,7 +903,10 @@ Cette architecture serait rentable que pour un nombre **très grand** d'ALU. Ain
 > Le processeur avec extension RVV tourne sur la DE10-Lite : sans module de multiplication ni division on peut mettre 2 lanes de 32 bits avec des vecteurs de 128 bits
 > 4 lanes de 16 bits ne passe pas à cause du placement routage (45+ minutes, toujours pas fini)
 
+## 14/09
 
+> Le processeur tourne sur la DE10-Lite avec le même code que celui de simu. Les résultats peuvent varier en fonction des signaux observés via le *SignalTap Analyze* (peut-être un problème de synthèse des registres vectoriels ?)
+> A la simulation comportementale, l'ALU génère des `x` car on lit en dehors du vecteur, comportement disparaissant en synthèse et ne posant aucun problème dans ce cadre. Cela se produit quand le `vsew` est plus petit que la largeur des *lanes* de notre architecture.
 
 
 

@@ -25,5 +25,8 @@ Les opérations arithmético-logiques supportées sont :
 
 ## Simulation
 
+Pour simuler l'exécution de code assembleur riscv sur le processeur, lancer la commande `make test` (ou `make test_vcd` pour générer un fichier `testbench.vcd` visualisable dans gtkwave) depuis le dossier `ressources/picorv32/`. Le fichier contenant le code assembleur est à rentrer dans la constante `TEST_OBJS` du Makefile. La structure des fichiers assembleur diffère des autres afin de pouvoir être exécutés sur le FPGA (sans affichage donc). Si l'exécution ne s'arrête pas, le test est passé, si elle s'arrête, le test n'est pas passé (format nécessaire pour exécution sur FPGA).
 
 ## Implémentation sur FPGA
+
+Créer un nouveau projet Quartus avec les fichiers `picorv32/picorv32.v`, `picorv32/vec_alu_wrapper.v`, `picorv32/vec_alu.v` et ceux contenus dans le dossier `quartus_files`, qui contient les descriptions de la mémoire et le fichier *top*.

@@ -303,6 +303,8 @@ module picorv32 #(
 	reg 		pcpi_rvv_mem_ifetch;
 	wire [31:0] pcpi_rvv_mem_wdata;
 	wire [3:0]  pcpi_rvv_mem_strb;
+	wire		pcpi_rvv_mem_init;
+	reg			pcpi_rvv_mem_trans_done;
 
 
 	generate if (ENABLE_FAST_MUL) begin
@@ -384,7 +386,7 @@ module picorv32 #(
 			// memory transfers
 			.pcpi_mem_rdata		(mem_rdata),
 			.pcpi_mem_ifetch	(pcpi_rvv_mem_ifetch),
-			.pcpi_mem_done		(mem_valid && mem_ready),
+			.pcpi_mem_done		(mem_ready),
 			.pcpi_mem_op		(pcpi_rvv_mem_op),
 			.pcpi_mem_ftrans	(pcpi_rvv_mem_ftrans),
 			.pcpi_mem_load		(pcpi_rvv_mem_load),
@@ -392,7 +394,9 @@ module picorv32 #(
 			.pcpi_mem_wen		(pcpi_rvv_mem_wen),
 			.pcpi_mem_addr		(pcpi_rvv_mem_addr),
 			.pcpi_mem_wdata		(pcpi_rvv_mem_wdata),
-			.pcpi_mem_strb		(pcpi_rvv_mem_strb)
+			.pcpi_mem_strb		(pcpi_rvv_mem_strb),
+			.pcpi_mem_init		(pcpi_rvv_mem_init),
+			.pcpi_mem_trans_done(pcpi_rvv_mem_trans_done)
 		);
 	end endgenerate
 
@@ -507,10 +511,10 @@ module picorv32 #(
 
 	always @(posedge clk) begin
 		// $display("mem_rdata : %h | mem_rdata_q : %h", mem_rdata, mem_rdata_q);
-		if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans) begin
+		if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans && !pcpi_rvv_mem_init) begin
 			// $display("next_insn : %h", rvv_mem_next_insn);
-			mem_rdata_q = rvv_mem_next_insn;
-			next_insn_opcode = rvv_mem_next_insn;
+			mem_rdata_q <= rvv_mem_next_insn;
+			next_insn_opcode <= rvv_mem_next_insn;
 		end else if (mem_xfer) begin
 			mem_rdata_q <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
 			next_insn_opcode <= COMPRESSED_ISA ? mem_rdata_latched : mem_rdata;
@@ -718,8 +722,9 @@ module picorv32 #(
 				end
 			endcase
 			if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !(mem_la_read || mem_la_write)) begin
+				if (!(pcpi_rvv_mem_init || pcpi_rvv_mem_ifetch))
+					mem_wstrb <= pcpi_rvv_mem_strb;
 				if (pcpi_rvv_mem_wen) begin
-					mem_wstrb <= pcpi_rvv_mem_store ? pcpi_rvv_mem_strb : 0;
 					if (pcpi_rvv_mem_store) begin
 						mem_wdata <= pcpi_rvv_mem_wdata;
 					end
@@ -727,6 +732,8 @@ module picorv32 #(
 				end
 				mem_instr <= 0;
 				mem_valid <= mem_do_rinst || pcpi_rvv_mem_wen;
+				if (pcpi_rvv_mem_trans_done)
+					mem_addr <= reg_pc;
 			end
 		end
 
@@ -957,7 +964,7 @@ module picorv32 #(
 		is_lbu_lhu_lw <= |{instr_lbu, instr_lhu, instr_lw};
 		is_compare <= |{is_beq_bne_blt_bge_bltu_bgeu, instr_slti, instr_slt, instr_sltiu, instr_sltu};
 
-		if (mem_do_rinst && mem_done) begin
+		if (mem_do_rinst && (mem_done || ((pcpi_rvv_mem_load || pcpi_rvv_mem_store) && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans && !pcpi_rvv_mem_init))) begin
 			instr_lui     <= mem_rdata_latched[6:0] == 7'b0110111;
 			instr_auipc   <= mem_rdata_latched[6:0] == 7'b0010111;
 			instr_jal     <= mem_rdata_latched[6:0] == 7'b1101111;
@@ -1506,6 +1513,8 @@ module picorv32 #(
 
 		alu_wait <= 0;
 		alu_wait_2 <= 0;
+		
+		pcpi_rvv_mem_trans_done <= 0;
 
 		if (launch_next_insn) begin
 			dbg_rs1val <= 'bx;
@@ -1671,11 +1680,14 @@ module picorv32 #(
 						cpu_state <= cpu_state_ld_rs1;
 					end
 				end
+				if (ENABLE_RVV && (pcpi_rvv_mem_load || pcpi_rvv_mem_store) && pcpi_rvv_mem_trans_done)
+					decoder_trigger <= 1;
 			end
 
 			cpu_state_ld_rs1: begin
 				reg_op1 <= 'bx;
 				reg_op2 <= 'bx;
+				pcpi_valid <= 0;
 
 				(* parallel_case *)
 				case (1'b1)
@@ -1851,6 +1863,25 @@ module picorv32 #(
 							cpu_state <= cpu_state_ld_rs2;
 					end
 				endcase
+				
+				if (ENABLE_RVV && (pcpi_rvv_mem_load || pcpi_rvv_mem_store)) begin
+					if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans && !pcpi_rvv_mem_init) begin // last load op of vload
+						// decoder_trigger <= 1;
+						// decoder_pseudo_trigger <= 0;
+						set_mem_do_rinst = 1;
+						pcpi_rvv_mem_trans_done <= 1;
+						cpu_state <= cpu_state_fetch;
+					end else begin
+						reg_op1 <= cpuregs_rs1;
+						dbg_rs1val <= cpuregs_rs1;
+						dbg_rs1val_valid <= 1;
+						set_mem_do_rdata = pcpi_rvv_mem_wen && pcpi_rvv_mem_load;
+						set_mem_do_wdata = pcpi_rvv_mem_wen && pcpi_rvv_mem_store;
+						// decoder_trigger <= 1;
+						// decoder_pseudo_trigger <= 1;
+						cpu_state <= cpu_state_ld_rs1;
+					end
+				end
 			end
 
 			cpu_state_ld_rs2: begin
@@ -2271,7 +2302,8 @@ generate
 				rvv_mem_next_insn <= 0;
 				pcpi_rvv_mem_ifetch <= 0;
 			end else begin
-				pcpi_rvv_mem_ifetch <= mem_instr && mem_busy;
+				// pcpi_rvv_mem_ifetch <= mem_instr && mem_busy;
+				pcpi_rvv_mem_ifetch <= !pcpi_rvv_mem_op;
 				if ((pcpi_rvv_mem_load || pcpi_rvv_mem_store) && pcpi_rvv_mem_ftrans)
 					rvv_mem_next_insn <= mem_rdata;
 			end
@@ -3212,19 +3244,25 @@ module picorv32_pcpi_rvv #(
 	output reg		  pcpi_mem_wen, 		// memory access
 	output reg [31:0] pcpi_mem_addr, 		// memory access addr
 	output reg [31:0] pcpi_mem_wdata, 		// data to store
-	output reg [3:0]  pcpi_mem_strb 		// i=1 if byte i should be writtent to memory
+	output reg [3:0]  pcpi_mem_strb, 		// i=1 if byte i should be writtent to memory
+	output			  pcpi_mem_init,
+	input			  pcpi_mem_trans_done
 );
 	localparam integer VLENB = VLEN/8;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
+	assign pcpi_mem_init = instr_mem && !pcpi_mem_op && byte_index == 0 && reg_index == 0 && mem_sending && !pcpi_ready && !pcpi_mem_trans_done;
+
+	// assign pcpi_mem_wen = instr_mem ? !pcpi_mem_ifetch && mem_sending : 0;
+	// assign pcpi_mem_addr = pcpi_rs1 + mem_offset_q;
 
 	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
 	reg [31:0] vxsat, vxrm, vcsr, vl, vlmax, vtype;
 	reg [31:0] vstart; // reg must be as short as possible
-	(* preserve *) reg [VLEN-1:0] vregs [regfile_size-1:0];
+	reg [VLEN-1:0] vregs [regfile_size-1:0] /* synthesis preserve */;
 
 	wire	   vill  = vtype[31];
 	wire 	   vma   = vtype[7];
@@ -3416,7 +3454,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_wr <= 0;
 		pcpi_rd <= 'bx;
 		pcpi_mem_wen <= 0; // memory access
-		pcpi_mem_addr <= 0; // mem addr
+		pcpi_mem_addr <= pcpi_rs1 + mem_offset_q; // mem addr
 		pcpi_mem_op <= 0;
 		pcpi_mem_strb <= 0;
 		pcpi_mem_ftrans <= 0;
@@ -3744,6 +3782,7 @@ module picorv32_pcpi_rvv #(
 									offset_incr = 0;
 									mem_stride_i = 0;
 									mem_seg_i = 0;
+									mem_offset_q = 0;
 								end
 
 								`debug_rvv($display("v1 : %h", vregs[1]);)
@@ -3758,7 +3797,7 @@ module picorv32_pcpi_rvv #(
 								mem_sending <= 1;
 								// outputs
 								pcpi_mem_wen <= 0;
-								pcpi_mem_addr <= 0;						
+								pcpi_mem_addr <= pcpi_rs1 + mem_offset_q;						
 								pcpi_wr <= 0;
 							end else begin						
 								pcpi_ready <= 0;
@@ -3868,10 +3907,11 @@ module picorv32_pcpi_rvv #(
 									offset_incr = 0;
 									mem_stride_i = 0;
 									mem_seg_i = 0;
+									mem_offset_q = 0;
 								end
 
 								pcpi_mem_wen <= 0;
-								pcpi_mem_addr <= 0;
+								pcpi_mem_addr <= pcpi_rs1 + mem_offset_q;
 								mem_sending <= 1;
 								pcpi_wr <= 0;
 							end else begin						

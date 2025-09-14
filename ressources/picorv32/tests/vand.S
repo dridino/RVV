@@ -15,37 +15,20 @@ RVTEST_CODE_BEGIN */
 .text
 
 .start:
-  la    x1, tdat1
-  la    x2, tdat7
-  la    x3, result
+  la    x18, tdat1
+  la    x19, tdat7
+  la    x20, result
 
   vsetvli t0, x0, e8, m1
 
-  nop
-  nop
-  nop
-  
-  lw x8, (x3) // 1C
-
-  nop // 20
-  nop // 24
-  nop // 28
-
-  vle8.v v1, (x1) // 2C
-  nop
-  nop
-  nop
-  vle8.v v2, (x2)
-  nop
-  nop
-  nop
-  vadd.vv v3, v1, v2
-
-  vse8.v v3, (x3)
+  vle8.v v1, (x18) // 2C
+  vle8.v v3, (x19)
+  vadd.vv v2, v1, v3
+  vse8.v v2, (x20)
 
 
   /* addi x0,x0,0
-  vle32.v v1, (x1)
+  vle32.v v1, (x18)
   vle32.v v3, (x2)
   
   vsetvli t0, x0, e32, m1
@@ -64,53 +47,53 @@ RVTEST_CODE_BEGIN */
     add x1, x1, x2; \
   ) */
 
-  lw x8, (x3)
-  addi x9, x0, 0x16
-  slli x9, x9, 8
-  addi x9, x9, 0x37
-  slli x9, x9, 8
-  addi x9, x9, 0x58
-  slli x9, x9, 8
-  addi x9, x9, 0x79
-  bne x8,x9,.trap
+  lw x21, (x20)
+  addi x22, x0, 0x16
+  slli x22, x22, 8
+  addi x22, x22, 0x37
+  slli x22, x22, 8
+  addi x22, x22, 0x58
+  slli x22, x22, 8
+  addi x22, x22, 0x79
+  bne x21,x22,.trap
   nop
   
-  lw x8, 4(x3)
-  addi x9, x0, 0x8F
-  slli x9, x9, 8
-  addi x9, x9, 0x6C
-  slli x9, x9, 8
-  addi x9, x9, 0x49
-  slli x9, x9, 8
-  addi x9, x9, 0x26
-  beq x8,x9,.start
+  lw x21, 4(x20)
+  addi x22, x0, 0x8F
+  slli x22, x22, 8
+  addi x22, x22, 0x6C
+  slli x22, x22, 8
+  addi x22, x22, 0x49
+  slli x22, x22, 8
+  addi x22, x22, 0x26
+  beq x21,x22,.start
   nop
   
-  /* lw x8, 8(x3)
-  addi x9, x0, 0xB7
-  slli x9, x9, 8
-  addi x9, x9, 0xD8
-  slli x9, x9, 8
-  addi x9, x9, 0xB5
-  slli x9, x9, 8
-  addi x9, x9, 0xD6
-  bne x8,x9,.trap
+  lw x21, 8(x20)
+  addi x22, x0, 0xB7
+  slli x22, x22, 8
+  addi x22, x22, 0xD8
+  slli x22, x22, 8
+  addi x22, x22, 0xB5
+  slli x22, x22, 8
+  addi x22, x22, 0xD6
+  bne x21,x22,.trap
   nop
   
-  lw x8, 12(x3)
-  addi x9, x0, 0xBE
-  slli x9, x9, 8
-  addi x9, x9, 0xFE
-  slli x9, x9, 8
-  addi x9, x9, 0xCC
-  slli x9, x9, 8
-  addi x9, x9, 0xFC
-  beq x8,x9,.start
-  nop */
+  lw x21, 12(x20)
+  addi x22, x0, 0xBE
+  slli x22, x22, 8
+  addi x22, x22, 0xFE
+  slli x22, x22, 8
+  addi x22, x22, 0xCC
+  slli x22, x22, 8
+  addi x22, x22, 0xFC
+  beq x21,x22,.start
+  nop
 
 .trap:
-  la x3, err
-  lw x8, (x3)
+  la x23, err
+  lw x21, (x23)
   nop
   // TEST_PASSFAIL 
 /* 
