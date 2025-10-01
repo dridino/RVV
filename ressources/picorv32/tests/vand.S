@@ -9,9 +9,10 @@
 
 // #include "riscv_test.h"
 // #include "test_macros.h"
-/* 
-RVTEST_RV32U
+ 
+/* RVTEST_RV32U
 RVTEST_CODE_BEGIN */
+
 .text
 
 .start:
@@ -47,7 +48,7 @@ RVTEST_CODE_BEGIN */
     add x1, x1, x2; \
   ) */
 
-  lw x21, (x20)
+  lw t0, (x20)
   addi x22, x0, 0x16
   slli x22, x22, 8
   addi x22, x22, 0x37
@@ -55,10 +56,11 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0x58
   slli x22, x22, 8
   addi x22, x22, 0x79
-  bne x21,x22,.trap
+  bne t0,x22,.trap
   nop
+  // TEST_CASE( 1, t0, 0x16375879)
   
-  lw x21, 4(x20)
+  lw t0, 4(x20)
   addi x22, x0, 0x8F
   slli x22, x22, 8
   addi x22, x22, 0x6C
@@ -66,10 +68,11 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0x49
   slli x22, x22, 8
   addi x22, x22, 0x26
-  beq x21,x22,.start
+  bne t0,x22,.trap
   nop
+  // TEST_CASE( 2, t0, 0x8F6C4926)
   
-  lw x21, 8(x20)
+  lw t0, 8(x20)
   addi x22, x0, 0xB7
   slli x22, x22, 8
   addi x22, x22, 0xD8
@@ -77,10 +80,11 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0xB5
   slli x22, x22, 8
   addi x22, x22, 0xD6
-  bne x21,x22,.trap
+  bne t0,x22,.trap
   nop
+  // TEST_CASE( 3, t0, 0xB7D8B5D6)
   
-  lw x21, 12(x20)
+  lw t0, 12(x20)
   addi x22, x0, 0xBE
   slli x22, x22, 8
   addi x22, x22, 0xFE
@@ -88,22 +92,24 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0xCC
   slli x22, x22, 8
   addi x22, x22, 0xFC
-  beq x21,x22,.start
+  beq t0,x22,.start
   nop
+  // TEST_CASE( 4, t0, 0xBEFECCFC)
 
 .trap:
   la x23, err
-  lw x21, (x23)
+  lw t0, (x23)
   nop
-  // TEST_PASSFAIL 
-/* 
-RVTEST_CODE_END
- */
+  
+/* TEST_PASSFAIL 
+ 
+RVTEST_CODE_END */
+
   .data
 /* RVTEST_DATA_BEGIN
 
-  TEST_DATA
- */
+  TEST_DATA */
+
 tdat:
 tdat1:  .word 0x12345678
 tdat2:  .word 0x87654321
@@ -128,4 +134,5 @@ result: .word 0x00000000
         .word 0x00000000
         .word 0x00000000
 err:    .word 0xE0E0E0E0
-// RVTEST_DATA_END
+
+//RVTEST_DATA_END

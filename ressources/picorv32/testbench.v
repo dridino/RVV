@@ -168,15 +168,15 @@ module picorv32_wrapper #(
 `ifdef COMPRESSED_ISA
 		.COMPRESSED_ISA(1),
 `endif
-		.ENABLE_MUL(0),
-		.ENABLE_DIV(0),
+		.ENABLE_MUL(1),
+		.ENABLE_DIV(1),
 		.ENABLE_IRQ(1),
 		.ENABLE_TRACE(1),
 		// RVV
 		.ENABLE_RVV(1),
 		.VLEN(128),
 		.NB_LANES(1),
-		.LANE_WIDTH(4)
+		.LANE_WIDTH(3)
 `endif
 	) uut (
 		.clk            (clk            ),

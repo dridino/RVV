@@ -1863,7 +1863,7 @@ module picorv32 #(
 				endcase
 				
 				if (ENABLE_RVV && (pcpi_rvv_mem_load || pcpi_rvv_mem_store)) begin
-					if (pcpi_rvv_is_rvv_insn && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans && !pcpi_rvv_mem_init) begin // last load op of vload
+					if (ENABLE_RVV && pcpi_rvv_is_rvv_insn && !pcpi_rvv_mem_op && !pcpi_rvv_mem_ftrans && !pcpi_rvv_mem_init) begin // last load op of vload
 						set_mem_do_rinst = 1;
 						pcpi_rvv_mem_trans_done <= 1;
 						cpu_state <= cpu_state_fetch;

@@ -14,13 +14,13 @@ RVTEST_RV32U
 RVTEST_CODE_BEGIN
 
   vsetvli t0, x0, e32, m1
-  la      x1, index1
-  la      x3, tdat12
-  la      x6, tdat1
+  la      x18, index1
+  la      x19, tdat12
+  la      x20, tdat1
 
   li         x2, 5
 
-  // vle8.v    v1, (x1)
+  // vle8.v    v1, (x18)
   // vse8.v    v1, (x5)
   // vle64.v     v3, (x5)
   // vsse64.v    v3, (x5), x2
@@ -29,27 +29,27 @@ RVTEST_CODE_BEGIN
   // vsse64.v    v1, (x5), x2
   // vlse64.v    v3, (x5), x2
 
-  // vle8.v      v31, (x1) // load indices
-  // vle16.v     v3, (x6) // load data
-  // vsuxei8.v   v3, (x6), v31 // store indexed
-  // vluxei8.v   v5, (x6), v31 // indexed load
+  // vle8.v      v31, (x18) // load indices
+  // vle16.v     v3, (x20) // load data
+  // vsuxei8.v   v3, (x20), v31 // store indexed
+  // vluxei8.v   v5, (x20), v31 // indexed load
 
-  /* vle32.v       v1, (x6)
-  vle32.v       v2, (x3)
+  /* vle32.v       v1, (x20)
+  vle32.v       v2, (x19)
 
-  vle8.v        v10, (x1)
+  vle8.v        v10, (x18)
 
-  vsuxseg2ei8.v    v1, (x3), v10
-  vluxseg2ei8.v    v4, (x3), v10 */
+  vsuxseg2ei8.v    v1, (x19), v10
+  vluxseg2ei8.v    v4, (x19), v10 */
 
-  vl8re64.v v1, (x6)
-  vs8r.v v1, (x3)
-  vl8re64.v v1, (x3)
+  vl8re64.v v1, (x20)
+  vs8r.v v1, (x19)
+  vl8re64.v v1, (x19)
 
-  TEST_CASE( 1, x1, 12, \
-    li  x1, 5; \
-    li  x2, 7; \
-    add x1, x1, x2; \
+  TEST_CASE( 1, x18, 12, \
+    li  x18, 5; \
+    li  x21, 7; \
+    add x18, x18, x21; \
   )
 
   TEST_PASSFAIL 

@@ -410,9 +410,12 @@ start:
 	n ## _ret:
 #endif
 
+	// RVV
+	TEST(vsetvl)
+	TEST(vload_vstore)
 	TEST(vand)
 
-	/* TEST(lui)
+	TEST(lui)
 	TEST(auipc)
 	TEST(j)
 	TEST(jal)
@@ -464,7 +467,7 @@ start:
 	TEST(rem)
 	TEST(remu)
 
-	TEST(simple) */
+	TEST(simple)
 
 	/* set stack pointer */
 	lui sp,(128*1024)>>12

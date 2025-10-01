@@ -138,7 +138,7 @@ RVTEST_CODE_BEGIN
 
   TEST_VSETVL(29, t0, 16, vsetvli t0, x0, e8);
   TEST_VSETVL(30, t0, 8, vsetvli t0, x0, e16);
-  vsetvli x0, x0, e8 # should keep the same vl value
+  vsetvli x0, x0, e8 # should keep the same vl value */
 
   TEST_PASSFAIL
 
