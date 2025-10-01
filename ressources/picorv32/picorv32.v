@@ -3245,6 +3245,8 @@ module picorv32_pcpi_rvv #(
 	localparam integer VLENB = VLEN/8;
 	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
+	localparam integer VLEN_ARITH_IMM = VLEN-5;
+	localparam integer VLEN_ARITH_RS  = VLEN-32;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
 	assign pcpi_mem_init = instr_mem && !pcpi_mem_op && byte_index == 0 && reg_index == 0 && mem_sending && !pcpi_ready && !pcpi_mem_trans_done;
@@ -3267,6 +3269,11 @@ module picorv32_pcpi_rvv #(
 	wire [4:0] vs1 = pcpi_insn[19:15];
 	wire [4:0] vs2 = pcpi_insn[24:20];
 	wire [4:0] vd = pcpi_insn[11:7];
+
+	wire [VLEN-1:0] arith_vs1 = arith_vv ? vregs[vs1 + reg_index] :
+							arith_vi ? {{VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
+							arith_vx ? {{VLEN_ARITH_RS{1'b0}},pcpi_rs1} :
+							0;
 
 	reg	should_trap;
 	reg pcpi_trap_in_q;
@@ -3317,7 +3324,7 @@ module picorv32_pcpi_rvv #(
 	reg instr_arith;
 	reg arith_vv;
 	reg arith_vi;
-	reg arith_vs;
+	reg arith_vx;
 	reg alu_run;
 	wire [(64 << NB_LANES) - 1:0] arith_vd;
 	wire [(10 << NB_LANES) - 1:0] arith_regi;
@@ -3370,7 +3377,7 @@ module picorv32_pcpi_rvv #(
 		instr_arith = 0;
 		arith_vv = 0;
 		arith_vi = 0;
-		arith_vs = 0;
+		arith_vx = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -3436,7 +3443,7 @@ module picorv32_pcpi_rvv #(
 			case (pcpi_insn[14:12])
 				3'b000, 3'b001, 3'b010: arith_vv = 1;
 				3'b011: arith_vi = 1;
-				3'b100, 3'b110: arith_vs = 1;
+				3'b100, 3'b110: arith_vx = 1;
 				3'b101: should_trap = 1; // float op
 			endcase
 		end
@@ -3922,10 +3929,10 @@ module picorv32_pcpi_rvv #(
 		.resetn(resetn),
 		.opcode(pcpi_insn[31:26]),
 		.run(alu_run),
-		.vs1(vregs[vs1 + reg_index]),
+		.vs1(arith_vs1),
 		.vs2(vregs[vs2 + reg_index]),
 		.vsew(vsew),
-		.op_type({arith_vi,arith_vs,arith_vv}),
+		.op_type({arith_vi,arith_vx,arith_vv}),
 		.vd(arith_vd),
 		.regi(arith_regi),
 		.res(arith_res),
