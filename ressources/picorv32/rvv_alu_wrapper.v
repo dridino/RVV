@@ -1,6 +1,6 @@
 `define min(a,b) (a < b ? a : b)
 
-module vec_alu_wrapper #(
+module rvv_alu_wrapper #(
     parameter [9:0] VLEN = 10'd 128,
     parameter [2:0] LANE_WIDTH = 3'b011,
     parameter integer NB_LANES = 1
@@ -95,7 +95,7 @@ module vec_alu_wrapper #(
         end
     end
 
-    vec_alu #(
+    rvv_alu #(
 		.VLEN (VLEN),
 		.LANE_WIDTH (LANE_WIDTH),
 		.LANE_I (3'b000)
@@ -115,7 +115,7 @@ module vec_alu_wrapper #(
 	);
 	
     generate if (NB_LANES >= 1)
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b001)
@@ -136,7 +136,7 @@ module vec_alu_wrapper #(
     endgenerate
 	
     generate if (NB_LANES >= 2) begin
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b010)
@@ -155,7 +155,7 @@ module vec_alu_wrapper #(
             .vd(vd2)
         );
         
-       vec_alu #(
+       rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b011)
@@ -177,7 +177,7 @@ module vec_alu_wrapper #(
     endgenerate
 	
     generate if (NB_LANES >= 3) begin
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b100)
@@ -196,7 +196,7 @@ module vec_alu_wrapper #(
             .vd(vd4)
         );
         
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b101)
@@ -215,7 +215,7 @@ module vec_alu_wrapper #(
             .vd(vd5)
         );
         
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b110)
@@ -234,7 +234,7 @@ module vec_alu_wrapper #(
             .vd(vd6)
         );
         
-        vec_alu #(
+        rvv_alu #(
             .VLEN (VLEN),
             .LANE_WIDTH (LANE_WIDTH),
             .LANE_I (3'b111)

@@ -12,7 +12,7 @@ IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
 # TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-TEST_OBJS = tests/vand.o
+TEST_OBJS = tests/vsub.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 ADDED_FIRMWARE_OBJS = firmware/adrien.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
@@ -23,26 +23,26 @@ COMPRESSED_ISA = C
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
 
-test_vec_alu: testbench_vec_alu.vvp
+test_rvv_alu: testbench_rvv_alu.vvp
 	$(VVP) -N $<
 	
-test_vec_alu_vcd: testbench_vec_alu.vvp
+test_rvv_alu_vcd: testbench_rvv_alu.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
-test_vec_alu_synth: testbench_vec_alu_synth.vvp
+test_rvv_alu_synth: testbench_rvv_alu_synth.vvp
 	$(VVP) -N $<
 	
-test_vec_alu_synth_vcd: testbench_vec_alu_synth.vvp
+test_rvv_alu_synth_vcd: testbench_rvv_alu_synth.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
-testbench_vec_alu_synth.vvp: testbench_vec_alu.v vec_alu_wrapper_synth.v vec_alu.v
+testbench_rvv_alu_synth.vvp: testbench_rvv_alu.v rvv_alu_wrapper_synth.v rvv_alu.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
-vec_alu_wrapper_synth.v: vec_alu_wrapper.v scripts/yosys/alu_synth_sim.ys vec_alu.v
+rvv_alu_wrapper_synth.v: rvv_alu_wrapper.v scripts/yosys/alu_synth_sim.ys rvv_alu.v
 	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
-testbench_vec_alu.vvp: testbench_vec_alu.v vec_alu_wrapper.v vec_alu.v
+testbench_rvv_alu.vvp: testbench_rvv_alu.v rvv_alu_wrapper.v rvv_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -79,7 +79,7 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
 
-testbench.vvp: testbench.v vec_alu.v vec_alu_wrapper.v picorv32.v
+testbench.vvp: testbench.v rvv_alu.v rvv_alu_wrapper.v rvv.v picorv32.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -121,7 +121,7 @@ check.smt2: picorv32.v
 		  -p 'assertpmux -noinit; opt -fast; dffunmap' \
 		  -p 'write_smt2 -wires check.smt2'
 
-synth.v: vec_alu.v vec_alu_wrapper.v picorv32.v scripts/yosys/synth_sim.ys
+synth.v: rvv_alu.v rvv_alu_wrapper.v rvv.v picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
 
 firmware/firmware.hex: firmware/firmware.bin firmware/makehex.py
@@ -212,6 +212,6 @@ clean:
 		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp \
 		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench.trace \
 		testbench_verilator testbench_verilator_dir \
-		vec_alu_wrapper_synth.v testbench_vec_alu_synth.vvp
+		rvv_alu_wrapper_synth.v testbench_rvv_alu_synth.vvp
 
 .PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_ez_vcd test_synth download-tools build-tools toc clean

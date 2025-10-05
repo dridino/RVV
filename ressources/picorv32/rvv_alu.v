@@ -1,4 +1,4 @@
-module vec_alu #(
+module rvv_alu #(
 	parameter [9:0] VLEN = 10'd 128,
     parameter [2:0] LANE_WIDTH = 3'b011, // 2^LANE_WIDTH bits per lane (8,16,32,64)
     // LANE_WIDTH * 2^nb_lanes must be less than or equal to VLEN
@@ -32,7 +32,10 @@ module vec_alu #(
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
     // set to 0 when computing a new element of the vector
+    // set to 1 if it's a sub operation
     wire cout = (in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) ? 0 : temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
+
+    wire [VLEN-1:0] vs1_sub = opcode == 6'b000010 ? (~vs1_in) + 1 : vs1_in;
 
     reg cout_q;
 
@@ -46,20 +49,24 @@ module vec_alu #(
             case (opcode)
                 // vand
                 6'b001001: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] & vs2_in[index +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] & vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
                 end
                 // vor
                 6'b001010: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] | vs2_in[index +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] | vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
                 end
                 // vxor
                 6'b001011: begin
-                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] ^ vs2_in[index +: SHIFTED_LANE_WIDTH];
+                    temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] ^ vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
                 end
                 // vadd
                 6'b000000: begin
-                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + vs2_in[index +: SHIFTED_LANE_WIDTH] + cout_q;
+                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] + vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + cout_q;
                 end
+                // vsub
+                6'b000010: begin
+                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] + vs1_sub[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + cout_q;
+                end                
                 default: begin
                     temp_vreg = 0;
                 end
