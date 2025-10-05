@@ -19,7 +19,6 @@ module rvv_alu #(
     output [63:0] vd
 );
     localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-    localparam [7:0] SHIFTED_LANE_WIDTH_M1 = SHIFTED_LANE_WIDTH - 1;
     localparam [8:0] ADD_SHIFTED_LANE_WIDTH = SHIFTED_LANE_WIDTH + 1;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
@@ -35,8 +34,27 @@ module rvv_alu #(
     // set to 1 if it's a sub operation
     wire cout = (in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) ? 0 : temp_vreg[ADD_SHIFTED_LANE_WIDTH - 1];
 
-    wire [VLEN-1:0] vs1_sub = opcode == 6'b000010 ? (~vs1_in) + 1 : vs1_in;
+    wire [9:0] base_index = index - (in_reg_offset << LANE_WIDTH);
 
+    wire [63:0] signed_vs1_sub =
+        (vsew == 3'b000) ? $signed(~(vs1_in[op_type == VV ? base_index : 0 +: 8]) + 1) :
+        (vsew == 3'b001) ? $signed(~(vs1_in[op_type == VV ? base_index : 0 +: 16]) + 1) :
+        (vsew == 3'b010) ? $signed(~(vs1_in[op_type == VV ? base_index : 0 +: 32]) + 1) :
+        (vsew == 3'b011) ? $signed(~(vs1_in[op_type == VV ? base_index : 0 +: 64]) + 1) : 0;
+    
+    wire [63:0] signed_vs2_rsub =
+        (vsew == 3'b000) ? $signed(~(vs2_in[base_index +: 8]) + 1) :
+        (vsew == 3'b001) ? $signed(~(vs2_in[base_index +: 16]) + 1) :
+        (vsew == 3'b010) ? $signed(~(vs2_in[base_index +: 32]) + 1) :
+        (vsew == 3'b011) ? $signed(~(vs2_in[base_index +: 64]) + 1) : 0;
+
+    wire [SHIFTED_LANE_WIDTH-1:0] vs1 =
+        opcode == 6'b000010 ? signed_vs1_sub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
+        : vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
+    wire [SHIFTED_LANE_WIDTH-1:0] vs2 =
+        opcode == 6'b000011 ? signed_vs2_rsub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
+        : vs2_in[index +: SHIFTED_LANE_WIDTH];
+    
     reg cout_q;
 
     assign vd = temp_vreg[0 +: 64];
@@ -65,8 +83,12 @@ module rvv_alu #(
                 end
                 // vsub
                 6'b000010: begin
-                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2_in[index +: SHIFTED_LANE_WIDTH] + vs1_sub[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + cout_q;
-                end                
+                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
+                end
+                // vrsub
+                /* 6'b000011: begin
+                    temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2_rsub[index +: SHIFTED_LANE_WIDTH] + vs1_in[op_type == VV ? index : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH] + cout_q;
+                end */
                 default: begin
                     temp_vreg = 0;
                 end
