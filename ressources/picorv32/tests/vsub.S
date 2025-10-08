@@ -189,7 +189,7 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0xb0
   slli x22, x22, 8
   addi x22, x22, 0xe2
-  bne t0,x22,.start
+  bne t0,x22,.trap
   nop
   // TEST_CASE( 4, t0, 0xBEFECCFC)
   
@@ -245,6 +245,174 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0xb0
   slli x22, x22, 8
   addi x22, x22, 0xe2
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 4, t0, 0xBEFECCFC)
+
+  // =================================================
+  // = VRSUB.VX | sew = lane width
+  // =================================================
+
+  vsetvli t0, x0, e8, m1
+  addi t0, x0, 0x90
+  vrsub.vx v2, v1, t0
+  vse8.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x7e
+  slli x22, x22, 8
+  addi x22, x22, 0x5c
+  slli x22, x22, 8
+  addi x22, x22, 0x3a
+  slli x22, x22, 8
+  addi x22, x22, 0x18
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x16375879)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x09
+  slli x22, x22, 8
+  addi x22, x22, 0x2b
+  slli x22, x22, 8
+  addi x22, x22, 0x4d
+  slli x22, x22, 8
+  addi x22, x22, 0x6f
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x8F6C4926)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0xe5
+  slli x22, x22, 8
+  addi x22, x22, 0xc3
+  slli x22, x22, 8
+  addi x22, x22, 0xe5
+  slli x22, x22, 8
+  addi x22, x22, 0xc3
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0xB7D8B5D6)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0xd2
+  slli x22, x22, 8
+  addi x22, x22, 0xa1
+  slli x22, x22, 8
+  addi x22, x22, 0xd2
+  slli x22, x22, 8
+  addi x22, x22, 0xa1
+  bne t0,x22,.trap
+  nop
+
+  // =================================================
+  // = VRSUB.VX | sew larger than lane width
+  // =================================================
+
+  vsetvli t0, x0, e16, m1
+  addi t0, x0, 0x90
+  vrsub.vx v2, v1, t0
+  vse16.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0xee
+  slli x22, x22, 8
+  addi x22, x22, 0x5c
+  slli x22, x22, 8
+  addi x22, x22, 0xaa
+  slli x22, x22, 8
+  addi x22, x22, 0x18
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x16375879)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x79
+  slli x22, x22, 8
+  addi x22, x22, 0x2b
+  slli x22, x22, 8
+  addi x22, x22, 0xbd
+  slli x22, x22, 8
+  addi x22, x22, 0x6f
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x8F6C4926)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0x54
+  slli x22, x22, 8
+  addi x22, x22, 0xc3
+  slli x22, x22, 8
+  addi x22, x22, 0x54
+  slli x22, x22, 8
+  addi x22, x22, 0xc3
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0xB7D8B5D6)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0x41
+  slli x22, x22, 8
+  addi x22, x22, 0xa1
+  slli x22, x22, 8
+  addi x22, x22, 0x41
+  slli x22, x22, 8
+  addi x22, x22, 0xa1
+  bne t0,x22,.trap
+  nop
+
+  // =================================================
+  // = VRSUB.VI | sew = lane width
+  // =================================================
+
+  vsetvli t0, x0, e8, m1
+  vrsub.vi v2, v1, 0x0
+  vse8.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0xee
+  slli x22, x22, 8
+  addi x22, x22, 0xcc
+  slli x22, x22, 8
+  addi x22, x22, 0xaa
+  slli x22, x22, 8
+  addi x22, x22, 0x88
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x16375879)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x79
+  slli x22, x22, 8
+  addi x22, x22, 0x9b
+  slli x22, x22, 8
+  addi x22, x22, 0xbd
+  slli x22, x22, 8
+  addi x22, x22, 0xdf
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x8F6C4926)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0x55
+  slli x22, x22, 8
+  addi x22, x22, 0x33
+  slli x22, x22, 8
+  addi x22, x22, 0x55
+  slli x22, x22, 8
+  addi x22, x22, 0x33
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0xB7D8B5D6)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0x42
+  slli x22, x22, 8
+  addi x22, x22, 0x11
+  slli x22, x22, 8
+  addi x22, x22, 0x42
+  slli x22, x22, 8
+  addi x22, x22, 0x11
   beq t0,x22,.start
   nop
   // TEST_CASE( 4, t0, 0xBEFECCFC)
