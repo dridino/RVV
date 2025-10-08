@@ -38,14 +38,7 @@ module rvv_alu_wrapper #(
 
     assign regi = {index7, index6, index5, index4, index3, index2, index1, index0};
 
-    wire [9:0] index0 = ((0 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index1 = ((1 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index2 = ((2 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index3 = ((3 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index4 = ((4 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index5 = ((5 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index6 = ((6 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
-    wire [9:0] index7 = ((7 + byte_i) << (vsew + 3)) + (in_reg_offset << LANE_WIDTH);
+    wire [9:0] index0, index1, index2, index3, index4, index5, index6, index7;
 
     wire run0 = run;
     wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
@@ -109,9 +102,10 @@ module rvv_alu_wrapper #(
 		.vs2_in(vs2),
 		.vsew(vsew),
 		.op_type(op_type),
-        .index(index0),
+        .byte_i(byte_i),
         .in_reg_offset(in_reg_offset),
-		.vd(vd0)
+		.vd(vd0),
+        .index(index0)
 	);
 	
     generate if (NB_LANES >= 1)
@@ -129,9 +123,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index1),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd1)
+            .vd(vd1),
+            .index(index1)
         );
     endgenerate
 	
@@ -150,9 +145,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index2),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd2)
+            .vd(vd2),
+            .index(index2)
         );
         
        rvv_alu #(
@@ -169,9 +165,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index3),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd3)
+            .vd(vd3),
+            .index(index3)
         );
 		end
     endgenerate
@@ -191,9 +188,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index4),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd4)
+            .vd(vd4),
+            .index(index4)
         );
         
         rvv_alu #(
@@ -210,9 +208,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index5),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd5)
+            .vd(vd5),
+            .index(index5)
         );
         
         rvv_alu #(
@@ -229,9 +228,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index6),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd6)
+            .vd(vd6),
+            .index(index6)
         );
         
         rvv_alu #(
@@ -248,9 +248,10 @@ module rvv_alu_wrapper #(
             .vs2_in(vs2),
             .vsew(vsew),
             .op_type(op_type),
-            .index(index7),
+            .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
-            .vd(vd7)
+            .vd(vd7),
+            .index(index7)
         );
 		end
     endgenerate

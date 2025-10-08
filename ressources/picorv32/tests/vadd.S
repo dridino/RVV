@@ -1,10 +1,10 @@
 # See LICENSE for license details.
 
 #*****************************************************************************
-# vand.S
+# vadd.S
 #-----------------------------------------------------------------------------
 #
-# Test vand instruction.
+# Test vadd instruction.
 #
 
 // #include "riscv_test.h"
@@ -197,7 +197,7 @@ RVTEST_CODE_BEGIN */
   // = .VV
   // =================================================
 
-  vadd.vv v2, v1, v3
+  vand.vv v2, v1, v3
   vse8.v v2, (x20)
 
   lw t0, (x20)
