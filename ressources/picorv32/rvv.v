@@ -135,6 +135,7 @@ module picorv32_pcpi_rvv #(
 	wire [(10 << NB_LANES) - 1:0] arith_regi;
 	wire [(1 << NB_LANES) - 1:0] arith_res;
 	wire arith_done;
+	wire arith_instr_valid;
 	reg [31:0] arith_remaining;
 	reg arith_init;
 	reg [2:0] arith_step;
@@ -660,7 +661,7 @@ module picorv32_pcpi_rvv #(
 						end
 					end else if (instr_arith) begin
 						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
-						if (alu_run) begin
+						if (alu_run && arith_instr_valid) begin
 							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 < LANE_WIDTH) begin // lane larger than vsew
 								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
@@ -687,37 +688,41 @@ module picorv32_pcpi_rvv #(
 
 							vregs[vd + reg_index] = temp_vreg;
 						end
-
-						if (!arith_init && arith_remaining <= 1 << NB_LANES && (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin // all vec done
-							reg_index <= 0;
-							arith_remaining <= 0;
-							pcpi_wait <= 0;
-							arith_init <= 1;
-							pcpi_ready <= 1;
-						end else begin // 1 vec done
-							if (arith_done)
-								reg_index <= reg_index + 1;
-							else
-								reg_index <= reg_index;							
-							pcpi_wait <= 1;
+						if (!arith_instr_valid) begin
 							pcpi_ready <= 0;
-						end
-
-						if (arith_init) begin
-							arith_remaining <= vl;
-							arith_step <= 0;
-							arith_init <= 0;
-						end else if (alu_run)
-							if (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
-								arith_step <= 0;
-								arith_remaining <= arith_remaining - (1 << nb_lanes);
-							end else begin
-								arith_step <= arith_step + 1;
-								arith_remaining <= arith_remaining;
+							pcpi_wait <= 0;
+						end else begin
+							if (!arith_init && arith_remaining <= 1 << NB_LANES && (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin // all vec done
+								reg_index <= 0;
+								arith_remaining <= 0;
+								pcpi_wait <= 0;
+								arith_init <= 1;
+								pcpi_ready <= 1;
+							end else begin // 1 vec done
+								if (arith_done)
+									reg_index <= reg_index + 1;
+								else
+									reg_index <= reg_index;							
+								pcpi_wait <= 1;
+								pcpi_ready <= 0;
 							end
 
-						pcpi_rd <= 0;
-						pcpi_wr <= 0;
+							if (arith_init) begin
+								arith_remaining <= vl;
+								arith_step <= 0;
+								arith_init <= 0;
+							end else if (alu_run)
+								if (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) begin
+									arith_step <= 0;
+									arith_remaining <= arith_remaining - (1 << nb_lanes);
+								end else begin
+									arith_step <= arith_step + 1;
+									arith_remaining <= arith_remaining;
+								end
+
+							pcpi_rd <= 0;
+							pcpi_wr <= 0;
+						end
 					end
 				end
 			end
@@ -741,6 +746,7 @@ module picorv32_pcpi_rvv #(
 		.vd(arith_vd),
 		.regi(arith_regi),
 		.res(arith_res),
-		.done_out(arith_done)
+		.done_out(arith_done),
+		.instr_valid(arith_instr_valid)
 	);
 endmodule

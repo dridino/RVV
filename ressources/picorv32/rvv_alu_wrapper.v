@@ -13,10 +13,11 @@ module rvv_alu_wrapper #(
     input       [2:0]                   vsew,
     input       [2:0]                   op_type,
 
-    output      [(64<<NB_LANES) - 1:0]        vd,
-    output      [(10<<NB_LANES) - 1:0]         regi,
-    output      [(1<<NB_LANES) - 1:0]         res,
-    output                  done_out
+    output      [(64<<NB_LANES) - 1:0]  vd,
+    output      [(10<<NB_LANES) - 1:0]  regi,
+    output      [(1<<NB_LANES) - 1:0]   res,
+    output                              done_out,
+    output                              instr_valid
 );
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
@@ -54,6 +55,9 @@ module rvv_alu_wrapper #(
     wire [63:0] vd0,vd1,vd2,vd3,vd4,vd5,vd6,vd7;
 
     assign res = {run7, run6, run5, run4, run3, run2, run1, run0};
+
+    wire instr_valid0, instr_valid1, instr_valid2, instr_valid3, instr_valid4, instr_valid5, instr_valid6, instr_valid7;
+    assign instr_valid = instr_valid0;
 
     wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
@@ -105,7 +109,8 @@ module rvv_alu_wrapper #(
         .byte_i(byte_i),
         .in_reg_offset(in_reg_offset),
 		.vd(vd0),
-        .index(index0)
+        .index(index0),
+        .instr_valid(instr_valid0)
 	);
 	
     generate if (NB_LANES >= 1)
@@ -126,7 +131,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd1),
-            .index(index1)
+            .index(index1),
+            .instr_valid(instr_valid1)
         );
     endgenerate
 	
@@ -148,7 +154,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd2),
-            .index(index2)
+            .index(index2),
+            .instr_valid(instr_valid2)
         );
         
        rvv_alu #(
@@ -168,7 +175,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd3),
-            .index(index3)
+            .index(index3),
+            .instr_valid(instr_valid3)
         );
 		end
     endgenerate
@@ -191,7 +199,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd4),
-            .index(index4)
+            .index(index4),
+            .instr_valid(instr_valid4)
         );
         
         rvv_alu #(
@@ -211,7 +220,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd5),
-            .index(index5)
+            .index(index5),
+            .instr_valid(instr_valid5)
         );
         
         rvv_alu #(
@@ -231,7 +241,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd6),
-            .index(index6)
+            .index(index6),
+            .instr_valid(instr_valid6)
         );
         
         rvv_alu #(
@@ -251,7 +262,8 @@ module rvv_alu_wrapper #(
             .byte_i(byte_i),
             .in_reg_offset(in_reg_offset),
             .vd(vd7),
-            .index(index7)
+            .index(index7),
+            .instr_valid(instr_valid7)
         );
 		end
     endgenerate

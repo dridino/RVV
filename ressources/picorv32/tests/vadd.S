@@ -197,7 +197,7 @@ RVTEST_CODE_BEGIN */
   // = .VV
   // =================================================
 
-  vand.vv v2, v1, v3
+  vadd.vv v2, v1, v3
   vse8.v v2, (x20)
 
   lw t0, (x20)
