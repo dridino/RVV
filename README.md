@@ -13,6 +13,8 @@ Les lectures et écritures vectorielles fonctionnent avec les modes d'adressage 
 - *unit-stride* : accède à la mémoire de manière contigüe
 - *strided* : accède à la mémoire suivant un incrément constant (négatif, nul ou positif)
 - *unordered-indexed* & *ordered-indexed* : accède à la mémoire à partir d'une adresse de base, à laquelle sont ajoutés des indices contenus dans un (ou plusieurs) vecteurs
+- *whole-reg* : transfert des groupes de registres complets
+- *segment* : transfert les champs d'une structure dans des vecteurs contigus
 
 ### Opérations arithmético-logiques
 
