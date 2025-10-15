@@ -18,7 +18,7 @@ ADDED_FIRMWARE_OBJS = firmware/rvv.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
 TOOLCHAIN_PREFIX = ~/rvv32/bin/riscv32-unknown-elf-
-COMPRESSED_ISA = C
+COMPRESSED_ISA = 
 
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
