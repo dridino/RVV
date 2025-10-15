@@ -5,7 +5,7 @@
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
 
-// #define ENABLE_ADRIEN
+#define ENABLE_RVV_C
 #define ENABLE_QREGS
 // #define ENABLE_HELLO
 #define ENABLE_RVTST
@@ -27,7 +27,7 @@
 	.section .text
 	.global irq
 	.global hello
-	.global adrien
+	.global rvv
 	.global sieve
 	.global multest
 	.global hard_mul
@@ -378,12 +378,12 @@ start:
 	addi x30, zero, 0
 	addi x31, zero, 0
 
-#ifdef ENABLE_ADRIEN
+#ifdef ENABLE_RVV_C
 	/* set stack pointer */
 	lui sp,(128*1024)>>12
 
-	/* call adrien C code */
-	jal ra,adrien
+	/* call rvv C code */
+	jal ra,rvv
 #endif
 
 #ifdef ENABLE_HELLO
@@ -411,9 +411,9 @@ start:
 #endif
 
 	// RVV
-	TEST(vsetvl)
+	/* TEST(vsetvl)
 	TEST(vload_vstore)
-	TEST(vand)
+	TEST(vand) */
 
 	TEST(lui)
 	TEST(auipc)

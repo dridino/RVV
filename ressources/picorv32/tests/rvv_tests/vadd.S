@@ -16,12 +16,12 @@ RVTEST_CODE_BEGIN */
 .text
 
 .start:
-  nop
+  addi t0, x0, 8
+  vsetvli t0, x0, e8, m1
+  
   la    x18, tdat1
   la    x19, tdat7
   la    x20, result
-
-  vsetvli t0, x0, e8, m1
 
   vle8.v v1, (x18) // 2C
   vle8.v v3, (x19)

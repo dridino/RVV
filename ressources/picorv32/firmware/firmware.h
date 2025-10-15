@@ -11,8 +11,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// adrien.c
-void adrien(void);
+// rvv.c
+void rvv(void);
 
 // irq.c
 uint32_t *irq(uint32_t *regs, uint32_t irqs);

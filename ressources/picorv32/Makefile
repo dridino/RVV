@@ -11,10 +11,10 @@ ICARUS_SUFFIX =
 IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
-# TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-TEST_OBJS = tests/vmax.o
+TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
+# TEST_OBJS = tests/rvv_tests/vadd.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
-ADDED_FIRMWARE_OBJS = firmware/adrien.o
+ADDED_FIRMWARE_OBJS = firmware/rvv.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
 TOOLCHAIN_PREFIX = ~/rvv32/bin/riscv32-unknown-elf-
@@ -131,12 +131,12 @@ firmware/firmware.bin: firmware/firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
 	chmod -x $@
 
-# firmware/firmware.elf: $(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
-firmware/firmware.elf: $(TEST_OBJS) firmware/sections.lds
+# firmware/firmware.elf: $(TEST_OBJS) firmware/sections.lds
+firmware/firmware.elf: $(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
 	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32imv$(subst C,c,$(COMPRESSED_ISA)) -ffreestanding -nostdlib -o $@ \
 		-Wl,--build-id=none,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
-		$(TEST_OBJS) -lgcc
-#		$(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
+		$(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
+# 		$(TEST_OBJS) -lgcc
 	chmod -x $@
 
 firmware/start.o: firmware/start.S
@@ -186,6 +186,10 @@ $(eval $(call build_tools_template,riscv32i,rv32i))
 $(eval $(call build_tools_template,riscv32ic,rv32ic))
 $(eval $(call build_tools_template,riscv32im,rv32im))
 $(eval $(call build_tools_template,riscv32imc,rv32imc))
+$(eval $(call build_tools_template,riscv32iv,rv32iv))
+$(eval $(call build_tools_template,riscv32icv,rv32icv))
+$(eval $(call build_tools_template,riscv32imv,rv32imv))
+$(eval $(call build_tools_template,riscv32imcv,rv32imcv))
 
 build-tools:
 	@echo "This will remove all existing data from $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)i, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)ic, $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)im, and $(RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX)imc."

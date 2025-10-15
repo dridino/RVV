@@ -2,3 +2,4 @@ ressources/picorv32_old
 ressources/RenduHARGE_Kristian
 ressources/picorv32/out
 ressources/picorv32/out1
+ressoruces/picorv32/tests/rvv_tests/*.o
