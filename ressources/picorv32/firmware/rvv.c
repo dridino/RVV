@@ -19,9 +19,6 @@ void rvv(void) {
   // doesn't work with an odd number of compressable instructions padding if
   // it's compiled supporting compressed insn
   __asm__ volatile(
-      "addi t0, x0, 8\n"
-      "addi t0, x0, 8\n"
-      "addi t0, x0, 8\n"
       "vsetvli t0, x0, e16, m1\n"
       "vle16.v v0, (%0)\n"
       "vle16.v v1, (%1)\n"

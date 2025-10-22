@@ -11,8 +11,8 @@ ICARUS_SUFFIX =
 IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
-TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-# TEST_OBJS = tests/rvv_tests/vadd.o
+# TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
+TEST_OBJS = tests/rvv_tests/vsll.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 ADDED_FIRMWARE_OBJS = firmware/rvv.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
@@ -131,12 +131,12 @@ firmware/firmware.bin: firmware/firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary $< $@
 	chmod -x $@
 
-# firmware/firmware.elf: $(TEST_OBJS) firmware/sections.lds
-firmware/firmware.elf: $(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
+# firmware/firmware.elf: $(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) firmware/sections.lds
+firmware/firmware.elf: $(TEST_OBJS) firmware/sections.lds
 	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32imv$(subst C,c,$(COMPRESSED_ISA)) -ffreestanding -nostdlib -o $@ \
 		-Wl,--build-id=none,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
-		$(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
-# 		$(TEST_OBJS) -lgcc
+ 		$(TEST_OBJS) -lgcc
+#		$(FIRMWARE_OBJS) $(ADDED_FIRMWARE_OBJS) $(TEST_OBJS) -lgcc
 	chmod -x $@
 
 firmware/start.o: firmware/start.S

@@ -10,7 +10,7 @@
 `ifndef VERILATOR
 module testbench #(
 	parameter AXI_TEST = 0,
-	parameter VERBOSE = 0
+	parameter VERBOSE = 1
 );
 	reg clk = 1;
 	reg resetn = 0;
@@ -176,7 +176,7 @@ module picorv32_wrapper #(
 		.ENABLE_RVV(1),
 		.VLEN(128),
 		.NB_LANES(0),
-		.LANE_WIDTH(3)
+		.LANE_WIDTH(5)
 `endif
 	) uut (
 		.clk            (clk            ),
