@@ -32,7 +32,7 @@ module rvv_alu #(
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
         (opcode == 6'b000000) | (opcode == 6'b000010) | (opcode == 6'b000011) |
         (opcode == 6'b000100) | (opcode == 6'b000101) | (opcode == 6'b000110) |
-        (opcode == 6'b000111) | (opcode == 6'b100101);
+        (opcode == 6'b000111) | (opcode == 6'b100101) | (opcode == 6'b101000);
 
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
@@ -40,7 +40,8 @@ module rvv_alu #(
     assign index = index_val;
     wire [9:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
     wire [9:0] index_val =
-        (opcode[5:2] == 4'b0001) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // cmp op : reversed index
+        (opcode[5:2] == 4'b0001) || (opcode == 6'b101000) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // cmp op : reversed index
+        // (opcode == 6'b101000) ? shift_index : // vsrl
         base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
     // set to 0 when computing a new element of the vector
@@ -99,17 +100,19 @@ module rvv_alu #(
         (vsew == 3'b010) ? {1'b0,   shift_amount_base[4:0]} :
         (vsew == 3'b011) ?          shift_amount_base[5:0]  : 0;
 
-    wire shift_reg = in_reg_offset == 0 || (shift_rem >= `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH));
+    wire shift_reg = in_reg_offset == 0 ||
+        ((opcode == 6'b100101) && shift_rem >= `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH)) ||
+        ((opcode == 6'b101000) && shift_rem <= `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH));
     reg shift_reg_q;
-    wire [5:0] shift_rem = (in_reg_offset == 0 ? shift_amount : (shift_rem >= `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH) ? (shift_rem - `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH)) : shift_rem));
-                    
-    reg [9:0] shift_index;
+    reg [5:0] shift_rem_base;
+    wire [5:0] shift_rem = (in_reg_offset == 0) ? shift_amount : shift_rem_base;
+    reg [9:0] shift_index_base;
+    wire [9:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
     
     
     always @* begin
         if (!resetn) begin
             temp_vreg = {65{1'b0}};
-            shift_index = 0;
         end else if (run) begin
             temp_vreg = 0;
             case (opcode)
@@ -165,11 +168,26 @@ module rvv_alu #(
                     end else if (shift_reg_q) begin
                         // part zeros, part vs2
                         temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[base_index +: SHIFTED_LANE_WIDTH] << shift_rem;
-                        shift_index = base_index + shift_rem;
+                        // shift_index = base_index + shift_rem;
                     end else begin
                         // only vs2
                         temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
-                        shift_index = shift_index + `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH);
+                        // shift_index = shift_index + `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH);
+                    end
+                end
+                // vsrl
+                6'b101000: begin
+                    // if (in_reg_offset == 0) shift_index = base_index + shift_amount;
+                    if (shift_rem > SHIFTED_LANE_WIDTH) begin
+                        // only zeros
+                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = 0;
+                        // shift_index = shift_index + `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH);
+                    end else if (shift_reg && shift_rem != 0) begin
+                        // part zeros, part vs2
+                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH] >> shift_rem;
+                    end else begin
+                        // only vs2
+                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
                     end
                 end
                 // default
@@ -181,7 +199,28 @@ module rvv_alu #(
     end
 
     always @(posedge clk) begin
-        cout_q <= cout;
-        shift_reg_q <= shift_reg;
+        if (!resetn) begin
+            cout_q <= 0;
+            shift_reg_q <= 0;
+            shift_index_base <= 0;
+            shift_rem_base <= 0;
+        end else begin
+            cout_q <= cout;
+            shift_reg_q <= shift_reg;
+            shift_rem_base <= (shift_rem >= `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH) ? (shift_rem - `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH)) : shift_rem);
+        
+            // vsll
+            if (opcode == 6'b100101 && !(shift_rem >= SHIFTED_LANE_WIDTH)) begin
+                if (shift_reg)
+                    shift_index_base <= base_index + shift_rem;
+                else
+                    shift_index_base <= shift_index_base + `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH);
+            end else if (opcode == 6'b101000) begin
+                if (in_reg_offset == 0)
+                    shift_index_base <= base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH;
+                else if (shift_rem <= SHIFTED_LANE_WIDTH)
+                    shift_index_base <= shift_index_base - `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH);
+            end
+        end
     end
 endmodule

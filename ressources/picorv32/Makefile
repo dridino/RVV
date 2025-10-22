@@ -12,7 +12,7 @@ IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
 # TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-TEST_OBJS = tests/rvv_tests/vsll.o
+TEST_OBJS = tests/rvv_tests/vsrl.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 ADDED_FIRMWARE_OBJS = firmware/rvv.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
@@ -79,7 +79,7 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
 
-testbench.vvp: testbench.v rvv_alu.v rvv_alu_wrapper.v rvv.v picorv32.v
+testbench.vvp: testbench.v picorv32.v rvv.v rvv_alu_wrapper.v rvv_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 

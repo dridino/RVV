@@ -4,7 +4,7 @@
 # vsll.S
 #-----------------------------------------------------------------------------
 #
-# Test vsll instruction.
+# Test vsrl instruction.
 #
 
 // #include "riscv_test.h"
@@ -31,239 +31,239 @@ RVTEST_CODE_BEGIN */
   // =================================================
 
   addi t0, x0, 0x4
-  vsll.vx v2, v1, t0
+  vsrl.vx v2, v1, t0
   vse8.v v2, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x20
+  addi x22, x0, 0x01
   slli x22, x22, 8
-  addi x22, x22, 0x40
+  addi x22, x22, 0x03
   slli x22, x22, 8
-  addi x22, x22, 0x60
+  addi x22, x22, 0x05
   slli x22, x22, 8
-  addi x22, x22, 0x80
+  addi x22, x22, 0x07
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x16375879)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x70
+  addi x22, x0, 0x08
   slli x22, x22, 8
-  addi x22, x22, 0x50
+  addi x22, x22, 0x06
   slli x22, x22, 8
-  addi x22, x22, 0x30
+  addi x22, x22, 0x04
   slli x22, x22, 8
-  addi x22, x22, 0x10
+  addi x22, x22, 0x02
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x8F6C4926)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xb0
+  addi x22, x0, 0x0a
   slli x22, x22, 8
-  addi x22, x22, 0xd0
+  addi x22, x22, 0x0c
   slli x22, x22, 8
-  addi x22, x22, 0xb0
+  addi x22, x22, 0x0a
   slli x22, x22, 8
-  addi x22, x22, 0xd0
+  addi x22, x22, 0x0c
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xB7D8B5D6)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xe0
+  addi x22, x0, 0x0b
   slli x22, x22, 8
-  addi x22, x22, 0xf0
+  addi x22, x22, 0x0e
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x0b
   slli x22, x22, 8
-  addi x22, x22, 0xf0
+  addi x22, x22, 0x0e
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = VSLL.VX | sew larger than lane width | sham = lane width
+  // = VSRL.VX | sew larger than lane width | sham = lane width
   // =================================================
 
   vsetvli t0, x0, e16, m1
   addi t0, x0, 0x8
-  vsll.vx v2, v1, t0
+  vsrl.vx v2, v1, t0
   vse16.v v2, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x34
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x12
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x78
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x56
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x65
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x87
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x21
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x43
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xcd
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0xab
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xcd
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xab
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xef
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0xbe
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xef
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xbe
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = VSLL.VX | sew larger than lane width | sham larger than lane width
+  // = VSRL.VX | sew larger than lane width | sham larger than lane width
   // =================================================
 
   vsetvli t0, x0, e16, m1
   addi t0, x0, 0xb
-  vsll.vx v2, v1, t0
+  vsrl.vx v2, v1, t0
   vse16.v v2, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xa0
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x02
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc0
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0a
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x28
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x10
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x08
-  slli x22, x22, 8
-  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x68
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x15
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x68
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x15
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0x78
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x17
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x78
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x17
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = VSLL.VI | sew larger than lane width | sham larger than lane width
+  // = VSRL.VI | sew larger than lane width | sham larger than lane width
   // =================================================
 
   vsetvli t0, x0, e16, m1
-  vsll.vi v2, v1, 0xb
+  vsrl.vi v2, v1, 0xb
   vse16.v v2, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xa0
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x02
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc0
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0a
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x28
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x10
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x08
-  slli x22, x22, 8
-  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x68
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x15
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x68
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x15
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0x78
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x17
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x78
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x17
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = VSLL.VV | sew = lane width
+  // = VSRL.VV | sew = lane width
   // =================================================
 
   vsetvli t0, x0, e8, m1
-  vsll.vv v2, v1, v3
+  vsrl.vv v2, v1, v3
   vse8.v v2, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x20
+  addi x22, x0, 0x01
   slli x22, x22, 8
-  addi x22, x22, 0xa0
+  addi x22, x22, 0x06
   slli x22, x22, 8
-  addi x22, x22, 0x58
+  addi x22, x22, 0x15
   slli x22, x22, 8
-  addi x22, x22, 0xf0
+  addi x22, x22, 0x3c
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x16375879)
@@ -271,23 +271,23 @@ RVTEST_CODE_BEGIN */
   lw t0, 4(x20)
   addi x22, x0, 0x87
   slli x22, x22, 8
-  addi x22, x22, 0x80
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc0
+  addi x22, x22, 0x01
   slli x22, x22, 8
-  addi x22, x22, 0x20
+  addi x22, x22, 0x01
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x8F6C4926)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xb0
+  addi x22, x0, 0x0a
   slli x22, x22, 8
-  addi x22, x22, 0x68
+  addi x22, x22, 0x19
   slli x22, x22, 8
-  addi x22, x22, 0xac
+  addi x22, x22, 0x2a
   slli x22, x22, 8
-  addi x22, x22, 0x9a
+  addi x22, x22, 0x66
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xB7D8B5D6)
@@ -295,11 +295,11 @@ RVTEST_CODE_BEGIN */
   lw t0, 12(x20)
   addi x22, x0, 0xbe
   slli x22, x22, 8
-  addi x22, x22, 0x80
+  addi x22, x22, 0x01
   slli x22, x22, 8
-  addi x22, x22, 0x80
+  addi x22, x22, 0x02
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x07
   beq t0,x22,.start
   nop
   // TEST_CASE( 4, t0, 0xBEFECCFC)

@@ -69,7 +69,7 @@ module rvv_alu_wrapper #(
         if (!resetn) begin
             byte_i <= 0;
             done <= 0;
-        end else if (run0 | run1 | run2 | run3 | run4 | run5 | run6 | run7) begin
+        end else if (run) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
                     done <= byte_i + (1 << (nb_lanes+1)) >= (VLEN >> (vsew + 3));
