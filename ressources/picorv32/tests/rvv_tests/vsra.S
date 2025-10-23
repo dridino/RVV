@@ -249,6 +249,61 @@ RVTEST_CODE_BEGIN */
   nop
 
   // =================================================
+  // = VSRA.VI | sew larger than lane width | sham larger than lane width
+  // =================================================
+
+  vsetvli t0, x0, e32, m1
+  vsra.vi v2, v1, 0x1b
+  vse32.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x02
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x122b566f)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xf0
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x875c4318)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xf5
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0xabc4abc4)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xf7
+  bne t0,x22,.trap
+  nop
+
+  // =================================================
   // = VSRA.VV | sew = lane width
   // =================================================
 
