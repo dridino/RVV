@@ -391,6 +391,8 @@ tdat7:  .word 0x04030201
         .word 0x0C0B0A09
         .word 0x000F0E0D
 
+mask:   .word 0x00000055
+
 
 result: .word 0x00000000
         .word 0x00000000

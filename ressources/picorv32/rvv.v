@@ -73,6 +73,7 @@ module picorv32_pcpi_rvv #(
 	wire [4:0] vs1 = pcpi_insn[19:15];
 	wire [4:0] vs2 = pcpi_insn[24:20];
 	wire [4:0] vd = pcpi_insn[11:7];
+	wire vm = pcpi_insn[25];
 
 	wire [VLEN-1:0] arith_vs1 = arith_vv ? vregs_rdata1 :
 							arith_vi ? {{VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
@@ -151,27 +152,30 @@ module picorv32_pcpi_rvv #(
 							  instr_arith 		? vs2 + reg_index :
 							  3;
 
+	reg  [4:0] vregs_waddr_q;
 	wire [4:0] vregs_waddr = (instr_vload) ? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
 							 (instr_arith) ? vd + reg_index :
 							 0;
 
 	reg [VLEN-1:0] tmp_vregs_wdata;
 	reg [VLENB-1:0] vregs_wstrb;
+	wire [VLENB-1:0] vregs_wstrb_masked = vregs_wstrb & (vm ? {VLENB{1'b1}} : (vregs_v0[reg_index * VLENB +: VLENB]));
 	reg [VLEN-1:0] vregs_wdata;
-	wire [VLEN-1:0] vregs_rdata1, vregs_rdata2;
+	wire [VLEN-1:0] vregs_rdata1, vregs_rdata2, vregs_v0;
 	
 	rvv_vregs #(
 		.VLEN(VLEN),
 		.REGS_INIT_ZERO(REGS_INIT_ZERO)
 	) vregs (
 		.clk(clk),
-		.waddr(vregs_waddr),
-		.wstrb(vregs_wstrb),
+		.waddr(vregs_waddr_q),
+		.wstrb(vregs_wstrb_masked),
 		.raddr1(vregs_raddr1),
 		.raddr2(vregs_raddr2),
 		.wdata(vregs_wdata),
 		.rdata1(vregs_rdata1),
-		.rdata2(vregs_rdata2)
+		.rdata2(vregs_rdata2),
+		.rdata3(vregs_v0)
 	);
 
 	always @* begin
@@ -287,6 +291,7 @@ module picorv32_pcpi_rvv #(
 
 		vregs_wstrb <= 0;
 		vregs_wdata <= 0;
+		vregs_waddr_q <= vregs_waddr;
 
 		// arith
 		alu_run <= 0;
@@ -314,10 +319,10 @@ module picorv32_pcpi_rvv #(
 			mem_indexed_byte_index <= 0;
 			mem_indexed_reg_index <= 0;
 			mem_sending = 1;
-			last_op <= 0;
+			last_op = 0;
 			mem_stride_mask <= 12'h000;
 			mem_stride_i <= 0;
-			mem_offset_q <= 0;
+			mem_offset_q = 0;
 			tmp_mem_strb = 0;
 			tmp_mem_wdata = 0;
 			offset <= 0;
@@ -786,7 +791,9 @@ module rvv_vregs #(
 	input [4:0] raddr2,
 	input [VLEN-1:0] wdata,
 	output [VLEN-1:0] rdata1,
-	output [VLEN-1:0] rdata2
+	output [VLEN-1:0] rdata2,
+	// used for v0 : mask register
+	output [VLEN-1:0] rdata3
 );
 	localparam integer VLENB = VLEN >> 3;
 	reg [VLEN-1:0] vregs [31:0];
@@ -806,4 +813,5 @@ module rvv_vregs #(
 	
 	assign rdata1 = vregs[raddr1];
 	assign rdata2 = vregs[raddr2];
+	assign rdata3 = vregs[0];
 endmodule
