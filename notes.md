@@ -994,6 +994,8 @@ Un seul signal done
   - 1 seul gros vecteur en sortie de wrapper dans lequel chaque ALU écrit **directement** : introduction de `x` dans les bits de poids faibles de la première ALU.
   - `NB_LANES` vecteurs dans lesquels chaque ALU écrit (dans le vec correspondant) tous concaténés dans la grosse sortie : fonctionne nickel
 
+- manière d'implémenter le banc de reg scalaire
+
 ## Améliorations
 
 ### Non-implémenté

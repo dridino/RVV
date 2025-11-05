@@ -9,7 +9,6 @@
  ***************************************************************/
 
 module picorv32_pcpi_rvv #(
-	parameter [0:0] ENABLE_REGS_16_31 = 1,
 	parameter [0:0] REGS_INIT_ZERO = 0,
 	parameter [9:0] VLEN = 10'd 128,
 	// arithmetic op
@@ -47,11 +46,11 @@ module picorv32_pcpi_rvv #(
 	output			  pcpi_mem_init,
 	input			  pcpi_mem_trans_done
 );
-	localparam integer VLENB = VLEN/8;
-	localparam integer regfile_size = (ENABLE_REGS_16_31 ? 32 : 16);
+	localparam integer VLENB = VLEN>>3;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 	localparam integer VLEN_ARITH_IMM = VLEN-5;
 	localparam integer VLEN_ARITH_RS  = VLEN-32;
+	localparam integer SHIFTED_LANE_WIDTHB = SHIFTED_LANE_WIDTH >> 3;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith};
 	assign pcpi_mem_init = instr_mem && !pcpi_mem_op && byte_index == 0 && reg_index == 0 && mem_sending && !pcpi_ready && !pcpi_mem_trans_done;
@@ -63,7 +62,7 @@ module picorv32_pcpi_rvv #(
 
 	reg [31:0] vxsat, vxrm, vcsr, vl, vlmax, vtype;
 	reg [31:0] vstart; // reg must be as short as possible
-	reg [VLEN-1:0] vregs [regfile_size-1:0] /* synthesis preserve */;
+	// reg [VLEN-1:0] vregs [31:0] /* synthesis preserve */;
 
 	wire	   vill  = vtype[31];
 	wire 	   vma   = vtype[7];
@@ -75,7 +74,7 @@ module picorv32_pcpi_rvv #(
 	wire [4:0] vs2 = pcpi_insn[24:20];
 	wire [4:0] vd = pcpi_insn[11:7];
 
-	wire [VLEN-1:0] arith_vs1 = arith_vv ? vregs[vs1 + reg_index] :
+	wire [VLEN-1:0] arith_vs1 = arith_vv ? vregs_rdata1 :
 							arith_vi ? {{VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
 							arith_vx ? {{VLEN_ARITH_RS{1'b0}},pcpi_rs1} :
 							0;
@@ -108,22 +107,18 @@ module picorv32_pcpi_rvv #(
 	reg [1:0]  mem_stride_i; // index of transfer for 1 element in strided transfers, 0->2
 	reg [31:0] mem_stride_amount; // mem offset value between two accesses
 	reg [31:0] mem_offset_q;
-	reg	[3:0]  mem_strb_q;
-	reg	[31:0] mem_wdata_q;
+	reg	[3:0]  tmp_mem_strb;
+	reg	[31:0] tmp_mem_wdata;
 	reg [9:0]  mem_indexed_byte_index; // used for indexed accesses | index in the offset vector register, same size as VLEN parameter
 	reg [4:0]  mem_indexed_reg_index; // used for indexed accesses | index of the offset vector register
 	reg [2:0]  mem_indexed_sew; // sew of indices in an indexed insn
 	reg [3:0]  mem_seg_nfields; // number of segments in a segment load / store
 	reg [2:0]  mem_seg_i; // identifies the current field vector
-	reg [4:0]  mem_seg_index; // vector index in vregs, temp variable
-	reg [2:0]  mem_seg_n_access;
-
-	reg [VLEN-1:0] temp_vreg; // avoid errors
-	integer index; // avoid errors
+	
 	integer offset; // avoid errors
 	integer tmp_offset;
+	reg [VLENB-1:0] tmp_vregs_wstrb;
 	integer offset_incr;
-	integer for_i;
 	
 	// ARITHMETIC OPERATIONS
 	reg instr_arith;
@@ -147,17 +142,37 @@ module picorv32_pcpi_rvv #(
                           2'b00;
 
 	integer lane_num;
-	
-	integer init_reg_i;
-	
-	integer i;
-	initial begin
-		if (REGS_INIT_ZERO) begin
-			for (i = 0; i < regfile_size; i = i+1)
-				vregs[i] = 0;
-		end
-	end
 
+	wire [4:0] vregs_raddr1 = instr_arith 					? vs1 + reg_index :
+							  (instr_vstore && mem_sending)	? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
+							  1;
+
+	wire [4:0] vregs_raddr2 = instr_mem_indexed ? vs2 + mem_indexed_reg_index :
+							  instr_arith 		? vs2 + reg_index :
+							  3;
+
+	wire [4:0] vregs_waddr = (instr_vload) ? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
+							 (instr_arith) ? vd + reg_index :
+							 0;
+
+	reg [VLEN-1:0] tmp_vregs_wdata;
+	reg [VLENB-1:0] vregs_wstrb;
+	reg [VLEN-1:0] vregs_wdata;
+	wire [VLEN-1:0] vregs_rdata1, vregs_rdata2;
+	
+	rvv_vregs #(
+		.VLEN(VLEN),
+		.REGS_INIT_ZERO(REGS_INIT_ZERO)
+	) vregs (
+		.clk(clk),
+		.waddr(vregs_waddr),
+		.wstrb(vregs_wstrb),
+		.raddr1(vregs_raddr1),
+		.raddr2(vregs_raddr2),
+		.wdata(vregs_wdata),
+		.rdata1(vregs_rdata1),
+		.rdata2(vregs_rdata2)
+	);
 
 	always @* begin
 		should_trap = 0;
@@ -222,7 +237,7 @@ module picorv32_pcpi_rvv #(
 					3'b110: mem_sew = 3'b101; 
 					3'b111: mem_sew = 3'b110;
 				endcase
-				should_trap = should_trap || (pcpi_insn[11:7] + (vl / (VLEN >> mem_sew)) >= regfile_size);
+				should_trap = should_trap || ((pcpi_insn[11:7] + (vl / (VLEN >> mem_sew))) & 8'hF0); // >= 32
 			end else begin
 				mem_sew = vtype[5:3] + 3;
 				case (pcpi_insn[14:12])
@@ -231,7 +246,7 @@ module picorv32_pcpi_rvv #(
 					3'b110: mem_indexed_sew = 3'b101; 
 					3'b111: mem_indexed_sew = 3'b110;
 				endcase
-				should_trap = should_trap || (pcpi_insn[11:7] + (vl / (VLEN >> mem_sew)) >= regfile_size) || (pcpi_insn[24:20] + (vl / (VLEN >> mem_indexed_sew)) >= regfile_size);
+				should_trap = should_trap || ((pcpi_insn[11:7] + (vl / (VLEN >> mem_sew))) & 8'hF0) || ((pcpi_insn[24:20] + (vl / (VLEN >> mem_indexed_sew))) & 8'hF0); // >= 32
 			end
 			should_trap = should_trap || (!vtype[2] && (mem_seg_nfields << vtype[1:0]) > 8);
 
@@ -267,13 +282,19 @@ module picorv32_pcpi_rvv #(
 		pcpi_mem_ftrans <= 0;
 		pcpi_trap_out <= 0;
 		
+		tmp_vregs_wstrb = 0;
+		tmp_vregs_wdata = 0;
+
+		vregs_wstrb <= 0;
+		vregs_wdata <= 0;
+
 		// arith
 		alu_run <= 0;
 		
 		if (!resetn) begin
 		
-			for (init_reg_i = 0; init_reg_i < regfile_size; init_reg_i = init_reg_i + 1)
-				vregs[init_reg_i] <= 0;
+			/* for (init_reg_i = 0; init_reg_i < 32; init_reg_i = init_reg_i + 1)
+				vregs[init_reg_i] <= 0; */
 		
 			pcpi_trap_in_q <= 0;
 			vstart = 0;
@@ -290,20 +311,18 @@ module picorv32_pcpi_rvv #(
 			// mem
 			byte_index = 0;
 			reg_index = 0;
-			mem_indexed_byte_index = 0;
-			mem_indexed_reg_index = 0;
+			mem_indexed_byte_index <= 0;
+			mem_indexed_reg_index <= 0;
 			mem_sending = 1;
 			last_op <= 0;
 			mem_stride_mask <= 12'h000;
 			mem_stride_i <= 0;
 			mem_offset_q <= 0;
-			mem_strb_q <= 0;
-			mem_wdata_q <= 0;
+			tmp_mem_strb = 0;
+			tmp_mem_wdata = 0;
 			offset <= 0;
 			offset_incr = 0;
-			mem_seg_i = 0;
-			mem_seg_index = 0;
-			mem_seg_n_access = 0;
+			mem_seg_i<= 0;
 
 			// arith
 			arith_remaining <= 0;
@@ -387,14 +406,13 @@ module picorv32_pcpi_rvv #(
 						mem_stride_amount = (instr_mem_unit || instr_mem_whole_reg) ? (1 << (mem_sew-3)) : pcpi_rs2;
 
 						if (instr_mem_indexed) begin
-							temp_vreg = vregs[pcpi_insn[24:20] + mem_indexed_reg_index];
 							tmp_offset = mem_indexed_byte_index << mem_indexed_sew;
 							mem_offset_q = 0;
 							case (mem_indexed_sew)
-								3'b011: mem_offset_q[0 +: 8] = temp_vreg[tmp_offset +: 8]; // 8 bits index
-								3'b100: mem_offset_q[0 +: 16] = temp_vreg[tmp_offset +: 16]; // 16 bits index
-								3'b101: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 32 bits index
-								3'b110: mem_offset_q[0 +: 32] = temp_vreg[tmp_offset +: 32]; // 64 bits index but we only keep 32 LSB
+								3'b011: mem_offset_q[0 +: 8] = vregs_rdata2[tmp_offset +: 8]; // 8 bits index
+								3'b100: mem_offset_q[0 +: 16] = vregs_rdata2[tmp_offset +: 16]; // 16 bits index
+								3'b101: mem_offset_q[0 +: 32] = vregs_rdata2[tmp_offset +: 32]; // 32 bits index
+								3'b110: mem_offset_q[0 +: 32] = vregs_rdata2[tmp_offset +: 32]; // 64 bits index but we only keep 32 LSB
 							endcase
 							mem_offset_q = mem_offset_q + (mem_stride_i << 2);
 						end else
@@ -454,32 +472,31 @@ module picorv32_pcpi_rvv #(
 								pcpi_ready <= 0;
 							end else if (pcpi_mem_done) begin
 								pcpi_mem_ftrans <= 0;
-								index = pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0]));
 								
+								vregs_wdata <= pcpi_mem_rdata << ((offset >> 2) << 5);
+
 								if (mem_stride_mask[{mem_stride_i, 2'b00}]) begin
 									`debug_rvv($display("byte0");)
-									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
-									vregs[index][tmp_offset +: 8] <= pcpi_mem_rdata[0 +: 8];
+									tmp_vregs_wstrb[offset+offset_incr] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
 									`debug_rvv($display("byte1");)
-									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
-									vregs[index][tmp_offset +: 8] <= pcpi_mem_rdata[8 +: 8];
+									tmp_vregs_wstrb[offset+offset_incr] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
 									`debug_rvv($display("byte2");)
-									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
-									vregs[index][tmp_offset +: 8] <= pcpi_mem_rdata[16 +: 8];
+									tmp_vregs_wstrb[offset+offset_incr] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
 									`debug_rvv($display("byte3");)
-									tmp_offset = (offset + offset_incr) << 3; // convert from byte to bit index
-									vregs[index][tmp_offset +: 8] <= pcpi_mem_rdata[24 +: 8];
+									tmp_vregs_wstrb[offset+offset_incr] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
+
+								vregs_wstrb <= tmp_vregs_wstrb;
 
 								if ((mem_stride_i==0 && mem_stride_mask[7:4] == 0) || (mem_stride_i==1 && mem_stride_mask[11:8] == 0) || mem_stride_i==2) begin
 									if (mem_seg_i == mem_seg_nfields - 1 || instr_mem_whole_reg)
@@ -510,11 +527,11 @@ module picorv32_pcpi_rvv #(
 										// update indexed indices
 										if (instr_mem_indexed && (mem_seg_i == mem_seg_nfields - 1)) begin
 											if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
-												mem_indexed_byte_index = 0;
-												mem_indexed_reg_index = mem_indexed_reg_index + 1;
+												mem_indexed_byte_index <= 0;
+												mem_indexed_reg_index <= mem_indexed_reg_index + 1;
 											end else begin
-												mem_indexed_byte_index = mem_indexed_byte_index + 1;
-												mem_indexed_reg_index = mem_indexed_reg_index;
+												mem_indexed_byte_index <= mem_indexed_byte_index + 1;
+												mem_indexed_reg_index <= mem_indexed_reg_index;
 											end
 										end
 									end else
@@ -529,12 +546,12 @@ module picorv32_pcpi_rvv #(
 									// update indices
 									byte_index = 0;
 									reg_index = 0;
-									mem_indexed_byte_index = 0;
-									mem_indexed_reg_index = 0;
+									mem_indexed_byte_index <= 0;
+									mem_indexed_reg_index <= 0;
 									offset <= 0;
 									offset_incr = 0;
 									mem_stride_i = 0;
-									mem_seg_i = 0;
+									mem_seg_i<= 0;
 									mem_offset_q = 0;
 								end
 								
@@ -551,33 +568,31 @@ module picorv32_pcpi_rvv #(
 							if (mem_sending) begin
 								// send data to main proc
 								pcpi_mem_ftrans <= (byte_index == 0 && reg_index == 0 && mem_stride_i == 0 && mem_seg_i == 0);
-								index = pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0]));
-
-								temp_vreg = vregs[index];
-								mem_strb_q = 0;
-								mem_wdata_q = 0;
+								
+								tmp_mem_strb = 0;
+								tmp_mem_wdata = 0;
 								if (mem_stride_mask[{mem_stride_i, 2'b00}]) begin
 									tmp_offset = (offset + offset_incr) << 3;
-									mem_wdata_q[0 +: 8] = temp_vreg[tmp_offset +: 8];
-									mem_strb_q[0] = 1'b1;
+									tmp_mem_wdata[0 +: 8] = vregs_rdata1[tmp_offset +: 8];
+									tmp_mem_strb[0] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
 									tmp_offset = (offset + offset_incr) << 3;
-									mem_wdata_q[8 +: 8] = temp_vreg[tmp_offset +: 8];
-									mem_strb_q[1] = 1'b1;
+									tmp_mem_wdata[8 +: 8] = vregs_rdata1[tmp_offset +: 8];
+									tmp_mem_strb[1] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
 									tmp_offset = (offset + offset_incr) << 3;
-									mem_wdata_q[16 +: 8] = temp_vreg[tmp_offset +: 8];
-									mem_strb_q[2] = 1'b1;
+									tmp_mem_wdata[16 +: 8] = vregs_rdata1[tmp_offset +: 8];
+									tmp_mem_strb[2] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
 									tmp_offset = (offset + offset_incr) << 3;
-									mem_wdata_q[24 +: 8] = temp_vreg[tmp_offset +: 8];
-									mem_strb_q[3] = 1'b1;
+									tmp_mem_wdata[24 +: 8] = vregs_rdata1[tmp_offset +: 8];
+									tmp_mem_strb[3] = 1'b1;
 									offset_incr = offset_incr + 1;
 								end
 
@@ -587,8 +602,8 @@ module picorv32_pcpi_rvv #(
 									offset_incr = 0;
 								end
 
-								pcpi_mem_strb <= mem_strb_q;
-								pcpi_mem_wdata <= mem_wdata_q;
+								pcpi_mem_strb <= tmp_mem_strb;
+								pcpi_mem_wdata <= tmp_mem_wdata;
 
 								mem_sending <= pcpi_mem_ifetch ? 1 : 0;
 								// outputs
@@ -621,11 +636,11 @@ module picorv32_pcpi_rvv #(
 										// update indexed indices
 										if (instr_mem_indexed && (mem_seg_i == mem_seg_nfields - 1)) begin
 											if (mem_indexed_byte_index == (VLEN >> mem_indexed_sew) - 1) begin
-												mem_indexed_byte_index = 0;
-												mem_indexed_reg_index = mem_indexed_reg_index + 1;
+												mem_indexed_byte_index <= 0;
+												mem_indexed_reg_index <= mem_indexed_reg_index + 1;
 											end else begin
-												mem_indexed_byte_index = mem_indexed_byte_index + 1;
-												mem_indexed_reg_index = mem_indexed_reg_index;
+												mem_indexed_byte_index <= mem_indexed_byte_index + 1;
+												mem_indexed_reg_index <= mem_indexed_reg_index;
 											end
 										end
 									end else
@@ -641,12 +656,12 @@ module picorv32_pcpi_rvv #(
 									// update indices
 									byte_index = 0;
 									reg_index = 0;
-									mem_indexed_byte_index = 0;
-									mem_indexed_reg_index = 0;
+									mem_indexed_byte_index <= 0;
+									mem_indexed_reg_index <= 0;
 									offset <= 0;
 									offset_incr = 0;
 									mem_stride_i = 0;
-									mem_seg_i = 0;
+									mem_seg_i<= 0;
 									mem_offset_q = 0;
 								end
 
@@ -662,31 +677,40 @@ module picorv32_pcpi_rvv #(
 					end else if (instr_arith) begin
 						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run && arith_instr_valid) begin
-							temp_vreg = vregs[vd + reg_index];
 							if (vsew + 3 < LANE_WIDTH) begin // lane larger than vsew
 								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
 									if (arith_res[lane_num] && arith_remaining > lane_num) begin
 										case (vsew)
-											3'b000:
-												temp_vreg[arith_regi[lane_num*10 +: 10] +: (1 << (0+3))] = arith_vd[lane_num << 6 +: (1 << (0+3))];
-											3'b001:
-												temp_vreg[arith_regi[lane_num*10 +: 10] +: (1 << (1+3))] = arith_vd[lane_num << 6 +: (1 << (1+3))];
-											3'b010:
-												temp_vreg[arith_regi[lane_num*10 +: 10] +: (1 << (2+3))] = arith_vd[lane_num << 6 +: (1 << (2+3))];
-											3'b011:
-												temp_vreg[arith_regi[lane_num*10 +: 10] +: (1 << (3+3))] = arith_vd[lane_num << 6 +: (1 << (3+3))];
+											3'b000: begin
+												tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (0+3))] = arith_vd[lane_num << 6 +: (1 << (0+3))];
+												tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10]] = 1'b1;
+											end
+											3'b001: begin
+												tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (1+3))] = arith_vd[lane_num << 6 +: (1 << (1+3))];
+												tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] +: 2] = 2'b11;
+											end
+											3'b010: begin
+												tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (2+3))] = arith_vd[lane_num << 6 +: (1 << (2+3))];
+												tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] +: 3] = 3'b111;
+											end
+											3'b011: begin
+												tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (3+3))] = arith_vd[lane_num << 6 +: (1 << (3+3))];
+												tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] +: 4] = 4'b1111;
+											end
 										endcase
 									end
 								end
 							end else begin
 								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
 									if (arith_res[lane_num] && arith_remaining > lane_num) begin
-										temp_vreg[arith_regi[lane_num*10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[lane_num << 6 +: SHIFTED_LANE_WIDTH];
+										tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[lane_num << 6 +: SHIFTED_LANE_WIDTH];
+										tmp_vregs_wstrb[(arith_regi[lane_num*10 +: 10] >> 3) +: (SHIFTED_LANE_WIDTHB)] = {SHIFTED_LANE_WIDTHB{1'b1}};
 									end
 								end
 							end
 
-							vregs[vd + reg_index] = temp_vreg;
+							vregs_wdata <= tmp_vregs_wdata;
+							vregs_wstrb <= tmp_vregs_wstrb;
 						end
 						if (!arith_instr_valid) begin
 							pcpi_ready <= 0;
@@ -740,7 +764,7 @@ module picorv32_pcpi_rvv #(
 		.opcode(pcpi_insn[31:26]),
 		.run(alu_run),
 		.vs1(arith_vs1),
-		.vs2(vregs[vs2 + reg_index]),
+		.vs2(vregs_rdata2),
 		.vsew(vsew),
 		.op_type({arith_vi,arith_vx,arith_vv}),
 		.vd(arith_vd),
@@ -749,4 +773,37 @@ module picorv32_pcpi_rvv #(
 		.done_out(arith_done),
 		.instr_valid(arith_instr_valid)
 	);
+endmodule
+
+module rvv_vregs #(
+	parameter [9:0] VLEN = 10'd 128,
+	parameter REGS_INIT_ZERO = 1'b1
+) (
+	input clk,
+	input [(VLEN>>3)-1:0] wstrb,
+	input [4:0] waddr,
+	input [4:0] raddr1,
+	input [4:0] raddr2,
+	input [VLEN-1:0] wdata,
+	output [VLEN-1:0] rdata1,
+	output [VLEN-1:0] rdata2
+);
+	localparam integer VLENB = VLEN >> 3;
+	reg [VLEN-1:0] vregs [31:0];
+
+	integer init_reg_i;
+	initial begin
+		if (REGS_INIT_ZERO) begin
+			for (init_reg_i = 0; init_reg_i < 32; init_reg_i = init_reg_i+1)
+				vregs[init_reg_i] = 0;
+		end
+	end
+
+	integer i;
+	always @(posedge clk)
+		for (i=0; i<VLENB; i+=1)
+			if (wstrb[i]) vregs[waddr][i<<3 +: 8] <= wdata[i<<3 +: 8];
+	
+	assign rdata1 = vregs[raddr1];
+	assign rdata2 = vregs[raddr2];
 endmodule

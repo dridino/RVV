@@ -35,14 +35,14 @@ test_rvv_alu_synth: testbench_rvv_alu_synth.vvp
 test_rvv_alu_synth_vcd: testbench_rvv_alu_synth.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
-testbench_rvv_alu_synth.vvp: testbench_rvv_alu.v rvv_alu_wrapper_synth.v rvv_alu.v
+testbench_rvv_alu_synth.vvp: testbench_rvv_vregs.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
 rvv_alu_wrapper_synth.v: rvv_alu_wrapper.v scripts/yosys/alu_synth_sim.ys rvv_alu.v
 	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
-testbench_rvv_alu.vvp: testbench_rvv_alu.v rvv_alu_wrapper.v rvv_alu.v
+testbench_rvv_alu.vvp: testbench_rvv_vregs.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 

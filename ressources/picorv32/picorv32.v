@@ -356,7 +356,6 @@ module picorv32 #(
 
 	generate if (ENABLE_RVV) begin
 		picorv32_pcpi_rvv #(
-			.ENABLE_REGS_16_31 	(ENABLE_REGS_16_31),
 			.REGS_INIT_ZERO		(REGS_INIT_ZERO),
 			.VLEN				(VLEN),
 			.NB_LANES			(NB_LANES),
