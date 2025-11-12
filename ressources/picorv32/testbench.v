@@ -176,7 +176,7 @@ module picorv32_wrapper #(
 		// RVV
 		.ENABLE_RVV(1),
 		.VLEN(128),
-		.NB_LANES(0),
+		.NB_LANES(1),
 		.LANE_WIDTH(3)
 `endif
 	) uut (

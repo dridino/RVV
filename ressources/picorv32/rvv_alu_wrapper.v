@@ -7,11 +7,13 @@ module rvv_alu_wrapper #(
 ) (
     input                               clk, resetn,
     input       [5:0]                   opcode,
+    input                               instr_mask,
     input                               run,
     input       [VLEN-1:0]              vs1,
     input       [VLEN-1:0]              vs2,
     input       [2:0]                   vsew,
     input       [2:0]                   op_type,
+    input       [10:0]                  vl,
 
     output      [(64<<NB_LANES) - 1:0]  vd,
     output      [(10<<NB_LANES) - 1:0]  regi,
@@ -19,17 +21,10 @@ module rvv_alu_wrapper #(
     output                              done_out,
     output                              instr_valid
 );
+    localparam SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
-
-    localparam integer BASE1 = NB_LANES >= 1 ? 64 : 0;
-    localparam integer BASE2 = NB_LANES >= 2 ? 128 : 0;
-    localparam integer BASE3 = NB_LANES >= 2 ? 192 : 0;
-    localparam integer BASE4 = NB_LANES >= 3 ? 256 : 0;
-    localparam integer BASE5 = NB_LANES >= 3 ? 320 : 0;
-    localparam integer BASE6 = NB_LANES >= 3 ? 384 : 0;
-    localparam integer BASE7 = NB_LANES >= 3 ? 448 : 0;
 
     reg [9:0] byte_i;
     reg [3:0] in_reg_offset;
@@ -42,7 +37,8 @@ module rvv_alu_wrapper #(
     wire [9:0] index0, index1, index2, index3, index4, index5, index6, index7;
 
     wire run0 = run;
-    wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
+    // wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
+    wire run1 = run && vl > (instr_mask ? SHIFTED_LANE_WIDTH : 1) && NB_LANES >= 1;
     wire run2 = run && VLEN >> (vsew+3) > 2 && NB_LANES >= 2;
     wire run3 = run && VLEN >> (vsew+3) > 3 && NB_LANES >= 2;
     wire run4 = run && VLEN >> (vsew+3) > 4 && NB_LANES >= 3;
@@ -59,7 +55,7 @@ module rvv_alu_wrapper #(
     wire instr_valid0, instr_valid1, instr_valid2, instr_valid3, instr_valid4, instr_valid5, instr_valid6, instr_valid7;
     assign instr_valid = instr_valid0;
 
-    wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
+    wire [3:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
                           tmp_nb_lanes[2] ? 2'b10 :
                           tmp_nb_lanes[1] ? 2'b01 :
@@ -72,9 +68,11 @@ module rvv_alu_wrapper #(
         end else if (run) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
-                    done <= byte_i + (1 << (nb_lanes+1)) >= (VLEN >> (vsew + 3));
+                    // done <= byte_i + (1 << (nb_lanes+1)) >= (VLEN >> (vsew + 3));
+                    done <= byte_i + (1 << (nb_lanes+1)) >= `min(vl, (VLEN >> (vsew + 3)));
                 end else begin
-                    done <= byte_i + (1 << (nb_lanes)) >= (VLEN >> (vsew + 3)) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
+                    // done <= byte_i + (1 << (nb_lanes)) >= (VLEN >> (vsew + 3)) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
+                    done <= byte_i + (1 << (nb_lanes)) >= `min(vl, (VLEN >> (vsew + 3))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
                 end
 
                 if (vsew + 3 < LANE_WIDTH || in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) begin
@@ -101,6 +99,7 @@ module rvv_alu_wrapper #(
 		.resetn(resetn),
 		.nb_lanes(nb_lanes),
 		.opcode(opcode),
+        .instr_mask(instr_mask),
 		.run(run0),
 		.vs1_in(vs1),
 		.vs2_in(vs2),
@@ -123,6 +122,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run1),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -146,6 +146,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run2),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -167,6 +168,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run3),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -191,6 +193,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run4),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -212,6 +215,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run5),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -233,6 +237,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run6),
             .vs1_in(vs1),
             .vs2_in(vs2),
@@ -254,6 +259,7 @@ module rvv_alu_wrapper #(
             .resetn(resetn),
             .nb_lanes(nb_lanes),
             .opcode(opcode),
+            .instr_mask(instr_mask),
             .run(run7),
             .vs1_in(vs1),
             .vs2_in(vs2),

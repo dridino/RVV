@@ -30,8 +30,6 @@
 // `define DEBUG
 // `define DEBUG_RVV
 
-`define min(a,b) (a < b ? a : b)
-
 `ifdef DEBUG
   `define debug(debug_command) debug_command
 `else

@@ -9,6 +9,7 @@ module rvv_alu #(
     input               clk, resetn,
     input      [1:0]    nb_lanes, // 2^nb_lanes lanes used for arith / logic operations
     input      [5:0]    opcode,
+    input               instr_mask, // 1 if opcode is for mask insn (OPMV*) or int insn (OPIV*)
     input               run,
     input      [VLEN-1:0] vs1_in,
     input      [VLEN-1:0] vs2_in,
@@ -22,18 +23,23 @@ module rvv_alu #(
     output [9:0]  index,
     output        instr_valid
 );
+    localparam integer VLEN_SIZE = $clog2(VLEN);
     localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
     localparam [8:0] ADD_SHIFTED_LANE_WIDTH = SHIFTED_LANE_WIDTH + 1;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
 
-    assign instr_valid =
+    assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
+
+    wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
         (opcode == 6'b000000) | (opcode == 6'b000010) | (opcode == 6'b000011) |
         (opcode == 6'b000100) | (opcode == 6'b000101) | (opcode == 6'b000110) |
         (opcode == 6'b000111) | (opcode == 6'b100101) | (opcode == 6'b101000) |
         (opcode == 6'b101001);
+
+    wire mask_instr_valid = (opcode == 6'b011001);
 
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
@@ -76,10 +82,10 @@ module rvv_alu #(
 
     wire [SHIFTED_LANE_WIDTH-1:0] vs1 =
         opcode == 6'b000010 ? signed_vs1_sub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
-        : vs1_in[op_type == VV ? index_val : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
+        : vs1_in[op_type == VV ? index_val[VLEN_SIZE-1:0] : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
     wire [SHIFTED_LANE_WIDTH-1:0] vs2 =
         opcode == 6'b000011 ? signed_vs2_rsub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
-        : vs2_in[index_val +: SHIFTED_LANE_WIDTH];
+        : vs2_in[index_val[VLEN_SIZE-1:0] +: SHIFTED_LANE_WIDTH];
 
     // Reverse the iteration order for comparison operations
     wire [SHIFTED_LANE_WIDTH-1:0] vs1_cmp =
@@ -117,81 +123,87 @@ module rvv_alu #(
             temp_vreg = {65{1'b0}};
         end else if (run) begin
             temp_vreg = 0;
-            case (opcode)
-                // vand
-                6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 & vs1;
-                // vor
-                6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 | vs1;
-                // vxor
-                6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ^ vs1;
-                // vadd
-                6'b000000: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
-                // vsub
-                6'b000010: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
-                // vrsub
-                6'b000011: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
-                // vminu
-                6'b000100: begin
-                    if ((ltu && !cmp_c[1]) || cmp_c[2]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
-                    end else if ((!ltu && !cmp_c[2]) || cmp_c[1]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+            if (instr_mask)
+                case (opcode)
+                    6'b011001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 & vs1;
+                    default: temp_vreg = 0;
+                endcase
+            else
+                case (opcode)
+                    // vand
+                    6'b001001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 & vs1;
+                    // vor
+                    6'b001010: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 | vs1;
+                    // vxor
+                    6'b001011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ^ vs1;
+                    // vadd
+                    6'b000000: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
+                    // vsub
+                    6'b000010: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
+                    // vrsub
+                    6'b000011: temp_vreg[0 +: ADD_SHIFTED_LANE_WIDTH] = vs2 + vs1 + cout_q;
+                    // vminu
+                    6'b000100: begin
+                        if ((ltu && !cmp_c[1]) || cmp_c[2]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                        end else if ((!ltu && !cmp_c[2]) || cmp_c[1]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+                        end
                     end
-                end
-                // vmin
-                6'b000101: begin
-                    if ((lt && !cmp_c[1]) || cmp_c[2]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
-                    end else if ((!lt && !cmp_c[2]) || cmp_c[1]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+                    // vmin
+                    6'b000101: begin
+                        if ((lt && !cmp_c[1]) || cmp_c[2]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                        end else if ((!lt && !cmp_c[2]) || cmp_c[1]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+                        end
                     end
-                end
-                // vmaxu
-                6'b000110: begin
-                    if ((ltu && !cmp_c[1]) || cmp_c[2]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
-                    end else if ((!ltu && !cmp_c[2]) || cmp_c[1]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                    // vmaxu
+                    6'b000110: begin
+                        if ((ltu && !cmp_c[1]) || cmp_c[2]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+                        end else if ((!ltu && !cmp_c[2]) || cmp_c[1]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                        end
                     end
-                end
-                // vmax
-                6'b000111: begin
-                    if ((lt && !cmp_c[1]) || cmp_c[2]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
-                    end else if ((!lt && !cmp_c[2]) || cmp_c[1]) begin
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                    // vmax
+                    6'b000111: begin
+                        if ((lt && !cmp_c[1]) || cmp_c[2]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs1_cmp;
+                        end else if ((!lt && !cmp_c[2]) || cmp_c[1]) begin
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_cmp;
+                        end
                     end
-                end
-                // vsll
-                6'b100101: begin
-                    if (shift_rem >= SHIFTED_LANE_WIDTH) // all zeros
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = 0;
-                    else if (shift_reg_q) // part zeros, part vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[base_index +: SHIFTED_LANE_WIDTH] << shift_rem;
-                    else // only vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
-                end
-                // vsrl
-                6'b101000: begin
-                    if (shift_rem > SHIFTED_LANE_WIDTH) // only zeros
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = 0;
-                    else if (shift_reg && shift_rem != 0) // part zeros, part vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH] >> shift_rem;
-                    else // only vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
-                end
-                // vsra
-                6'b101001: begin
-                    if (shift_rem > SHIFTED_LANE_WIDTH) // only sign bit
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = {SHIFTED_LANE_WIDTH{vs2_in[base_index + (1 << (vsew+3)) - 1]}};
-                    else if (shift_reg && shift_rem != 0) // part zeros, part vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = $signed(vs2_in[shift_index +: SHIFTED_LANE_WIDTH]) >>> shift_rem;
-                    else // only vs2
-                        temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
-                end
-                // default
-                default: temp_vreg = 0;
-            endcase
+                    // vsll
+                    6'b100101: begin
+                        if (shift_rem >= SHIFTED_LANE_WIDTH) // all zeros
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = 0;
+                        else if (shift_reg_q) // part zeros, part vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[base_index +: SHIFTED_LANE_WIDTH] << shift_rem;
+                        else // only vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
+                    end
+                    // vsrl
+                    6'b101000: begin
+                        if (shift_rem > SHIFTED_LANE_WIDTH) // only zeros
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = 0;
+                        else if (shift_reg && shift_rem != 0) // part zeros, part vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH] >> shift_rem;
+                        else // only vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
+                    end
+                    // vsra
+                    6'b101001: begin
+                        if (shift_rem > SHIFTED_LANE_WIDTH) // only sign bit
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = {SHIFTED_LANE_WIDTH{vs2_in[base_index + (1 << (vsew+3)) - 1]}};
+                        else if (shift_reg && shift_rem != 0) // part zeros, part vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = $signed(vs2_in[shift_index +: SHIFTED_LANE_WIDTH]) >>> shift_rem;
+                        else // only vs2
+                            temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
+                    end
+                    // default
+                    default: temp_vreg = 0;
+                endcase
         end else begin
             temp_vreg = 0;
         end
