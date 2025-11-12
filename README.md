@@ -30,6 +30,13 @@ Les opérations arithmético-logiques (`vv` / `vi` / `vx`) supportées sont :
 - `vminu`
 - `vmax`
 - `vmaxu`
+- `vsll`
+- `vsrl`
+- `vsra`
+
+### Masques
+
+Toutes les instructions le supportant peuvent être masquées par `v0`. Pour l'instant, aucune instruction sur les masques n'a été implémentée.
 
 ## Simulation
 
