@@ -144,6 +144,9 @@ module picorv32_pcpi_rvv #(
 
 	integer lane_num;
 
+	// MASK INSTRUCTIONS
+	reg instr_mask;
+
 	wire [4:0] vregs_raddr1 = instr_arith 					? vs1 + reg_index :
 							  (instr_vstore && mem_sending)	? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
 							  1;
@@ -204,6 +207,9 @@ module picorv32_pcpi_rvv #(
 		arith_vi = 0;
 		arith_vx = 0;
 
+		// mask
+		instr_mask = 0;
+
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
 			if (pcpi_insn[31] == 1'b0)
@@ -263,7 +269,7 @@ module picorv32_pcpi_rvv #(
 		end
 
 		// arith
-		if (resetn && pcpi_insn[6:0] == 7'b1010111 && pcpi_insn[14:12] != 3'b111) begin
+		if (resetn && pcpi_insn[6:0] == 7'b1010111 && (pcpi_insn[14:12] == 3'b000 || pcpi_insn[14:12] == 3'b011 || pcpi_insn[14:12] == 3'b100)) begin
 			instr_arith = 1;
 			case (pcpi_insn[14:12])
 				3'b000, 3'b001, 3'b010: arith_vv = 1;
@@ -272,6 +278,9 @@ module picorv32_pcpi_rvv #(
 				3'b101: should_trap = 1; // float op
 			endcase
 		end
+
+		// mask
+		// if (resetn && )
 	end
 
 	always @(posedge clk) begin
