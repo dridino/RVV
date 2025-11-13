@@ -39,12 +39,13 @@ module rvv_alu #(
         (opcode == 6'b000111) | (opcode == 6'b100101) | (opcode == 6'b101000) |
         (opcode == 6'b101001);
 
-    wire mask_instr_valid = (opcode == 6'b011001);
+    wire mask_instr_valid =
+        (opcode == 6'b011001) | (opcode == 6'b011101);
 
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
-    assign index = index_val;
+    assign index = instr_mask ? index_val >> (vsew+3) : index_val;
     wire [9:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
     wire [9:0] index_val =
         (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
@@ -125,7 +126,8 @@ module rvv_alu #(
             temp_vreg = 0;
             if (instr_mask)
                 case (opcode)
-                    6'b011001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 & vs1;
+                    6'b011001: temp_vreg[0] = vs2 && vs1;
+                    6'b011101: temp_vreg[0] = !(vs2 && vs1);
                     default: temp_vreg = 0;
                 endcase
             else

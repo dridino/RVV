@@ -38,7 +38,7 @@ module rvv_alu_wrapper #(
 
     wire run0 = run;
     // wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
-    wire run1 = run && vl > (instr_mask ? SHIFTED_LANE_WIDTH : 1) && NB_LANES >= 1;
+    wire run1 = run && vl > (instr_mask ? 1 : 1) && NB_LANES >= 1;
     wire run2 = run && VLEN >> (vsew+3) > 2 && NB_LANES >= 2;
     wire run3 = run && VLEN >> (vsew+3) > 3 && NB_LANES >= 2;
     wire run4 = run && VLEN >> (vsew+3) > 4 && NB_LANES >= 3;
