@@ -34,284 +34,170 @@ RVTEST_CODE_BEGIN */
   vle8.v v3, (x19)
 
   // =================================================
-  // = SEW = 8b | LMUL = 1/2 | update only the vl=8 first bits
+  // = SEW = 8b | LMUL = 1/2 |
   // =================================================
 
   vsetvli t0, x0, e8, mf2
   
   vmand.mm v0, v1, v1
+  vsetvli t0, x0, e8, m1
   vse8.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x12
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x34
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x56
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x78
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x87
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x65
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x43
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x21
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0xab
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xcd
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xab
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xcd
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0xbe
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xef
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xbe
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xef
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = SEW = 16b | update only the vl=8 first bits
+  // = SEW = 16b
   // =================================================
 
   vsetvli t0, x0, e16, m1
   
+  vadd.vv v0, v31, v31
   vmand.mm v0, v1, v1
   vse16.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x12
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x34
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x56
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x78
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x87
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x65
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x43
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x21
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0xab
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xcd
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xab
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xcd
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0xbe
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xef
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xbe
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xef
   bne t0,x22,.trap
   nop
 
   // =================================================
-  // = SEW = 8b | update only the vl=16 first bits
+  // = SEW = 16b
   // =================================================
 
-  vsetvli t0, x0, e8, m1
-  
-  vmand.mm v0, v1, v1
-  vse8.v v0, (x20)
+  vmand.mm v0, v1, v3
+  vse16.v v0, (x20) 
 
   lw t0, (x20)
   addi x22, x0, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x02
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 1, t0, 0x122b566f)
+  // TEST_CASE( 1, t0, 0x16375879)
   
   lw t0, 4(x20)
   addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x05
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x02
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x01
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 2, t0, 0x875c4318)
+  // TEST_CASE( 2, t0, 0x8F6C4926)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x08
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x09
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0A
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x09
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 3, t0, 0xabc4abc4)
+  // TEST_CASE( 3, t0, 0xB7D8B5D6)
   
   lw t0, 12(x20)
   addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0F
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0E
   slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-
-  // =================================================
-  // = SEW = 8b | LMUL = 1/2 | update only the vl=8 first bits (no impact)
-  // =================================================
-
-  vsetvli t0, x0, e8, mf2
-  
-  vmand.mm v0, v1, v1
-  vse8.v v0, (x20)
-
-  lw t0, (x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0xff
-  slli x22, x22, 8
-  addi x22, x22, 0xff
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 1, t0, 0x122b566f)
-  
-  lw t0, 4(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x0
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 2, t0, 0x875c4318)
-  
-  lw t0, 8(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 3, t0, 0xabc4abc4)
-  
-  lw t0, 12(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-
-  // =================================================
-  // = SEW = 8b | LMUL = 2 | update only the vl=32 first bits
-  // =================================================
-
-  vsetvli t0, x0, e8, m2
-  vle8.v v1, (x18)
-  vmand.mm v0, v1, v1
-
-  vsetvli t0, x0, e32, m1
-  vse32.v v0, (x20)
-
-  lw t0, (x20)
-  addi x22, x0, 0xff
-  slli x22, x22, 8
-  addi x22, x22, 0xff
-  slli x22, x22, 8
-  addi x22, x22, 0xff
-  slli x22, x22, 8
-  addi x22, x22, 0xff
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 1, t0, 0x122b566f)
-  
-  lw t0, 4(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 2, t0, 0x875c4318)
-  
-  lw t0, 8(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  bne t0,x22,.trap
-  nop
-  // TEST_CASE( 3, t0, 0xabc4abc4)
-  
-  lw t0, 12(x20)
-  addi x22, x0, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
-  slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x0D
   beq t0,x22,.start
   nop
 
@@ -345,6 +231,11 @@ tdat6:  .word 0xc1a0c1a0
 tdat7:  .word 0x04030201
         .word 0x08070605
         .word 0x0C0B0A09
+        .word 0x000F0E0D
+
+tdat8:  .word 0x00030001
+        .word 0x08000600
+        .word 0x00000000
         .word 0x000F0E0D
 
 mask1:  .word 0x05050505

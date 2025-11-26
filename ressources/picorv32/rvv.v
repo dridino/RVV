@@ -713,13 +713,13 @@ module picorv32_pcpi_rvv #(
 					end else if (instr_arith || instr_mask) begin
 						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run && arith_instr_valid) begin
-							if (instr_arith ? (vsew + 3 < LANE_WIDTH) : 1) begin // lane larger than vsew (if arith instr, else always true)
+							if (vsew + 3 < LANE_WIDTH) begin // lane larger than vsew (if arith instr, else always true)
 								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
 									if (arith_res[lane_num] && arith_remaining > lane_num) begin
 										case (vsew)
 											3'b000: begin
 												if (instr_mask) begin
-													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] + ((VLEN >> (vsew+3))*reg_index)] = arith_vd[lane_num << 6];
+													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] /* + ((VLEN >> (vsew+3))*reg_index) */ +: (1 << (0+3))] = arith_vd[lane_num << 6 +: (1 << (0+3))];
 													// tmp_vregs_wstrb[(arith_regi[lane_num*10 +: 10] >> 3) + ((VLENB >> (vsew+3))*reg_index)] = vm ? 1'b1 : (vregs_v0[arith_regi[lane_num*10 +: 10] >> (vsew+3)] ? 1'b1 : 1'b0);
 												end else begin
 													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (0+3))] = arith_vd[lane_num << 6 +: (1 << (0+3))];
@@ -728,7 +728,7 @@ module picorv32_pcpi_rvv #(
 											end
 											3'b001: begin
 												if (instr_mask) begin
-													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] + ((VLEN >> (vsew+3))*reg_index)] = arith_vd[lane_num << 6];
+													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] /* + ((VLEN >> (vsew+3))*reg_index) */ +: (1 << (1+3))] = arith_vd[lane_num << 6 +: (1 << (1+3))];
 													// tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] >> 3 + ((VLENB >> (vsew+3))*reg_index) +: 2] = vm ? 2'b11 : (vregs_v0[arith_regi[lane_num*10 +: 10] >> (vsew+3)] ? 2'b11 : 2'b00);
 												end else begin
 													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (1+3))] = arith_vd[lane_num << 6 +: (1 << (1+3))];
@@ -737,7 +737,7 @@ module picorv32_pcpi_rvv #(
 											end
 											3'b010: begin
 												if (instr_mask) begin
-													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] + ((VLEN >> (vsew+3))*reg_index)] = arith_vd[lane_num << 6];
+													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] /* + ((VLEN >> (vsew+3))*reg_index) */ +: (1 << (2+3))] = arith_vd[lane_num << 6 +: (1 << (2+3))];
 													// tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] >> 3 + ((VLENB >> (vsew+3))*reg_index) +: 3] = vm ? 3'b111 : (vregs_v0[arith_regi[lane_num*10 +: 10] >> (vsew+3)] ? 3'b111 : 3'b000);
 												end else begin
 													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (2+3))] = arith_vd[lane_num << 6 +: (1 << (2+3))];
@@ -746,7 +746,7 @@ module picorv32_pcpi_rvv #(
 											end
 											3'b011: begin
 												if (instr_mask) begin
-													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] + ((VLEN >> (vsew+3))*reg_index)] = arith_vd[lane_num << 6];
+													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] /* + ((VLEN >> (vsew+3))*reg_index) */ +: (1 << (3+3))] = arith_vd[lane_num << 6 +: (1 << (3+3))];
 													// tmp_vregs_wstrb[arith_regi[lane_num*10 +: 10] >> 3 + ((VLENB >> (vsew+3))*reg_index) +: 4] = vm ? 4'b1111 : (vregs_v0[arith_regi[lane_num*10 +: 10] >> (vsew+3)] ? 4'b1111 : 4'b0000);
 												end else begin
 													tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: (1 << (3+3))] = arith_vd[lane_num << 6 +: (1 << (3+3))];
@@ -757,11 +757,10 @@ module picorv32_pcpi_rvv #(
 									end
 								end
 							end else begin
-								// TODO : same as above
 								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
 									if (arith_res[lane_num] && arith_remaining > lane_num) begin
 										if (instr_mask)
-											tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] + ((VLEN >> (vsew+3))*reg_index)] = arith_vd[lane_num << 6];
+											tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] /* + ((VLEN >> (vsew+3))*reg_index) */ +: SHIFTED_LANE_WIDTH] = arith_vd[lane_num << 6 +: SHIFTED_LANE_WIDTH];
 										else
 											tmp_vregs_wdata[arith_regi[lane_num*10 +: 10] +: SHIFTED_LANE_WIDTH] = arith_vd[lane_num << 6 +: SHIFTED_LANE_WIDTH];
 										// tmp_vregs_wstrb[(arith_regi[lane_num*10 +: 10] >> 3) +: (SHIFTED_LANE_WIDTHB)] = vm ? ({SHIFTED_LANE_WIDTHB{1'b1}}) : (vregs_v0[arith_regi[lane_num*10 +: 10] >> (vsew+3)] ? {SHIFTED_LANE_WIDTHB{1'b1}} : {SHIFTED_LANE_WIDTHB{1'b0}});
@@ -777,7 +776,7 @@ module picorv32_pcpi_rvv #(
 							pcpi_ready <= 0;
 							pcpi_wait <= 0;
 						end else begin
-							if (!arith_init && arith_remaining <= 1 << NB_LANES && (instr_arith ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)) begin // all vec done
+							if (!arith_init && arith_remaining <= 1 << NB_LANES && ((instr_arith || instr_mask) ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)) begin // all vec done
 								reg_index <= 0;
 								arith_remaining <= 0;
 								pcpi_wait <= 0;
@@ -793,7 +792,7 @@ module picorv32_pcpi_rvv #(
 							end
 
 							if (arith_init) begin
-								arith_remaining <= vl;
+								arith_remaining <= instr_mask ? (VLEN >> (vsew+3)) : vl;
 								arith_step <= 0;
 								arith_init <= 0;
 							end else if (alu_run)
@@ -876,8 +875,6 @@ module rvv_vregs #(
 	integer i;
 	always @(posedge clk)
 		if (wen) vregs[waddr] = wdata;
-		/* for (i=0; i<VLENB; i+=1)
-			if (wstrb[i]) vregs[waddr][i<<3 +: 8] <= wdata[i<<3 +: 8]; */
 	
 	assign rdata1 = vregs[raddr1];
 	assign rdata2 = vregs[raddr2];

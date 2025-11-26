@@ -45,7 +45,7 @@ module rvv_alu #(
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
-    assign index = instr_mask ? index_val >> (vsew+3) : index_val;
+    assign index = /* instr_mask ? index_val >> (vsew+3) : */ index_val;
     wire [9:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
     wire [9:0] index_val =
         (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
@@ -116,9 +116,6 @@ module rvv_alu #(
     reg [9:0] shift_index_base;
     wire [9:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
     
-    wire [SHIFTED_LANE_WIDTH-1 : 0] tmp = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
-    wire [SHIFTED_LANE_WIDTH-1 : 0] tmp2 = $signed(vs2_in[shift_index +: SHIFTED_LANE_WIDTH]) >>> shift_rem;
-    
     always @* begin
         if (!resetn) begin
             temp_vreg = {65{1'b0}};
@@ -126,8 +123,10 @@ module rvv_alu #(
             temp_vreg = 0;
             if (instr_mask)
                 case (opcode)
-                    6'b011001: temp_vreg[0] = vs2 && vs1;
-                    6'b011101: temp_vreg[0] = !(vs2 && vs1);
+                    // vmand
+                    6'b011001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (vs2 & vs1);
+                    // vmnand
+                    6'b011101: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = ~(vs2 & vs1);
                     default: temp_vreg = 0;
                 endcase
             else
