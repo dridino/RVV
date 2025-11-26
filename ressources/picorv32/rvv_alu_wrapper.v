@@ -55,7 +55,7 @@ module rvv_alu_wrapper #(
     wire instr_valid0, instr_valid1, instr_valid2, instr_valid3, instr_valid4, instr_valid5, instr_valid6, instr_valid7;
     assign instr_valid = instr_valid0;
 
-    wire [3:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
+    wire [10:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
                           tmp_nb_lanes[2] ? 2'b10 :
                           tmp_nb_lanes[1] ? 2'b01 :
@@ -68,9 +68,9 @@ module rvv_alu_wrapper #(
         end else if (run) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
-                    done <= byte_i + (1 << (nb_lanes+1)) >= instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3)));
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3))));
                 end else begin
-                    done <= byte_i + (1 << (nb_lanes)) >= instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3)))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
                 end
 
                 if (vsew + 3 < LANE_WIDTH || in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) begin
