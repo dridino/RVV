@@ -40,7 +40,8 @@ module rvv_alu #(
         (opcode == 6'b101001);
 
     wire mask_instr_valid =
-        (opcode == 6'b011001) | (opcode == 6'b011101);
+        (opcode == 6'b011001) | (opcode == 6'b011101) | (opcode == 6'b011000) |
+        (opcode == 6'b011011);
 
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
@@ -125,7 +126,11 @@ module rvv_alu #(
                     // vmand
                     6'b011001: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (vs2 & vs1);
                     // vmnand
-                    6'b011101: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = ~(vs2 & vs1);
+                    6'b011101: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ~& vs1;
+                    // vmandn
+                    6'b011000: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 & ~vs1;
+                    // vmxor
+                    6'b011011: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ^ vs1;
                     default: temp_vreg = 0;
                 endcase
             else
