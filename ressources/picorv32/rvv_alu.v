@@ -45,9 +45,8 @@ module rvv_alu #(
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
-    assign index = /* instr_mask ? index_val >> (vsew+3) : */ index_val;
     wire [9:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
-    wire [9:0] index_val =
+    wire [9:0] index =
         (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
         base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
@@ -83,10 +82,10 @@ module rvv_alu #(
 
     wire [SHIFTED_LANE_WIDTH-1:0] vs1 =
         opcode == 6'b000010 ? signed_vs1_sub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
-        : vs1_in[op_type == VV ? index_val[VLEN_SIZE-1:0] : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
+        : vs1_in[op_type == VV ? index[VLEN_SIZE-1:0] : (in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH];
     wire [SHIFTED_LANE_WIDTH-1:0] vs2 =
         opcode == 6'b000011 ? signed_vs2_rsub[(in_reg_offset << LANE_WIDTH) +: SHIFTED_LANE_WIDTH]
-        : vs2_in[index_val[VLEN_SIZE-1:0] +: SHIFTED_LANE_WIDTH];
+        : vs2_in[index[VLEN_SIZE-1:0] +: SHIFTED_LANE_WIDTH];
 
     // Reverse the iteration order for comparison operations
     wire [SHIFTED_LANE_WIDTH-1:0] vs1_cmp =

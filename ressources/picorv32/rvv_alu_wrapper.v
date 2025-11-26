@@ -14,6 +14,7 @@ module rvv_alu_wrapper #(
     input       [2:0]                   vsew,
     input       [2:0]                   op_type,
     input       [10:0]                  vl,
+    input       [10:0]                  arith_remaining,
 
     output      [(64<<NB_LANES) - 1:0]  vd,
     output      [(10<<NB_LANES) - 1:0]  regi,
@@ -37,14 +38,13 @@ module rvv_alu_wrapper #(
     wire [9:0] index0, index1, index2, index3, index4, index5, index6, index7;
 
     wire run0 = run;
-    wire run1 = run && VLEN >> (vsew+3) > 1 && NB_LANES >= 1;
-    // wire run1 = run && vl > (instr_mask ? 1 : 1) && NB_LANES >= 1;
-    wire run2 = run && VLEN >> (vsew+3) > 2 && NB_LANES >= 2;
-    wire run3 = run && VLEN >> (vsew+3) > 3 && NB_LANES >= 2;
-    wire run4 = run && VLEN >> (vsew+3) > 4 && NB_LANES >= 3;
-    wire run5 = run && VLEN >> (vsew+3) > 5 && NB_LANES >= 3;
-    wire run6 = run && VLEN >> (vsew+3) > 6 && NB_LANES >= 3;
-    wire run7 = run && VLEN >> (vsew+3) > 7 && NB_LANES >= 3;
+    wire run1 = run && arith_remaining > 1 && NB_LANES >= 1;
+    wire run2 = run && arith_remaining > 2 && NB_LANES >= 2;
+    wire run3 = run && arith_remaining > 3 && NB_LANES >= 2;
+    wire run4 = run && arith_remaining > 4 && NB_LANES >= 3;
+    wire run5 = run && arith_remaining > 5 && NB_LANES >= 3;
+    wire run6 = run && arith_remaining > 6 && NB_LANES >= 3;
+    wire run7 = run && arith_remaining > 7 && NB_LANES >= 3;
 
     assign vd = {vd7,vd6,vd5,vd4,vd3,vd2,vd1,vd0};
 
@@ -68,10 +68,8 @@ module rvv_alu_wrapper #(
         end else if (run) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
-                    // done <= byte_i + (1 << (nb_lanes+1)) >= (VLEN >> (vsew + 3));
                     done <= byte_i + (1 << (nb_lanes+1)) >= instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3)));
                 end else begin
-                    // done <= byte_i + (1 << (nb_lanes)) >= (VLEN >> (vsew + 3)) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
                     done <= byte_i + (1 << (nb_lanes)) >= instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
                 end
 
