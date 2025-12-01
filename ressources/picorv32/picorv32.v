@@ -89,7 +89,7 @@ module picorv32 #(
 	parameter [31:0] STACKADDR = 32'h ffff_ffff,
 
 	// RVV
-	parameter [9:0] VLEN = 10'd 128,
+	parameter [16:0] VLEN = 17'd 128,
 	parameter [0:0]	ENABLE_RVV = 0,
 	// arithmetic op
 	parameter integer NB_LANES = 1, // 2^NB_LANES lanes used for arith op
@@ -2673,7 +2673,7 @@ module picorv32_axi #(
 	parameter [31:0] STACKADDR = 32'h ffff_ffff,
 
 	// RVV
-	parameter [9:0] VLEN = 10'd 128,
+	parameter [16:0] VLEN = 17'd 128,
 	parameter [0:0] ENABLE_RVV = 0,
 	parameter [2:0] LANE_WIDTH = 3'b011,
 	parameter integer NB_LANES = 1

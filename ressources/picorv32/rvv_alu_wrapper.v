@@ -1,7 +1,7 @@
 `define min(a,b) (a < b ? a : b)
 
 module rvv_alu_wrapper #(
-    parameter [9:0] VLEN = 10'd 128,
+    parameter [16:0] VLEN = 17'd 128,
     parameter [2:0] LANE_WIDTH = 3'b011,
     parameter integer NB_LANES = 1
 ) (
@@ -13,11 +13,11 @@ module rvv_alu_wrapper #(
     input       [VLEN-1:0]              vs2,
     input       [2:0]                   vsew,
     input       [2:0]                   op_type,
-    input       [10:0]                  vl,
-    input       [10:0]                  arith_remaining,
+    input       [16:0]                  vl,
+    input       [16:0]                  arith_remaining,
 
     output      [(64<<NB_LANES) - 1:0]  vd,
-    output      [(10<<NB_LANES) - 1:0]  regi,
+    output      [(17<<NB_LANES) - 1:0]  regi,
     output      [(1<<NB_LANES) - 1:0]   res,
     output                              done_out,
     output                              instr_valid
@@ -27,7 +27,7 @@ module rvv_alu_wrapper #(
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
 
-    reg [9:0] byte_i;
+    reg [16:0] byte_i;
     reg [3:0] in_reg_offset;
 
     reg done;
@@ -35,7 +35,9 @@ module rvv_alu_wrapper #(
 
     assign regi = {index7, index6, index5, index4, index3, index2, index1, index0};
 
-    wire [9:0] index0, index1, index2, index3, index4, index5, index6, index7;
+    wire [16:0] index0, index1, index2, index3, index4, index5, index6, index7;
+
+    // TODO : boucle for
 
     wire run0 = run;
     wire run1 = run && arith_remaining > 1 && NB_LANES >= 1;
@@ -55,7 +57,8 @@ module rvv_alu_wrapper #(
     wire instr_valid0, instr_valid1, instr_valid2, instr_valid3, instr_valid4, instr_valid5, instr_valid6, instr_valid7;
     assign instr_valid = instr_valid0;
 
-    wire [10:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
+    // TODO : for
+    wire [16:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
     wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
                           tmp_nb_lanes[2] ? 2'b10 :
                           tmp_nb_lanes[1] ? 2'b01 :

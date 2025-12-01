@@ -1,12 +1,13 @@
 `define min(a,b) (a < b ? a : b)
 
 module rvv_alu #(
-	parameter [9:0] VLEN = 10'd 128,
+	parameter [16:0] VLEN = 17'd 128,
     parameter [2:0] LANE_WIDTH = 3'b011, // 2^LANE_WIDTH bits per lane (8,16,32,64)
     // LANE_WIDTH * 2^nb_lanes must be less than or equal to VLEN
     parameter [2:0] LANE_I = 3'b000
 ) (
     input               clk, resetn,
+    // TODO : taille port
     input      [1:0]    nb_lanes, // 2^nb_lanes lanes used for arith / logic operations
     input      [5:0]    opcode,
     input               instr_mask, // 1 if opcode is for mask insn (OPMV*) or int insn (OPIV*)
@@ -16,11 +17,11 @@ module rvv_alu #(
     input      [2:0]    vsew,
     input      [2:0]    op_type, // 001 : vv | 010 : VX | 100 : VI
 
-    input      [9:0]    byte_i,
+    input      [16:0]    byte_i,
     input      [3:0]    in_reg_offset,
 
     output [63:0] vd,
-    output [9:0]  index,
+    output [16:0]  index,
     output        instr_valid
 );
     localparam integer VLEN_SIZE = $clog2(VLEN);
@@ -47,8 +48,8 @@ module rvv_alu #(
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
-    wire [9:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
-    wire [9:0] index =
+    wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
+    wire [16:0] index =
         (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
         base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
@@ -114,8 +115,8 @@ module rvv_alu #(
     reg shift_reg_q;
     reg [5:0] shift_rem_base;
     wire [5:0] shift_rem = (in_reg_offset == 0) ? shift_amount : shift_rem_base;
-    reg [9:0] shift_index_base;
-    wire [9:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
+    reg [16:0] shift_index_base;
+    wire [16:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
     
     always @* begin
         if (!resetn) begin

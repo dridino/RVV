@@ -14,8 +14,8 @@
 module testbench ();
 	localparam [2:0] LANE_WIDTH = 3'b011;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-	localparam [1:0] NB_LANES = 2'b01;
-	localparam [9:0] VLEN = 10'd128;
+	localparam integer NB_LANES = 2'b01;
+	localparam [16:0] VLEN = 17'd128;
 	localparam [4:0] IMM = 5'b00001;
 	localparam [31:0] RS1 = 32'h00000001;
 	

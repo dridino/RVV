@@ -11,7 +11,7 @@
 `define min(a,b) (a < b ? a : b)
 
 module rvv_vregs #(
-	parameter [9:0] VLEN = 10'd 128,
+	parameter [16:0] VLEN = 17'd 128,
 	parameter REGS_INIT_ZERO = 1'b1
 ) (
 	input clk,
@@ -44,7 +44,7 @@ module rvv_vregs #(
 endmodule
 
 module testbench ();
-	localparam [9:0] VLEN = 10'd32;
+	localparam [16:0] VLEN = 17'd32;
 	localparam integer VLENB = VLEN >> 3;
 
 	reg clk = 0;

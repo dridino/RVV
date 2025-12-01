@@ -175,8 +175,8 @@ module picorv32_wrapper #(
 		.ENABLE_TRACE(1),
 		// RVV
 		.ENABLE_RVV(1),
-		.VLEN(512),
-		.NB_LANES(3),
+		.VLEN(1024),
+		.NB_LANES(1),
 		.LANE_WIDTH(5)
 `endif
 	) uut (
