@@ -2810,7 +2810,7 @@ module picorv32_axi #(
 		.STACKADDR           (STACKADDR           ),
 
 		.ENABLE_RVV			 (ENABLE_RVV		  ),
-		.VLEN				 	 (VLEN				  ),
+		.VLEN				 (VLEN				  ),
 		.LANE_WIDTH			 (LANE_WIDTH		  ),
 		.NB_LANES			 (NB_LANES			  )
 	) picorv32_core (
