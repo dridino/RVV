@@ -152,12 +152,14 @@ unsigned b[64] = {62908, 29155,  111258, 28339,  41911, 60920, 34087, 10145,
                   76370, 40022,  21571,  34629,  89861, 48096, 92681, 22464}; */
 
 void rvv(void) {
-  unsigned c[256];
+  unsigned c1[256], c2[256], c3[256];
   unsigned int num_cycles1, num_cycles2;
   __asm__ volatile("rdcycle %0;" : "=r"(num_cycles1));
 
   for (int i = 0; i < 256; i++) {
-    c[i] = a[i] + b[i];
+    c1[i] = a[i] + b[i];
+    c2[i] = c1[i] >> 2;
+    c3[i] = c2[i] + 5;
   }
 
   __asm__ volatile("rdcycle %0;" : "=r"(num_cycles2));
@@ -171,8 +173,18 @@ void rvv(void) {
     print_str(" + ");
     print_dec(b[i]);
     print_str(" = ");
-    print_dec(c[i]);
+    print_dec(c1[i]);
     print_str("\n");
+
+    print_dec(c1[i]);
+    print_str(" >> 2 = ");
+    print_dec(c2[i]);
+    print_str("\n");
+
+    print_dec(c2[i]);
+    print_str(" + 5 = ");
+    print_dec(c3[i]);
+    print_str("\n\n");
   }
 
   return;

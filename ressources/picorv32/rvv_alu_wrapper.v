@@ -33,36 +33,44 @@ module rvv_alu_wrapper #(
     reg done;
     assign done_out = done;
 
-    assign regi = {index7, index6, index5, index4, index3, index2, index1, index0};
+    wire [(17<<NB_LANES)-1 : 0] index;
+    assign regi = index;
 
-    wire [16:0] index0, index1, index2, index3, index4, index5, index6, index7;
+    wire [(1<<NB_LANES)-1 : 0] runs;
+    wire [(64<<NB_LANES)-1 : 0] vds;
 
-    // TODO : boucle for
+    assign res = runs;
 
-    wire run0 = run;
-    wire run1 = run && arith_remaining > 1 && NB_LANES >= 1;
-    wire run2 = run && arith_remaining > 2 && NB_LANES >= 2;
-    wire run3 = run && arith_remaining > 3 && NB_LANES >= 2;
-    wire run4 = run && arith_remaining > 4 && NB_LANES >= 3;
-    wire run5 = run && arith_remaining > 5 && NB_LANES >= 3;
-    wire run6 = run && arith_remaining > 6 && NB_LANES >= 3;
-    wire run7 = run && arith_remaining > 7 && NB_LANES >= 3;
+    genvar loop_i;
+    generate
+        for (loop_i = 0; loop_i < (1<<NB_LANES); loop_i = loop_i + 1) begin
+            assign runs[loop_i] = run && arith_remaining > loop_i;
+            assign vd[(64*loop_i) +: 64] = vds[(64*loop_i) +: 64];
+        end
+    endgenerate
 
-    assign vd = {vd7,vd6,vd5,vd4,vd3,vd2,vd1,vd0};
+    wire [(1<<NB_LANES)-1 : 0] instr_valids;
+    assign instr_valid = instr_valids[0];
 
-    wire [63:0] vd0,vd1,vd2,vd3,vd4,vd5,vd6,vd7;
-
-    assign res = {run7, run6, run5, run4, run3, run2, run1, run0};
-
-    wire instr_valid0, instr_valid1, instr_valid2, instr_valid3, instr_valid4, instr_valid5, instr_valid6, instr_valid7;
-    assign instr_valid = instr_valid0;
-
-    // TODO : for
     wire [16:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
-    wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
-                          tmp_nb_lanes[2] ? 2'b10 :
-                          tmp_nb_lanes[1] ? 2'b01 :
-                          2'b00;
+
+    wire [4:0] nb_lanes = tmp_nb_lanes[16] ? 5'b10000 :
+                          tmp_nb_lanes[15] ? 5'b01111 :
+                          tmp_nb_lanes[14] ? 5'b01110 :
+                          tmp_nb_lanes[13] ? 5'b01101 :
+                          tmp_nb_lanes[12] ? 5'b01100 :
+                          tmp_nb_lanes[11] ? 5'b01011 :
+                          tmp_nb_lanes[10] ? 5'b01010 :
+                          tmp_nb_lanes[9]  ? 5'b01001 :
+                          tmp_nb_lanes[8]  ? 5'b01000 :
+                          tmp_nb_lanes[7]  ? 5'b00111 :
+                          tmp_nb_lanes[6]  ? 5'b00110 :
+                          tmp_nb_lanes[5]  ? 5'b00101 :
+                          tmp_nb_lanes[4]  ? 5'b00100 :
+                          tmp_nb_lanes[3]  ? 5'b00011 :
+                          tmp_nb_lanes[2]  ? 5'b00010 :
+                          tmp_nb_lanes[1]  ? 5'b00001 :
+                                             5'b00000;
 
     always @(posedge clk) begin
         if (!resetn) begin
@@ -91,187 +99,29 @@ module rvv_alu_wrapper #(
         end
     end
 
-    rvv_alu #(
-		.VLEN (VLEN),
-		.LANE_WIDTH (LANE_WIDTH),
-		.LANE_I (3'b000)
-	) valu0 (
-		.clk(clk),
-		.resetn(resetn),
-		.nb_lanes(nb_lanes),
-		.opcode(opcode),
-        .instr_mask(instr_mask),
-		.run(run0),
-		.vs1_in(vs1),
-		.vs2_in(vs2),
-		.vsew(vsew),
-		.op_type(op_type),
-        .byte_i(byte_i),
-        .in_reg_offset(in_reg_offset),
-		.vd(vd0),
-        .index(index0),
-        .instr_valid(instr_valid0)
-	);
-	
-    generate if (NB_LANES >= 1)
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b001)
-        ) valu1 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run1),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd1),
-            .index(index1),
-            .instr_valid(instr_valid1)
-        );
-    endgenerate
-	
-    generate if (NB_LANES >= 2) begin
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b010)
-        ) valu2 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run2),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd2),
-            .index(index2),
-            .instr_valid(instr_valid2)
-        );
-        
-       rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b011)
-        ) valu3 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run3),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd3),
-            .index(index3),
-            .instr_valid(instr_valid3)
-        );
-		end
-    endgenerate
-	
-    generate if (NB_LANES >= 3) begin
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b100)
-        ) valu4 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run4),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd4),
-            .index(index4),
-            .instr_valid(instr_valid4)
-        );
-        
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b101)
-        ) valu5 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run5),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd5),
-            .index(index5),
-            .instr_valid(instr_valid5)
-        );
-        
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b110)
-        ) valu6 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run6),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd6),
-            .index(index6),
-            .instr_valid(instr_valid6)
-        );
-        
-        rvv_alu #(
-            .VLEN (VLEN),
-            .LANE_WIDTH (LANE_WIDTH),
-            .LANE_I (3'b111)
-        ) valu7 (
-            .clk(clk),
-            .resetn(resetn),
-            .nb_lanes(nb_lanes),
-            .opcode(opcode),
-            .instr_mask(instr_mask),
-            .run(run7),
-            .vs1_in(vs1),
-            .vs2_in(vs2),
-            .vsew(vsew),
-            .op_type(op_type),
-            .byte_i(byte_i),
-            .in_reg_offset(in_reg_offset),
-            .vd(vd7),
-            .index(index7),
-            .instr_valid(instr_valid7)
-        );
-		end
+    generate
+        for (loop_i = 0; loop_i < 1 << NB_LANES; loop_i = loop_i + 1) begin
+            rvv_alu #(
+                .VLEN (VLEN),
+                .LANE_WIDTH (LANE_WIDTH),
+                .LANE_I (loop_i)
+            ) valu0 (
+                .clk(clk),
+                .resetn(resetn),
+                .nb_lanes(nb_lanes),
+                .opcode(opcode),
+                .instr_mask(instr_mask),
+                .run(runs[loop_i]),
+                .vs1_in(vs1),
+                .vs2_in(vs2),
+                .vsew(vsew),
+                .op_type(op_type),
+                .byte_i(byte_i),
+                .in_reg_offset(in_reg_offset),
+                .vd(vds[(64*loop_i) +: 64]),
+                .index(index[(17*loop_i) +: 17]),
+                .instr_valid(instr_valids[loop_i])
+            );
+        end
     endgenerate
 endmodule

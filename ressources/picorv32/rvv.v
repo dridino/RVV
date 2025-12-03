@@ -700,7 +700,7 @@ module picorv32_pcpi_rvv #(
 							end
 						end
 					end else if (instr_arith || instr_mask) begin
-						alu_run <= !arith_done && (((arith_init ? vl : arith_remaining) >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
+						alu_run <= !arith_done && (arith_init || (arith_remaining >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run && arith_instr_valid) begin
 							tmp_vregs_wdata = vregs_wdata_acc;
 							if (vsew + 3 < LANE_WIDTH) begin // lane larger than vsew (if arith instr, else always true)
