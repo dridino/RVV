@@ -47,8 +47,9 @@ module rvv_alu_wrapper #(
     generate
         for (loop_i = 0; loop_i < (1<<NB_LANES); loop_i = loop_i + 1) begin
             assign runs[loop_i] = run && arith_remaining > loop_i;
-            assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0)
-                                                                                          : vds[(64*loop_i) +: 64];
+            assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0) :
+                                           (opcode == 6'b010000 && vs1_index == 5'b10001) ? (loop_i == 0 ? {32'h00000000, minN(vds)} : 0) :
+                                                                                            vds[(64*loop_i) +: 64];
         end
     endgenerate
 
@@ -129,20 +130,29 @@ module rvv_alu_wrapper #(
         end
     endgenerate
 
-    // function automatic [SHIFTED_LANE_WIDTH+NB_LANES-1:0] sumN;
     function automatic [31:0] sumN;
-    // input [SHIFTED_NB_LANES*SHIFTED_LANE_WIDTH-1:0] in;
-    input [SHIFTED_NB_LANES*64-1:0] in;
-    integer i;
-    // reg [SHIFTED_LANE_WIDTH+NB_LANES-1:0] acc;
-    reg [31:0] acc;
-    begin
-        acc = 0;
-        for (i = 0; i < SHIFTED_NB_LANES; i = i + 1)
-            // acc = acc + in[i*SHIFTED_LANE_WIDTH +: 64];
-            acc = acc + in[i*64 +: 32];
-        sumN = acc;
-    end
-endfunction
+        input [SHIFTED_NB_LANES*64-1:0] in;
+        integer i;
+        reg [31:0] acc;
+        begin
+            acc = 0;
+            for (i = 0; i < SHIFTED_NB_LANES; i = i + 1)
+                acc = acc + in[i*64 +: 32];
+            sumN = acc;
+        end
+    endfunction
+
+    function automatic [31:0] minN;
+        input [SHIFTED_NB_LANES*64-1:0] in;
+        integer i;
+        reg [31:0] acc;
+        begin
+            acc = 32'hFFFFFFFF;
+            for (i = 0; i < SHIFTED_NB_LANES; i = i + 1)
+                if (&acc)
+                    acc = &(in[i*64 +: SHIFTED_LANE_WIDTH]) ? 32'hFFFFFFFF : in[i*64 +: 32];
+            minN = acc;
+        end
+    endfunction
 
 endmodule

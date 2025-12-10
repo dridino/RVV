@@ -161,9 +161,9 @@ module picorv32_pcpi_rvv #(
 	wire instr_mask_unmaskable = instr_mask && pcpi_insn[31:29] == 3'b011;
 
 	reg mask_vv, mask_vx;
-	reg instr_vcpop;
+	reg instr_vcpop, instr_vfirst;
 	wire [VLEN-1:0] vl_mask = {VLEN{1'b1}} >> (VLEN - vl);
-	wire [VLEN-1:0] alu_vs2 = (instr_vcpop) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
+	wire [VLEN-1:0] alu_vs2 = (instr_vcpop | instr_vfirst) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
 
 	wire [4:0] vregs_raddr1 = !instr_run					? vregs_waddr :
 							  instr_vload					? vregs_waddr :
@@ -234,6 +234,7 @@ module picorv32_pcpi_rvv #(
 		mask_vv = 0;
 		mask_vx = 0;
 		instr_vcpop = 0;
+		instr_vfirst = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -307,6 +308,7 @@ module picorv32_pcpi_rvv #(
 		if (resetn && pcpi_insn[6:0] == 7'b1010111 && (pcpi_insn[14:12] == 3'b010 || pcpi_insn[14:12] == 3'b110)) begin
 			instr_mask = 1;
 			instr_vcpop = pcpi_insn[31:26] == 6'b010000 && vs1 == 5'b10000;
+			instr_vfirst = pcpi_insn[31:26] == 6'b010000 && vs1 == 5'b10001;
 			mask_vv = pcpi_insn[14:12] == 3'b010;
 			mask_vx = pcpi_insn[14:12] == 3'b110;
 		end
@@ -316,7 +318,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_ready <= 0;
 		pcpi_wait <= 0;
 		pcpi_wr <= 0;
-		pcpi_rd <= 0;
+		pcpi_rd <= instr_vfirst ? 32'hFFFFFFFF : 0;
 		pcpi_mem_wen <= 0; // memory access
 		pcpi_mem_addr <= pcpi_rs1 + mem_offset_q; // mem addr
 		pcpi_mem_op <= 0;
@@ -717,7 +719,12 @@ module picorv32_pcpi_rvv #(
 						alu_run <= !arith_done && (arith_init || (arith_remaining >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run && arith_instr_valid) begin
 							if (instr_vcpop) begin
-								pcpi_rd <= pcpi_rd + arith_vd[0 +: 32];
+								if (arith_res[0])
+									pcpi_rd <= pcpi_rd + arith_vd[0 +: 32];
+							end else if (instr_vfirst) begin
+								$display("here");
+								if (arith_res[0])
+									pcpi_rd <= &pcpi_rd ? arith_vd[0 +: 32] : pcpi_rd;
 							end else begin
 								tmp_vregs_wdata = vregs_wdata_acc;
 								if (vsew + 3 < LANE_WIDTH) begin // lane larger than vsew (if arith instr, else always true)
@@ -762,7 +769,7 @@ module picorv32_pcpi_rvv #(
 								pcpi_wait <= 0;
 								arith_init <= 1;
 								pcpi_ready <= 1;
-								pcpi_wr <= instr_vcpop;
+								pcpi_wr <= instr_vcpop | instr_vfirst;
 							end else begin // 1 vec done
 								if (arith_done)
 									reg_index <= reg_index + 1;
