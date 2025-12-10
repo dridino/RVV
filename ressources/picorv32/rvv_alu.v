@@ -47,10 +47,11 @@ module rvv_alu #(
         (opcode == 6'b011011) | (opcode == 6'b011010) | (opcode == 6'b011110) |
         (opcode == 6'b011100) | (opcode == 6'b011111) | (opcode == 6'b010000 && vs1_index == 5'b10000) |
         (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001) |
-        (opcode == 6'b010100 && vs1_index == 5'b00011);
+        (opcode == 6'b010100 && vs1_index == 5'b00011) | (opcode == 6'b010100 && vs1_index == 5'b00010);
 
     assign vd = temp_vreg[0 +: 64];
-    assign mask_cout = temp_vreg[1 << (`min(vsew+3, LANE_WIDTH)) - 1] & !(vs2[`min(vsew+3, LANE_WIDTH) - 1]);
+    assign mask_cout = (vs1_index == 5'b00010) ? |temp_vreg[0 +: SHIFTED_LANE_WIDTH] :
+                       temp_vreg[1 << (`min(vsew+3, LANE_WIDTH)) - 1] & !(vs2[`min(vsew+3, LANE_WIDTH) - 1]);
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
     wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
@@ -254,6 +255,37 @@ module rvv_alu #(
                                                                                     64'hFFFF_FFFF_FFFF_FFFF >> (48 - vfirst8(vs2[23:16])+1) :
                                                                                 64'hFFFF_FFFF_FFFF_FFFF >> (56 - vfirst8(vs2[15:8])+1) :
                                                                               64'hFFFF_FFFF_FFFF_FFFF >> (64 - vfirst8(vs2[7:0])+1)) : 0;
+                            endcase
+                        else if (vs1_index == 5'b00010) // vmsof
+                            case (`min(vsew+3, LANE_WIDTH))
+                                // 8b
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&vfirst8(vs2) ? 0 : 1 << vfirst8(vs2)) : 0;
+                                // 16b
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ? (&vfirst8(vs2[15:8]) ? 0 : 1 << vfirst8(vs2[15:8])) : (1 << vfirst8(vs2[7:0]))) : 0;
+                                // 32b
+                                3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        (&vfirst8(vs2[31:24]) ? 0 : 1 << vfirst8(vs2[31:24])) :
+                                                                                    (1 << vfirst8(vs2[23:16])) :
+                                                                                (1 << vfirst8(vs2[15:8])) :
+                                                                              (1 << vfirst8(vs2[7:0]))) : 0;
+                                // 64b
+                                3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        &(vfirst8(vs2[31:24])) ?
+                                                                                            &(vfirst8(vs2[39:32])) ?
+                                                                                                &(vfirst8(vs2[47:40])) ?
+                                                                                                    &(vfirst8(vs2[55:48])) ?
+                                                                                                        (&vfirst8(vs2[63:56]) ? 0 : 1 << vfirst8(vs2[63:56])) :
+                                                                                                    (1 << vfirst8(vs2[55:48])) :
+                                                                                                (1 << vfirst8(vs2[47:40])) :
+                                                                                            (1 << vfirst8(vs2[39:32])) :
+                                                                                        (1 << vfirst8(vs2[31:24])) :
+                                                                                    (1 << vfirst8(vs2[23:16])) :
+                                                                                (1 << vfirst8(vs2[15:8])) :
+                                                                              (1 << vfirst8(vs2[7:0]))) : 0;
                             endcase
                     default: temp_vreg = 0;
                 endcase

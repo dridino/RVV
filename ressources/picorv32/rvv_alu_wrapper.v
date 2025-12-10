@@ -51,6 +51,8 @@ module rvv_alu_wrapper #(
             assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0) :
                                            (opcode == 6'b010000 && vs1_index == 5'b10001) ? (loop_i == 0 ? {32'h00000000, minN(vds)} : 0) :
                                            (opcode == 6'b010100 && vs1_index == 5'b00001) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
+                                           (opcode == 6'b010100 && vs1_index == 5'b00011) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
+                                           (opcode == 6'b010100 && vs1_index == 5'b00010) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? 0 : vds[(64*loop_i) +: 64])) :
                                                                                             vds[(64*loop_i) +: 64];
         end
     endgenerate
