@@ -39,6 +39,7 @@ module rvv_alu_wrapper #(
     assign regi = index;
 
     wire [(SHIFTED_NB_LANES)-1 : 0] runs;
+    wire [(SHIFTED_NB_LANES)-1 : 0] mask_couts;
     wire [(64<<NB_LANES)-1 : 0] vds;
 
     assign res = runs;
@@ -49,6 +50,7 @@ module rvv_alu_wrapper #(
             assign runs[loop_i] = run && arith_remaining > loop_i;
             assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0) :
                                            (opcode == 6'b010000 && vs1_index == 5'b10001) ? (loop_i == 0 ? {32'h00000000, minN(vds)} : 0) :
+                                           (opcode == 6'b010100 && vs1_index == 5'b00001) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
                                                                                             vds[(64*loop_i) +: 64];
         end
     endgenerate
@@ -124,6 +126,7 @@ module rvv_alu_wrapper #(
                 .byte_i(byte_i),
                 .in_reg_offset(in_reg_offset),
                 .vd(vds[(64*loop_i) +: 64]),
+                .mask_cout(mask_couts[loop_i]),
                 .index(index[(17*loop_i) +: 17]),
                 .instr_valid(instr_valids[loop_i])
             );

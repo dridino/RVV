@@ -22,6 +22,7 @@ module rvv_alu #(
     input      [3:0]    in_reg_offset,
 
     output [63:0] vd,
+    output mask_cout,
     output [16:0]  index,
     output        instr_valid
 );
@@ -45,9 +46,10 @@ module rvv_alu #(
         (opcode == 6'b011001) | (opcode == 6'b011101) | (opcode == 6'b011000) |
         (opcode == 6'b011011) | (opcode == 6'b011010) | (opcode == 6'b011110) |
         (opcode == 6'b011100) | (opcode == 6'b011111) | (opcode == 6'b010000 && vs1_index == 5'b10000) |
-        (opcode == 6'b010000 && vs1_index == 5'b10001);
+        (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001);
 
     assign vd = temp_vreg[0 +: 64];
+    assign mask_cout = temp_vreg[`min(vsew+3, LANE_WIDTH)];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
     wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
@@ -120,6 +122,7 @@ module rvv_alu #(
     reg [5:0] shift_rem_q;
     reg [16:0] shift_index_base;
     wire [16:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
+    reg mask_acc;
     
     always @* begin
         if (!resetn) begin
@@ -146,7 +149,7 @@ module rvv_alu #(
                     6'b011111: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ~^ vs1;
                     // vcpop | vfirst
                     6'b010000:
-                        if (vs1_index == 5'b10000)
+                        if (vs1_index == 5'b10000) // vcpop
                             case (`min(vsew+3, LANE_WIDTH))
                                 // 8b
                                 3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2);
@@ -157,7 +160,7 @@ module rvv_alu #(
                                 // 64b
                                 3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2[64:56]) + vcpop_lut(vs2[55:48]) + vcpop_lut(vs2[47:40]) + vcpop_lut(vs2[39:32]) + vcpop_lut(vs2[31:24]) + vcpop_lut(vs2[23:16]) + vcpop_lut(vs2[15:8]) + vcpop_lut(vs2[7:0]);
                             endcase
-                        else if (vs1_index == 5'b10001)
+                        else if (vs1_index == 5'b10001) // vfirst
                             case (`min(vsew+3, LANE_WIDTH))
                                 // 8b
                                 3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vfirst8(vs2) + index;
@@ -167,8 +170,8 @@ module rvv_alu #(
                                 3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = (&(vfirst8(vs2[7:0])) ?
                                                                                 &(vfirst8(vs2[15:8])) ?
                                                                                     &(vfirst8(vs2[23:16])) ?
-                                                                                        &(vfirst8(vs2[31:24])) + 24 :
-                                                                                    &(vfirst8(vs2[23:16])) + 16 :
+                                                                                        vfirst8(vs2[31:24]) + 24 :
+                                                                                    vfirst8(vs2[23:16]) + 16 :
                                                                                 vfirst8(vs2[15:8]) + 8 :
                                                                               vfirst8(vs2[7:0])) + index;
                                 // 64b
@@ -179,7 +182,7 @@ module rvv_alu #(
                                                                                             &(vfirst8(vs2[39:32])) ?
                                                                                                 &(vfirst8(vs2[47:40])) ?
                                                                                                     &(vfirst8(vs2[55:48])) ?
-                                                                                                        &(vfirst8(vs2[63:56])) + 56 :
+                                                                                                        vfirst8(vs2[63:56]) + 56 :
                                                                                                     vfirst8(vs2[55:48]) + 48 :
                                                                                                 vfirst8(vs2[47:40]) + 40 :
                                                                                             vfirst8(vs2[39:32]) + 32 :
@@ -187,6 +190,38 @@ module rvv_alu #(
                                                                                     vfirst8(vs2[23:16]) + 16 :
                                                                                 vfirst8(vs2[15:8]) + 8 :
                                                                               vfirst8(vs2[7:0])) + index;
+                            endcase
+                    6'b010100:
+                        if (vs1_index == 5'b00001)
+                            case (`min(vsew+3, LANE_WIDTH))
+                                // 8b
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? 8'hFF >> (8 - vfirst8(vs2)) : 0;
+                                // 16b
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ? 16'hFFFF >> (8 - vfirst8(vs2[15:8])) : 16'hFFFF >> (16 - vfirst8(vs2[7:0]))) : 0;
+                                // 32b
+                                3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        32'hFFFF_FFFF >> (8 - vfirst8(vs2[31:24])) :
+                                                                                    32'hFFFF_FFFF >> (16 - vfirst8(vs2[23:16])) :
+                                                                                32'hFFFF_FFFF >> (24 - vfirst8(vs2[15:8])) :
+                                                                              32'hFFFF_FFFF >> (32 - vfirst8(vs2[7:0]))) : 0;
+                                // 64b
+                                3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        &(vfirst8(vs2[31:24])) ?
+                                                                                            &(vfirst8(vs2[39:32])) ?
+                                                                                                &(vfirst8(vs2[47:40])) ?
+                                                                                                    &(vfirst8(vs2[55:48])) ?
+                                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (8 - vfirst8(vs2[63:56])) :
+                                                                                                    64'hFFFF_FFFF_FFFF_FFFF >> (16 - vfirst8(vs2[55:48])) :
+                                                                                                64'hFFFF_FFFF_FFFF_FFFF >> (24 - vfirst8(vs2[47:40])) :
+                                                                                            64'hFFFF_FFFF_FFFF_FFFF >> (32 - vfirst8(vs2[39:32])) :
+                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (40 - vfirst8(vs2[31:24])) :
+                                                                                    64'hFFFF_FFFF_FFFF_FFFF >> (48 - vfirst8(vs2[23:16])) :
+                                                                                64'hFFFF_FFFF_FFFF_FFFF >> (56 - vfirst8(vs2[15:8])) :
+                                                                              64'hFFFF_FFFF_FFFF_FFFF >> (64 - vfirst8(vs2[7:0]))) : 0;
                             endcase
                     default: temp_vreg = 0;
                 endcase
@@ -284,7 +319,9 @@ module rvv_alu #(
             shift_index_base <= 0;
             shift_rem_base <= 0;
             shift_rem_q <= 0;
+            mask_acc <= 1;
         end else begin
+            mask_acc <= run ? mask_cout : 1;
             cout_q <= cout;
             shift_reg_q <= shift_reg;
             shift_rem_base <= (shift_rem > `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH) ? (shift_rem - `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH)) : shift_rem);

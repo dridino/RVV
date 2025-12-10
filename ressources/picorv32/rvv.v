@@ -163,7 +163,7 @@ module picorv32_pcpi_rvv #(
 	reg mask_vv, mask_vx;
 	reg instr_vcpop, instr_vfirst;
 	wire [VLEN-1:0] vl_mask = {VLEN{1'b1}} >> (VLEN - vl);
-	wire [VLEN-1:0] alu_vs2 = (instr_vcpop | instr_vfirst) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
+	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
 
 	wire [4:0] vregs_raddr1 = !instr_run					? vregs_waddr :
 							  instr_vload					? vregs_waddr :
