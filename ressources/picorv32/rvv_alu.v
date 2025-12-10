@@ -46,7 +46,8 @@ module rvv_alu #(
         (opcode == 6'b011001) | (opcode == 6'b011101) | (opcode == 6'b011000) |
         (opcode == 6'b011011) | (opcode == 6'b011010) | (opcode == 6'b011110) |
         (opcode == 6'b011100) | (opcode == 6'b011111) | (opcode == 6'b010000 && vs1_index == 5'b10000) |
-        (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001);
+        (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001) |
+        (opcode == 6'b010100 && vs1_index == 5'b00011);
 
     assign vd = temp_vreg[0 +: 64];
     assign mask_cout = temp_vreg[1 << (`min(vsew+3, LANE_WIDTH)) - 1] & !(vs2[`min(vsew+3, LANE_WIDTH) - 1]);
@@ -192,7 +193,7 @@ module rvv_alu #(
                                                                               vfirst8(vs2[7:0])) + index;
                             endcase
                     6'b010100:
-                        if (vs1_index == 5'b00001)
+                        if (vs1_index == 5'b00001) // vmsbf
                             case (`min(vsew+3, LANE_WIDTH))
                                 // 8b
                                 3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? 8'hFF >> (8 - (&vfirst8(vs2) ? 8 : vfirst8(vs2))) : 0;
@@ -222,6 +223,37 @@ module rvv_alu #(
                                                                                     64'hFFFF_FFFF_FFFF_FFFF >> (48 - vfirst8(vs2[23:16])) :
                                                                                 64'hFFFF_FFFF_FFFF_FFFF >> (56 - vfirst8(vs2[15:8])) :
                                                                               64'hFFFF_FFFF_FFFF_FFFF >> (64 - vfirst8(vs2[7:0]))) : 0;
+                            endcase
+                        else if (vs1_index == 5'b00011) // vmsif
+                            case (`min(vsew+3, LANE_WIDTH))
+                                // 8b
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? 8'hFF >> (8 - (&vfirst8(vs2) ? 8 : vfirst8(vs2)+1)) : 0;
+                                // 16b
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ? 16'hFFFF >> (8 - (&vfirst8(vs2[15:8]) ? 8 : vfirst8(vs2[15:8])+1)) : 16'hFFFF >> (16 - vfirst8(vs2[7:0])+1)) : 0;
+                                // 32b
+                                3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        32'hFFFF_FFFF >> (8 - (&vfirst8(vs2[31:24]) ? 8 : vfirst8(vs2[31:24])+1)) :
+                                                                                    32'hFFFF_FFFF >> (16 - vfirst8(vs2[23:16])+1) :
+                                                                                32'hFFFF_FFFF >> (24 - vfirst8(vs2[15:8])+1) :
+                                                                              32'hFFFF_FFFF >> (32 - vfirst8(vs2[7:0])+1)) : 0;
+                                // 64b
+                                3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
+                                                                                &(vfirst8(vs2[15:8])) ?
+                                                                                    &(vfirst8(vs2[23:16])) ?
+                                                                                        &(vfirst8(vs2[31:24])) ?
+                                                                                            &(vfirst8(vs2[39:32])) ?
+                                                                                                &(vfirst8(vs2[47:40])) ?
+                                                                                                    &(vfirst8(vs2[55:48])) ?
+                                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (8 - (&vfirst8(vs2[63:56]) ? 8 : vfirst8(vs2[63:56])+1)) :
+                                                                                                    64'hFFFF_FFFF_FFFF_FFFF >> (16 - vfirst8(vs2[55:48])+1) :
+                                                                                                64'hFFFF_FFFF_FFFF_FFFF >> (24 - vfirst8(vs2[47:40])+1) :
+                                                                                            64'hFFFF_FFFF_FFFF_FFFF >> (32 - vfirst8(vs2[39:32])+1) :
+                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (40 - vfirst8(vs2[31:24])+1) :
+                                                                                    64'hFFFF_FFFF_FFFF_FFFF >> (48 - vfirst8(vs2[23:16])+1) :
+                                                                                64'hFFFF_FFFF_FFFF_FFFF >> (56 - vfirst8(vs2[15:8])+1) :
+                                                                              64'hFFFF_FFFF_FFFF_FFFF >> (64 - vfirst8(vs2[7:0])+1)) : 0;
                             endcase
                     default: temp_vreg = 0;
                 endcase

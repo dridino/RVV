@@ -1,10 +1,10 @@
 # See LICENSE for license details.
 
 #*****************************************************************************
-# vmsbf.S
+# vmsif.S
 #-----------------------------------------------------------------------------
 #
-# Test vmsbf.m instruction
+# Test vmsif.m instruction
 #
 
 // #include "riscv_test.h"
@@ -41,7 +41,7 @@ RVTEST_CODE_BEGIN */
 
   vsetvli t0, x0, e8, mf2
   
-  vmsbf.m v10, v1
+  vmsif.m v10, v1
   vsetvli t0, x0, e8, m1
   vse8.v v10, (x20)
 
@@ -52,7 +52,7 @@ RVTEST_CODE_BEGIN */
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x07
+  addi x22, x22, 0x0f
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
@@ -98,7 +98,7 @@ RVTEST_CODE_BEGIN */
 
   vsetvli t0, x0, e16, m1
   
-  vmsbf.m v10, v1
+  vmsif.m v10, v1
   vse16.v v10, (x20)
 
   lw t0, (x20)
@@ -108,7 +108,7 @@ RVTEST_CODE_BEGIN */
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x07
+  addi x22, x22, 0x0f
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
@@ -154,7 +154,7 @@ RVTEST_CODE_BEGIN */
 
   vsetvli t0, x0, e16, m1
   
-  vmsbf.m v10, v1, v0.t
+  vmsif.m v10, v1, v0.t
   vse16.v v10, (x20)
 
   lw t0, (x20)
@@ -210,7 +210,7 @@ RVTEST_CODE_BEGIN */
 
   vadd.vv v10, v31, v31
   vsetvli t0, x0, e32, m4
-  vmsbf.m v10, v3
+  vmsif.m v10, v3
   vsetvli t0, x0, e16, m1
   vse16.v v10, (x20) 
 
@@ -219,7 +219,7 @@ RVTEST_CODE_BEGIN */
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x01
+  addi x22, x22, 0x03
   slli x22, x22, 8
   addi x22, x22, 0xff
   bne t0,x22,.trap
