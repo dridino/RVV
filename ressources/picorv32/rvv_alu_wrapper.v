@@ -9,6 +9,7 @@ module rvv_alu_wrapper #(
     input       [5:0]                   opcode,
     input                               instr_mask,
     input                               run,
+    input       [4:0]                   vs1_index,
     input       [VLEN-1:0]              vs1,
     input       [VLEN-1:0]              vs2,
     input       [2:0]                   vsew,
@@ -23,6 +24,7 @@ module rvv_alu_wrapper #(
     output                              instr_valid
 );
     localparam SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
+    localparam SHIFTED_NB_LANES = 1 << NB_LANES;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
@@ -36,7 +38,7 @@ module rvv_alu_wrapper #(
     wire [(17<<NB_LANES)-1 : 0] index;
     assign regi = index;
 
-    wire [(1<<NB_LANES)-1 : 0] runs;
+    wire [(SHIFTED_NB_LANES)-1 : 0] runs;
     wire [(64<<NB_LANES)-1 : 0] vds;
 
     assign res = runs;
@@ -45,14 +47,15 @@ module rvv_alu_wrapper #(
     generate
         for (loop_i = 0; loop_i < (1<<NB_LANES); loop_i = loop_i + 1) begin
             assign runs[loop_i] = run && arith_remaining > loop_i;
-            assign vd[(64*loop_i) +: 64] = vds[(64*loop_i) +: 64];
+            assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0)
+                                                                                          : vds[(64*loop_i) +: 64];
         end
     endgenerate
 
-    wire [(1<<NB_LANES)-1 : 0] instr_valids;
+    wire [(SHIFTED_NB_LANES)-1 : 0] instr_valids;
     assign instr_valid = instr_valids[0];
 
-    wire [16:0] tmp_nb_lanes = `min(vl, 1 << NB_LANES);
+    wire [16:0] tmp_nb_lanes = `min(vl, SHIFTED_NB_LANES);
 
     wire [4:0] nb_lanes = tmp_nb_lanes[16] ? 5'b10000 :
                           tmp_nb_lanes[15] ? 5'b01111 :
@@ -100,7 +103,7 @@ module rvv_alu_wrapper #(
     end
 
     generate
-        for (loop_i = 0; loop_i < 1 << NB_LANES; loop_i = loop_i + 1) begin
+        for (loop_i = 0; loop_i < SHIFTED_NB_LANES; loop_i = loop_i + 1) begin
             rvv_alu #(
                 .VLEN (VLEN),
                 .LANE_WIDTH (LANE_WIDTH),
@@ -112,6 +115,7 @@ module rvv_alu_wrapper #(
                 .opcode(opcode),
                 .instr_mask(instr_mask),
                 .run(runs[loop_i]),
+                .vs1_index(vs1_index),
                 .vs1_in(vs1),
                 .vs2_in(vs2),
                 .vsew(vsew),
@@ -124,4 +128,21 @@ module rvv_alu_wrapper #(
             );
         end
     endgenerate
+
+    // function automatic [SHIFTED_LANE_WIDTH+NB_LANES-1:0] sumN;
+    function automatic [31:0] sumN;
+    // input [SHIFTED_NB_LANES*SHIFTED_LANE_WIDTH-1:0] in;
+    input [SHIFTED_NB_LANES*64-1:0] in;
+    integer i;
+    // reg [SHIFTED_LANE_WIDTH+NB_LANES-1:0] acc;
+    reg [31:0] acc;
+    begin
+        acc = 0;
+        for (i = 0; i < SHIFTED_NB_LANES; i = i + 1)
+            // acc = acc + in[i*SHIFTED_LANE_WIDTH +: 64];
+            acc = acc + in[i*64 +: 32];
+        sumN = acc;
+    end
+endfunction
+
 endmodule

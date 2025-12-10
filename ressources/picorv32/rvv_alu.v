@@ -12,6 +12,7 @@ module rvv_alu #(
     input      [5:0]    opcode,
     input               instr_mask, // 1 if opcode is for mask insn (OPMV*) or int insn (OPIV*)
     input               run,
+    input      [4:0]    vs1_index, // vs1 index, used for instruction decoding
     input      [VLEN-1:0] vs1_in,
     input      [VLEN-1:0] vs2_in,
     input      [2:0]    vsew,
@@ -25,8 +26,8 @@ module rvv_alu #(
     output        instr_valid
 );
     localparam integer VLEN_SIZE = $clog2(VLEN);
-    localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
-    localparam [8:0] ADD_SHIFTED_LANE_WIDTH = SHIFTED_LANE_WIDTH + 1;
+    localparam [6:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
+    localparam [6:0] ADD_SHIFTED_LANE_WIDTH = SHIFTED_LANE_WIDTH + 1;
 	localparam [2:0] VV = 3'b001;
 	localparam [2:0] VX = 3'b010;
 	localparam [2:0] VI = 3'b100;
@@ -43,7 +44,7 @@ module rvv_alu #(
     wire mask_instr_valid =
         (opcode == 6'b011001) | (opcode == 6'b011101) | (opcode == 6'b011000) |
         (opcode == 6'b011011) | (opcode == 6'b011010) | (opcode == 6'b011110) |
-        (opcode == 6'b011100) | (opcode == 6'b011111);
+        (opcode == 6'b011100) | (opcode == 6'b011111) | (opcode == 6'b010000 && vs1_index == 5'b10000);
 
     assign vd = temp_vreg[0 +: 64];
     reg [64:0] temp_vreg; // 64 + 1 for carry out
@@ -142,6 +143,19 @@ module rvv_alu #(
                     6'b011100: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 | ~vs1;
                     // vmxnor
                     6'b011111: temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2 ~^ vs1;
+                    // vcpop
+                    6'b010000:
+                        if (vs1_index == 5'b10000)
+                            case (`min(vsew+3, LANE_WIDTH))
+                                // 8b
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2);
+                                // 16b
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2[15:8]) + vcpop_lut(vs2[7:0]);
+                                // 32b
+                                3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2[31:24]) + vcpop_lut(vs2[23:16]) + vcpop_lut(vs2[15:8]) + vcpop_lut(vs2[7:0]);
+                                // 64b
+                                3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vcpop_lut(vs2[64:56]) + vcpop_lut(vs2[55:48]) + vcpop_lut(vs2[47:40]) + vcpop_lut(vs2[39:32]) + vcpop_lut(vs2[31:24]) + vcpop_lut(vs2[23:16]) + vcpop_lut(vs2[15:8]) + vcpop_lut(vs2[7:0]);
+                            endcase
                     default: temp_vreg = 0;
                 endcase
             else
@@ -260,4 +274,268 @@ module rvv_alu #(
             end
         end
     end
+
+    function [7:0] vcpop_lut;
+        input [7:0] addr;
+        begin
+            case (addr)
+                8'h0: vcpop_lut = 8'h0;
+                8'h1: vcpop_lut = 8'h1;
+                8'h2: vcpop_lut = 8'h1;
+                8'h3: vcpop_lut = 8'h2;
+                8'h4: vcpop_lut = 8'h1;
+                8'h5: vcpop_lut = 8'h2;
+                8'h6: vcpop_lut = 8'h2;
+                8'h7: vcpop_lut = 8'h3;
+                8'h8: vcpop_lut = 8'h1;
+                8'h9: vcpop_lut = 8'h2;
+                8'ha: vcpop_lut = 8'h2;
+                8'hb: vcpop_lut = 8'h3;
+                8'hc: vcpop_lut = 8'h2;
+                8'hd: vcpop_lut = 8'h3;
+                8'he: vcpop_lut = 8'h3;
+                8'hf: vcpop_lut = 8'h4;
+                8'h10: vcpop_lut = 8'h1;
+                8'h11: vcpop_lut = 8'h2;
+                8'h12: vcpop_lut = 8'h2;
+                8'h13: vcpop_lut = 8'h3;
+                8'h14: vcpop_lut = 8'h2;
+                8'h15: vcpop_lut = 8'h3;
+                8'h16: vcpop_lut = 8'h3;
+                8'h17: vcpop_lut = 8'h4;
+                8'h18: vcpop_lut = 8'h2;
+                8'h19: vcpop_lut = 8'h3;
+                8'h1a: vcpop_lut = 8'h3;
+                8'h1b: vcpop_lut = 8'h4;
+                8'h1c: vcpop_lut = 8'h3;
+                8'h1d: vcpop_lut = 8'h4;
+                8'h1e: vcpop_lut = 8'h4;
+                8'h1f: vcpop_lut = 8'h5;
+                8'h20: vcpop_lut = 8'h1;
+                8'h21: vcpop_lut = 8'h2;
+                8'h22: vcpop_lut = 8'h2;
+                8'h23: vcpop_lut = 8'h3;
+                8'h24: vcpop_lut = 8'h2;
+                8'h25: vcpop_lut = 8'h3;
+                8'h26: vcpop_lut = 8'h3;
+                8'h27: vcpop_lut = 8'h4;
+                8'h28: vcpop_lut = 8'h2;
+                8'h29: vcpop_lut = 8'h3;
+                8'h2a: vcpop_lut = 8'h3;
+                8'h2b: vcpop_lut = 8'h4;
+                8'h2c: vcpop_lut = 8'h3;
+                8'h2d: vcpop_lut = 8'h4;
+                8'h2e: vcpop_lut = 8'h4;
+                8'h2f: vcpop_lut = 8'h5;
+                8'h30: vcpop_lut = 8'h2;
+                8'h31: vcpop_lut = 8'h3;
+                8'h32: vcpop_lut = 8'h3;
+                8'h33: vcpop_lut = 8'h4;
+                8'h34: vcpop_lut = 8'h3;
+                8'h35: vcpop_lut = 8'h4;
+                8'h36: vcpop_lut = 8'h4;
+                8'h37: vcpop_lut = 8'h5;
+                8'h38: vcpop_lut = 8'h3;
+                8'h39: vcpop_lut = 8'h4;
+                8'h3a: vcpop_lut = 8'h4;
+                8'h3b: vcpop_lut = 8'h5;
+                8'h3c: vcpop_lut = 8'h4;
+                8'h3d: vcpop_lut = 8'h5;
+                8'h3e: vcpop_lut = 8'h5;
+                8'h3f: vcpop_lut = 8'h6;
+                8'h40: vcpop_lut = 8'h1;
+                8'h41: vcpop_lut = 8'h2;
+                8'h42: vcpop_lut = 8'h2;
+                8'h43: vcpop_lut = 8'h3;
+                8'h44: vcpop_lut = 8'h2;
+                8'h45: vcpop_lut = 8'h3;
+                8'h46: vcpop_lut = 8'h3;
+                8'h47: vcpop_lut = 8'h4;
+                8'h48: vcpop_lut = 8'h2;
+                8'h49: vcpop_lut = 8'h3;
+                8'h4a: vcpop_lut = 8'h3;
+                8'h4b: vcpop_lut = 8'h4;
+                8'h4c: vcpop_lut = 8'h3;
+                8'h4d: vcpop_lut = 8'h4;
+                8'h4e: vcpop_lut = 8'h4;
+                8'h4f: vcpop_lut = 8'h5;
+                8'h50: vcpop_lut = 8'h2;
+                8'h51: vcpop_lut = 8'h3;
+                8'h52: vcpop_lut = 8'h3;
+                8'h53: vcpop_lut = 8'h4;
+                8'h54: vcpop_lut = 8'h3;
+                8'h55: vcpop_lut = 8'h4;
+                8'h56: vcpop_lut = 8'h4;
+                8'h57: vcpop_lut = 8'h5;
+                8'h58: vcpop_lut = 8'h3;
+                8'h59: vcpop_lut = 8'h4;
+                8'h5a: vcpop_lut = 8'h4;
+                8'h5b: vcpop_lut = 8'h5;
+                8'h5c: vcpop_lut = 8'h4;
+                8'h5d: vcpop_lut = 8'h5;
+                8'h5e: vcpop_lut = 8'h5;
+                8'h5f: vcpop_lut = 8'h6;
+                8'h60: vcpop_lut = 8'h2;
+                8'h61: vcpop_lut = 8'h3;
+                8'h62: vcpop_lut = 8'h3;
+                8'h63: vcpop_lut = 8'h4;
+                8'h64: vcpop_lut = 8'h3;
+                8'h65: vcpop_lut = 8'h4;
+                8'h66: vcpop_lut = 8'h4;
+                8'h67: vcpop_lut = 8'h5;
+                8'h68: vcpop_lut = 8'h3;
+                8'h69: vcpop_lut = 8'h4;
+                8'h6a: vcpop_lut = 8'h4;
+                8'h6b: vcpop_lut = 8'h5;
+                8'h6c: vcpop_lut = 8'h4;
+                8'h6d: vcpop_lut = 8'h5;
+                8'h6e: vcpop_lut = 8'h5;
+                8'h6f: vcpop_lut = 8'h6;
+                8'h70: vcpop_lut = 8'h3;
+                8'h71: vcpop_lut = 8'h4;
+                8'h72: vcpop_lut = 8'h4;
+                8'h73: vcpop_lut = 8'h5;
+                8'h74: vcpop_lut = 8'h4;
+                8'h75: vcpop_lut = 8'h5;
+                8'h76: vcpop_lut = 8'h5;
+                8'h77: vcpop_lut = 8'h6;
+                8'h78: vcpop_lut = 8'h4;
+                8'h79: vcpop_lut = 8'h5;
+                8'h7a: vcpop_lut = 8'h5;
+                8'h7b: vcpop_lut = 8'h6;
+                8'h7c: vcpop_lut = 8'h5;
+                8'h7d: vcpop_lut = 8'h6;
+                8'h7e: vcpop_lut = 8'h6;
+                8'h7f: vcpop_lut = 8'h7;
+                8'h80: vcpop_lut = 8'h1;
+                8'h81: vcpop_lut = 8'h2;
+                8'h82: vcpop_lut = 8'h2;
+                8'h83: vcpop_lut = 8'h3;
+                8'h84: vcpop_lut = 8'h2;
+                8'h85: vcpop_lut = 8'h3;
+                8'h86: vcpop_lut = 8'h3;
+                8'h87: vcpop_lut = 8'h4;
+                8'h88: vcpop_lut = 8'h2;
+                8'h89: vcpop_lut = 8'h3;
+                8'h8a: vcpop_lut = 8'h3;
+                8'h8b: vcpop_lut = 8'h4;
+                8'h8c: vcpop_lut = 8'h3;
+                8'h8d: vcpop_lut = 8'h4;
+                8'h8e: vcpop_lut = 8'h4;
+                8'h8f: vcpop_lut = 8'h5;
+                8'h90: vcpop_lut = 8'h2;
+                8'h91: vcpop_lut = 8'h3;
+                8'h92: vcpop_lut = 8'h3;
+                8'h93: vcpop_lut = 8'h4;
+                8'h94: vcpop_lut = 8'h3;
+                8'h95: vcpop_lut = 8'h4;
+                8'h96: vcpop_lut = 8'h4;
+                8'h97: vcpop_lut = 8'h5;
+                8'h98: vcpop_lut = 8'h3;
+                8'h99: vcpop_lut = 8'h4;
+                8'h9a: vcpop_lut = 8'h4;
+                8'h9b: vcpop_lut = 8'h5;
+                8'h9c: vcpop_lut = 8'h4;
+                8'h9d: vcpop_lut = 8'h5;
+                8'h9e: vcpop_lut = 8'h5;
+                8'h9f: vcpop_lut = 8'h6;
+                8'ha0: vcpop_lut = 8'h2;
+                8'ha1: vcpop_lut = 8'h3;
+                8'ha2: vcpop_lut = 8'h3;
+                8'ha3: vcpop_lut = 8'h4;
+                8'ha4: vcpop_lut = 8'h3;
+                8'ha5: vcpop_lut = 8'h4;
+                8'ha6: vcpop_lut = 8'h4;
+                8'ha7: vcpop_lut = 8'h5;
+                8'ha8: vcpop_lut = 8'h3;
+                8'ha9: vcpop_lut = 8'h4;
+                8'haa: vcpop_lut = 8'h4;
+                8'hab: vcpop_lut = 8'h5;
+                8'hac: vcpop_lut = 8'h4;
+                8'had: vcpop_lut = 8'h5;
+                8'hae: vcpop_lut = 8'h5;
+                8'haf: vcpop_lut = 8'h6;
+                8'hb0: vcpop_lut = 8'h3;
+                8'hb1: vcpop_lut = 8'h4;
+                8'hb2: vcpop_lut = 8'h4;
+                8'hb3: vcpop_lut = 8'h5;
+                8'hb4: vcpop_lut = 8'h4;
+                8'hb5: vcpop_lut = 8'h5;
+                8'hb6: vcpop_lut = 8'h5;
+                8'hb7: vcpop_lut = 8'h6;
+                8'hb8: vcpop_lut = 8'h4;
+                8'hb9: vcpop_lut = 8'h5;
+                8'hba: vcpop_lut = 8'h5;
+                8'hbb: vcpop_lut = 8'h6;
+                8'hbc: vcpop_lut = 8'h5;
+                8'hbd: vcpop_lut = 8'h6;
+                8'hbe: vcpop_lut = 8'h6;
+                8'hbf: vcpop_lut = 8'h7;
+                8'hc0: vcpop_lut = 8'h2;
+                8'hc1: vcpop_lut = 8'h3;
+                8'hc2: vcpop_lut = 8'h3;
+                8'hc3: vcpop_lut = 8'h4;
+                8'hc4: vcpop_lut = 8'h3;
+                8'hc5: vcpop_lut = 8'h4;
+                8'hc6: vcpop_lut = 8'h4;
+                8'hc7: vcpop_lut = 8'h5;
+                8'hc8: vcpop_lut = 8'h3;
+                8'hc9: vcpop_lut = 8'h4;
+                8'hca: vcpop_lut = 8'h4;
+                8'hcb: vcpop_lut = 8'h5;
+                8'hcc: vcpop_lut = 8'h4;
+                8'hcd: vcpop_lut = 8'h5;
+                8'hce: vcpop_lut = 8'h5;
+                8'hcf: vcpop_lut = 8'h6;
+                8'hd0: vcpop_lut = 8'h3;
+                8'hd1: vcpop_lut = 8'h4;
+                8'hd2: vcpop_lut = 8'h4;
+                8'hd3: vcpop_lut = 8'h5;
+                8'hd4: vcpop_lut = 8'h4;
+                8'hd5: vcpop_lut = 8'h5;
+                8'hd6: vcpop_lut = 8'h5;
+                8'hd7: vcpop_lut = 8'h6;
+                8'hd8: vcpop_lut = 8'h4;
+                8'hd9: vcpop_lut = 8'h5;
+                8'hda: vcpop_lut = 8'h5;
+                8'hdb: vcpop_lut = 8'h6;
+                8'hdc: vcpop_lut = 8'h5;
+                8'hdd: vcpop_lut = 8'h6;
+                8'hde: vcpop_lut = 8'h6;
+                8'hdf: vcpop_lut = 8'h7;
+                8'he0: vcpop_lut = 8'h3;
+                8'he1: vcpop_lut = 8'h4;
+                8'he2: vcpop_lut = 8'h4;
+                8'he3: vcpop_lut = 8'h5;
+                8'he4: vcpop_lut = 8'h4;
+                8'he5: vcpop_lut = 8'h5;
+                8'he6: vcpop_lut = 8'h5;
+                8'he7: vcpop_lut = 8'h6;
+                8'he8: vcpop_lut = 8'h4;
+                8'he9: vcpop_lut = 8'h5;
+                8'hea: vcpop_lut = 8'h5;
+                8'heb: vcpop_lut = 8'h6;
+                8'hec: vcpop_lut = 8'h5;
+                8'hed: vcpop_lut = 8'h6;
+                8'hee: vcpop_lut = 8'h6;
+                8'hef: vcpop_lut = 8'h7;
+                8'hf0: vcpop_lut = 8'h4;
+                8'hf1: vcpop_lut = 8'h5;
+                8'hf2: vcpop_lut = 8'h5;
+                8'hf3: vcpop_lut = 8'h6;
+                8'hf4: vcpop_lut = 8'h5;
+                8'hf5: vcpop_lut = 8'h6;
+                8'hf6: vcpop_lut = 8'h6;
+                8'hf7: vcpop_lut = 8'h7;
+                8'hf8: vcpop_lut = 8'h5;
+                8'hf9: vcpop_lut = 8'h6;
+                8'hfa: vcpop_lut = 8'h6;
+                8'hfb: vcpop_lut = 8'h7;
+                8'hfc: vcpop_lut = 8'h6;
+                8'hfd: vcpop_lut = 8'h7;
+                8'hfe: vcpop_lut = 8'h7;
+                8'hff: vcpop_lut = 8'h8;
+            endcase
+        end
+    endfunction
 endmodule

@@ -634,7 +634,18 @@ mask2:  .word 0x50505050
         .word 0x00000000
         .word 0x00000000
         .word 0x00000000
-
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
 result: .word 0x00000000
         .word 0x00000000
         .word 0x00000000
@@ -643,8 +654,28 @@ result: .word 0x00000000
         .word 0x00000000
         .word 0x00000000
         .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
         
-clear: .word 0x00000000
+clear:  .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
+        .word 0x00000000
         .word 0x00000000
         .word 0x00000000
         .word 0x00000000
