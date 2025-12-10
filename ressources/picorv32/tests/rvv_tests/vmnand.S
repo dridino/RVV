@@ -44,11 +44,11 @@ RVTEST_CODE_BEGIN */
   vse8.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xed
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xcb
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xa9
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x87
   bne t0,x22,.trap
@@ -56,37 +56,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x78
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x9a
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xbc
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xde
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0x54
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x32
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x54
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x32
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0x41
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x10
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x41
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x10
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
 
@@ -100,11 +100,11 @@ RVTEST_CODE_BEGIN */
   vse16.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xFF
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfd
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0xff
   bne t0,x22,.trap
@@ -112,37 +112,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x16375879)
   
   lw t0, 4(x20)
-  addi x22, x0, 0xff
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfa
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfd
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfe
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x8F6C4926)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xf7
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf6
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf5
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf6
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xB7D8B5D6)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xff
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf2
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
 
@@ -155,11 +155,11 @@ RVTEST_CODE_BEGIN */
   vse16.v v0, (x20) 
 
   lw t0, (x20)
-  addi x22, x0, 0xFF
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xff
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfd
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0xff
   bne t0,x22,.trap
@@ -167,37 +167,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x16375879)
   
   lw t0, 4(x20)
-  addi x22, x0, 0xff
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfa
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfd
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xfe
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x8F6C4926)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xf7
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf6
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf5
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf6
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xB7D8B5D6)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xff
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xf2
+  addi x22, x22, 0x00
   beq t0,x22,.start
   nop
 

@@ -776,7 +776,7 @@ module picorv32_pcpi_rvv #(
 							if (arith_init) begin
 								// arith_remaining <= instr_mask_unmaskable ? (VLEN >> (vsew+3)) : vl; // whole reg mask op
 								// arith_remaining <= instr_mask ? (VLEN >> (vsew+3)) : vl; // whole reg mask op
-								arith_remaining <= vl; // whole reg mask op
+								arith_remaining <= instr_mask ? vl >> (vsew+3) : vl; // whole reg mask op
 								arith_step <= 0;
 								arith_init <= 0;
 							end else if (alu_run)

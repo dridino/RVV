@@ -100,11 +100,11 @@ RVTEST_CODE_BEGIN */
   vse16.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x12
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x34
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x54
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x78
   bne t0,x22,.trap
@@ -112,37 +112,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x87
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x60
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x41
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x20
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xa3
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xa1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xbe
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xb0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe2
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
 
@@ -157,11 +157,11 @@ RVTEST_CODE_BEGIN */
   vse16.v v0, (x20) 
 
   lw t0, (x20)
-  addi x22, x0, 0x12
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x34
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x54
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x78
   bne t0,x22,.trap
@@ -169,37 +169,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x87
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x60
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x41
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x20
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 2, t0, 0x875c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xa3
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xa1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
   // TEST_CASE( 3, t0, 0xabc4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xbe
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xb0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe2
+  addi x22, x22, 0x00
   beq t0,x22,.start
   nop
 

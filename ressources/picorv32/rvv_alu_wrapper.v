@@ -82,9 +82,9 @@ module rvv_alu_wrapper #(
         end else if (run) begin
             if (!done) begin
                 if (vsew+3 <= LANE_WIDTH) begin
-                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3))));
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? vl /* >> (vsew+3) */ : `min(vl, (VLEN >> (vsew + 3))));
                 end else begin
-                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? (VLEN >> (vsew + 3)) : `min(vl, (VLEN >> (vsew + 3)))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 2);
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask ? vl /* >> (vsew+3) */ : `min(vl, (VLEN >> (vsew + 3)))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 1);
                 end
 
                 if (vsew + 3 < LANE_WIDTH || in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1)) begin

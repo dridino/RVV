@@ -100,11 +100,11 @@ RVTEST_CODE_BEGIN */
   vse16.v v0, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x16
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x37
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x54
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x79
   bne t0,x22,.trap
@@ -112,37 +112,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x8F
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x62
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x45
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x24
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 2, t0, 0x875c4318)
+  // TEST_CASE( 2, t0, 0x005c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xa7
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc6
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xa1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 3, t0, 0xabc4abc4)
+  // TEST_CASE( 3, t0, 0x00c4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xbe
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xb0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe2
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
 
@@ -151,15 +151,15 @@ RVTEST_CODE_BEGIN */
   // =================================================
 
   vadd.vv v0, v31, v31
-  vsetvli t0, x0, e32, m2
+  vsetvli t0, x0, e32, m4
   vmxor.mm v0, v1, v3
   vsetvli t0, x0, e16, m1
   vse16.v v0, (x20) 
 
   lw t0, (x20)
-  addi x22, x0, 0x16
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x37
+  addi x22, x22, 0x00
   slli x22, x22, 8
   addi x22, x22, 0x54
   slli x22, x22, 8
@@ -169,37 +169,37 @@ RVTEST_CODE_BEGIN */
   // TEST_CASE( 1, t0, 0x122b566f)
   
   lw t0, 4(x20)
-  addi x22, x0, 0x8F
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x62
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x45
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x24
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 2, t0, 0x875c4318)
+  // TEST_CASE( 2, t0, 0x005c4318)
   
   lw t0, 8(x20)
-  addi x22, x0, 0xa7
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc6
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xa1
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xc4
+  addi x22, x22, 0x00
   bne t0,x22,.trap
   nop
-  // TEST_CASE( 3, t0, 0xabc4abc4)
+  // TEST_CASE( 3, t0, 0x00c4abc4)
   
   lw t0, 12(x20)
-  addi x22, x0, 0xbe
+  addi x22, x0, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xb0
+  addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0xe2
+  addi x22, x22, 0x00
   beq t0,x22,.start
   nop
 
