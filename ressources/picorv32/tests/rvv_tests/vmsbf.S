@@ -27,7 +27,7 @@ RVTEST_CODE_BEGIN */
   vle8.v v0, (x18)
 
   la    x18, tdat1
-  la    x19, tdat7
+  la    x19, tdat9
   la    x20, result
 
   vle8.v v1, (x18) // 2C
@@ -162,7 +162,7 @@ RVTEST_CODE_BEGIN */
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xff
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
@@ -217,9 +217,9 @@ RVTEST_CODE_BEGIN */
   slli x22, x22, 8
   addi x22, x22, 0x00
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0x01
   slli x22, x22, 8
-  addi x22, x22, 0x00
+  addi x22, x22, 0xff
   bne t0,x22,.trap
   nop
   // TEST_CASE( 1, t0, 0x122b566f)
@@ -292,7 +292,7 @@ tdat7:  .word 0x04030201
         .word 0x000F0E0D
 
 tdat8:  .word 0x00030001
-        .word 0x08000600
+tdat9:  .word 0x08000600
         .word 0x00000000
         .word 0x000F0E0D
 

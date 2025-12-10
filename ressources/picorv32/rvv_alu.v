@@ -49,7 +49,7 @@ module rvv_alu #(
         (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001);
 
     assign vd = temp_vreg[0 +: 64];
-    assign mask_cout = temp_vreg[`min(vsew+3, LANE_WIDTH)];
+    assign mask_cout = temp_vreg[1 << (`min(vsew+3, LANE_WIDTH)) - 1] & !(vs2[`min(vsew+3, LANE_WIDTH) - 1]);
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
     wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
@@ -195,14 +195,14 @@ module rvv_alu #(
                         if (vs1_index == 5'b00001)
                             case (`min(vsew+3, LANE_WIDTH))
                                 // 8b
-                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? 8'hFF >> (8 - vfirst8(vs2)) : 0;
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? 8'hFF >> (8 - (&vfirst8(vs2) ? 8 : vfirst8(vs2))) : 0;
                                 // 16b
-                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ? 16'hFFFF >> (8 - vfirst8(vs2[15:8])) : 16'hFFFF >> (16 - vfirst8(vs2[7:0]))) : 0;
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ? 16'hFFFF >> (8 - (&vfirst8(vs2[15:8]) ? 8 : vfirst8(vs2[15:8]))) : 16'hFFFF >> (16 - vfirst8(vs2[7:0]))) : 0;
                                 // 32b
                                 3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = mask_acc ? (&(vfirst8(vs2[7:0])) ?
                                                                                 &(vfirst8(vs2[15:8])) ?
                                                                                     &(vfirst8(vs2[23:16])) ?
-                                                                                        32'hFFFF_FFFF >> (8 - vfirst8(vs2[31:24])) :
+                                                                                        32'hFFFF_FFFF >> (8 - (&vfirst8(vs2[31:24]) ? 8 : vfirst8(vs2[31:24]))) :
                                                                                     32'hFFFF_FFFF >> (16 - vfirst8(vs2[23:16])) :
                                                                                 32'hFFFF_FFFF >> (24 - vfirst8(vs2[15:8])) :
                                                                               32'hFFFF_FFFF >> (32 - vfirst8(vs2[7:0]))) : 0;
@@ -214,7 +214,7 @@ module rvv_alu #(
                                                                                             &(vfirst8(vs2[39:32])) ?
                                                                                                 &(vfirst8(vs2[47:40])) ?
                                                                                                     &(vfirst8(vs2[55:48])) ?
-                                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (8 - vfirst8(vs2[63:56])) :
+                                                                                                        64'hFFFF_FFFF_FFFF_FFFF >> (8 - (&vfirst8(vs2[63:56]) ? 8 : vfirst8(vs2[63:56]))) :
                                                                                                     64'hFFFF_FFFF_FFFF_FFFF >> (16 - vfirst8(vs2[55:48])) :
                                                                                                 64'hFFFF_FFFF_FFFF_FFFF >> (24 - vfirst8(vs2[47:40])) :
                                                                                             64'hFFFF_FFFF_FFFF_FFFF >> (32 - vfirst8(vs2[39:32])) :
