@@ -33,6 +33,7 @@ Les opérations arithmético-logiques (`vv` / `vi` / `vx`) supportées sont :
 - `vsll`
 - `vsrl`
 - `vsra`
+- `vmv`
 
 ### Masques
 
@@ -46,6 +47,11 @@ Toutes les instructions le supportant peuvent être masquées par `v0`. Les inst
 - `vmnor`
 - `vmorn`
 - `vmxnor`
+- `vcpop`
+- `vmsof`
+- `vmsif`
+- `vmsbf`
+- `vfirst`
 
 ## Simulation
 
