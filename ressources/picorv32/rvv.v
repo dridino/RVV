@@ -732,13 +732,6 @@ module picorv32_pcpi_rvv #(
 							if (arith_vv)
 								vregs_wdata <= (vregs_rdata2 & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
 							else begin
-								$display("transfer");
-								$display("vl : %d", vl);
-								$display("imm : %d", pcpi_insn[19:15]);
-								$display("arith_vi : %b", arith_vi);
-								$display("vi : %h", {VLEN8{3'b000, pcpi_insn[19:15]}});
-								$display("mask : %h", arith_remaining_mask);
-								$display("masked : %h", {VLEN8{3'b000, pcpi_insn[19:15]}} & arith_remaining_mask);
 								case (vsew)
 									3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
 									3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
@@ -750,22 +743,18 @@ module picorv32_pcpi_rvv #(
 							vregs_wen <= 1;
 						end
 						if (arith_init) begin
-							$display("init");
 							arith_remaining <= vl;
 							arith_init <= 0;
 							reg_index <= 0;
 						end else begin
-							$display("not init");
-							if (arith_remaining <= vl - (VLEN >> (vsew+3))) begin
-								$display("done");
+							if (arith_remaining <= (VLEN >> (vsew+3))) begin
 								arith_remaining <= 0;
 								arith_init <= 1;
 								pcpi_ready <= 1;
 								pcpi_wait <= 0;
 								reg_index <= 0;
 							end else begin
-								$display("not done");
-								arith_remaining <= arith_remaining - (VLEN >> (vsew+3));
+								arith_remaining <= arith_remaining > (VLEN >> (vsew+3)) ? arith_remaining - (VLEN >> (vsew+3)) : 0;
 								pcpi_ready <= 0;
 								pcpi_wait <= 1;
 								reg_index <= reg_index + 1;
