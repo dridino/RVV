@@ -21,7 +21,8 @@ module rvv_alu_wrapper #(
     output      [(17<<NB_LANES) - 1:0]  regi,
     output      [(1<<NB_LANES) - 1:0]   res,
     output                              done_out,
-    output                              instr_valid
+    output                              instr_valid,
+    output                              arith_instr_signed
 );
     localparam SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
     localparam SHIFTED_NB_LANES = 1 << NB_LANES;
@@ -42,6 +43,9 @@ module rvv_alu_wrapper #(
     wire [(SHIFTED_NB_LANES)-1 : 0] mask_couts;
     wire [(64<<NB_LANES)-1 : 0] vds;
 
+    wire [SHIFTED_NB_LANES-1 : 0] arith_instr_signed_v;
+    assign arith_instr_signed = arith_instr_signed_v[0];
+
     assign res = runs;
 
     genvar loop_i;
@@ -49,7 +53,7 @@ module rvv_alu_wrapper #(
         for (loop_i = 0; loop_i < (1<<NB_LANES); loop_i = loop_i + 1) begin
             assign runs[loop_i] = run && arith_remaining > loop_i;
             assign vd[(64*loop_i) +: 64] = (opcode == 6'b010000 && vs1_index == 5'b10000) ? (loop_i == 0 ? {32'h00000000, sumN(vds)} : 0) :
-                                           (opcode == 6'b010000 && vs1_index == 5'b10001) ? (loop_i == 0 ? {32'h00000000, minN(vds)} : 0) :
+                                           (opcode == 6'b010000 && vs1_index == 5'b10001) ? (loop_i == 0 ? {32'h00000000, minN(vds)} : 0) : // vfirst
                                            (opcode == 6'b010100 && vs1_index == 5'b00001) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
                                            (opcode == 6'b010100 && vs1_index == 5'b00011) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
                                            (opcode == 6'b010100 && vs1_index == 5'b00010) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? 0 : vds[(64*loop_i) +: 64])) :
@@ -130,7 +134,8 @@ module rvv_alu_wrapper #(
                 .vd(vds[(64*loop_i) +: 64]),
                 .mask_cout(mask_couts[loop_i]),
                 .index(index[(17*loop_i) +: 17]),
-                .instr_valid(instr_valids[loop_i])
+                .instr_valid(instr_valids[loop_i]),
+                .instr_signed(arith_instr_signed_v[loop_i])
             );
         end
     endgenerate
@@ -154,7 +159,7 @@ module rvv_alu_wrapper #(
         begin
             acc = 32'hFFFFFFFF;
             for (i = 0; i < SHIFTED_NB_LANES; i = i + 1)
-                if (&acc)
+                if (&acc & |in[i*64 +: SHIFTED_LANE_WIDTH])
                     acc = &(in[i*64 +: SHIFTED_LANE_WIDTH]) ? 32'hFFFFFFFF : in[i*64 +: 32];
             minN = acc;
         end

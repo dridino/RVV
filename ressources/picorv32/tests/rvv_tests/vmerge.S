@@ -148,6 +148,61 @@ RVTEST_CODE_BEGIN */
   nop
 
   // =================================================
+  // = SEW = 16b | negative imm
+  // =================================================
+
+  vmv.v.i v2, 0
+  vmerge.vim v2, v1, -3, v0
+  vse16.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xfd
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x122b566f)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x87
+  slli x22, x22, 8
+  addi x22, x22, 0x65
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xfd
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x005c4318)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  slli x22, x22, 8
+  addi x22, x22, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0x00c4abc4)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  slli x22, x22, 8
+  addi x22, x22, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  bne t0,x22,.trap
+  nop
+
+  // =================================================
   // = SEW = 16b
   // =================================================
 

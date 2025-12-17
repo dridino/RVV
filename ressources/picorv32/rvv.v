@@ -87,10 +87,11 @@ module picorv32_pcpi_rvv #(
 	wire alu_vv = arith_vv | mask_vv;
 	wire alu_vx = arith_vx | mask_vx;
 	wire alu_vi = arith_vi;
+	wire arith_instr_signed;
 
 	wire [VLEN-1:0] arith_vs1 = alu_vv ? vregs_rdata1 :
-							alu_vi ? {{VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
-							alu_vx ? {{VLEN_ARITH_RS{1'b0}},pcpi_rs1} :
+							alu_vi ? {arith_instr_signed ? {VLEN_ARITH_IMM{pcpi_insn[19]}} : {VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
+							alu_vx ? {arith_instr_signed ? {VLEN_ARITH_RS{pcpi_rs1[31]}} : {VLEN_ARITH_RS{1'b0}} ,pcpi_rs1} :
 							0;
 
 	reg	should_trap;
@@ -654,24 +655,28 @@ module picorv32_pcpi_rvv #(
 									tmp_offset = (offset + offset_incr) << 3;
 									tmp_mem_wdata[0 +: 8] = vregs_rdata1[tmp_offset +: 8];
 									tmp_mem_strb[0] = 1'b1;
+									// $display("store vregs[%d] = %h", tmp_offset, vregs_rdata1[tmp_offset +: 8]);
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 1]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									tmp_mem_wdata[8 +: 8] = vregs_rdata1[tmp_offset +: 8];
 									tmp_mem_strb[1] = 1'b1;
+									// $display("store vregs[%d] = %h", tmp_offset, vregs_rdata1[tmp_offset +: 8]);
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00}+2]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									tmp_mem_wdata[16 +: 8] = vregs_rdata1[tmp_offset +: 8];
 									tmp_mem_strb[2] = 1'b1;
+									// $display("store vregs[%d] = %h", tmp_offset, vregs_rdata1[tmp_offset +: 8]);
 									offset_incr = offset_incr + 1;
 								end
 								if (mem_stride_mask[{mem_stride_i, 2'b00} + 3]) begin
 									tmp_offset = (offset + offset_incr) << 3;
 									tmp_mem_wdata[24 +: 8] = vregs_rdata1[tmp_offset +: 8];
 									tmp_mem_strb[3] = 1'b1;
+									// $display("store vregs[%d] = %h\n", tmp_offset, vregs_rdata1[tmp_offset +: 8]);
 									offset_incr = offset_incr + 1;
 								end
 
@@ -685,6 +690,7 @@ module picorv32_pcpi_rvv #(
 								pcpi_mem_wdata <= tmp_mem_wdata;
 
 								mem_sending <= pcpi_mem_ifetch ? 1 : 0;
+								if (pcpi_mem_ifetch) offset_incr = 0;
 								// outputs
 								pcpi_mem_wen <= !pcpi_mem_ifetch;
 								pcpi_mem_addr <= pcpi_rs1 + mem_offset_q;
@@ -770,17 +776,17 @@ module picorv32_pcpi_rvv #(
 								else begin
 									if (instr_vmove)
 										case (vsew)
-											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask);
-											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask);
-											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask);
-											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask);
+											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {{3{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask);
+											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {{11{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask);
+											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {{27{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask);
+											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {{59{pcpi_insn[19]}}, pcpi_insn[19:15]} : {{32{pcpi_rs1[31]}}, pcpi_rs1[0+:8]}}} & arith_remaining_mask);
 										endcase
 									else // vmerge
 										case (vsew)
-											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask & vregs_v0_8) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_8);
-											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask & vregs_v0_16) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_16);
-											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask & vregs_v0_32) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_32);
-											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask & vregs_v0_64) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_64);
+											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {{3{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask & vregs_v0_8) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_8);
+											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {{11{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask & vregs_v0_16) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_16);
+											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {{27{pcpi_insn[19]}}, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask & vregs_v0_32) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_32);
+											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {{59{pcpi_insn[19]}}, pcpi_insn[19:15]} : {{32{pcpi_rs1[31]}}, pcpi_rs1[0+:8]}}} & arith_remaining_mask & vregs_v0_64) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_64);
 										endcase
 									// vregs_wdata <= tmp_vregs_wdata;
 								end
@@ -815,7 +821,6 @@ module picorv32_pcpi_rvv #(
 								if (arith_res[0])
 									pcpi_rd <= pcpi_rd + arith_vd[0 +: 32];
 							end else if (instr_vfirst) begin
-								$display("here");
 								if (arith_res[0])
 									pcpi_rd <= &pcpi_rd ? arith_vd[0 +: 32] : pcpi_rd;
 							end else begin
@@ -924,7 +929,8 @@ module picorv32_pcpi_rvv #(
 		.regi(arith_regi),
 		.res(arith_res),
 		.done_out(arith_done),
-		.instr_valid(arith_instr_valid)
+		.instr_valid(arith_instr_valid),
+		.arith_instr_signed(arith_instr_signed)
 	);
 endmodule
 

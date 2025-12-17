@@ -24,7 +24,8 @@ module rvv_alu #(
     output [63:0] vd,
     output mask_cout,
     output [16:0]  index,
-    output        instr_valid
+    output        instr_valid,
+    output        instr_signed
 );
     localparam integer VLEN_SIZE = $clog2(VLEN);
     localparam [6:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
@@ -34,6 +35,7 @@ module rvv_alu #(
 	localparam [2:0] VI = 3'b100;
 
     assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
+    assign instr_signed = !((opcode == 6'b000100) | (opcode == 6'b000110));
 
     wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
