@@ -51,9 +51,13 @@ module picorv32_pcpi_rvv #(
 );
 	localparam integer VLENB = VLEN>>3;
 	localparam [16:0] VLEN8 = VLEN >> 3;
+	localparam [16:0] VLEN8_LOG = $clog2(VLEN8);
 	localparam [16:0] VLEN16 = VLEN >> 4;
+	localparam [16:0] VLEN16_LOG = $clog2(VLEN16);
 	localparam [16:0] VLEN32 = VLEN >> 5;
+	localparam [16:0] VLEN32_LOG = $clog2(VLEN32);
 	localparam [16:0] VLEN64 = VLEN >> 6;
+	localparam [16:0] VLEN64_LOG = $clog2(VLEN64);
 	localparam SHIFTED_NB_LANES = 1 << NB_LANES;
 	localparam [7:0] SHIFTED_LANE_WIDTH = 1 << LANE_WIDTH;
 	localparam integer VLEN_ARITH_IMM = VLEN-5;
@@ -169,19 +173,37 @@ module picorv32_pcpi_rvv #(
 	wire [VLEN-1:0] vl_mask = {VLEN{1'b1}} >> (VLEN - vl);
 	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
 
-	reg instr_vmove;
+	reg instr_vmove, instr_vmerge;
 	wire [VLEN-1:0] arith_remaining_mask = {VLEN{1'b1}} >> (VLEN > (arith_remaining << (vsew+3)) ? VLEN - (arith_remaining << (vsew+3)) : 0);
+	wire [VLEN-1:0] vregs_v0_8, vregs_v0_16, vregs_v0_32, vregs_v0_64;
+	
+	genvar geni;
+	generate
+		for (geni = 0; geni < VLEN8; geni = geni + 1) begin
+			assign vregs_v0_8[geni << 3 +: 8] = {8{vregs_v0[geni + (reg_index << VLEN8_LOG)]}};
+		end
+		for (geni = 0; geni < VLEN16; geni = geni + 1) begin
+			assign vregs_v0_16[geni << 4 +: 16] = {16{vregs_v0[geni + (reg_index << VLEN16_LOG)]}};
+		end
+		for (geni = 0; geni < VLEN32; geni = geni + 1) begin
+			assign vregs_v0_32[geni << 5 +: 32] = {32{vregs_v0[geni + (reg_index << VLEN32_LOG)]}};
+		end
+		for (geni = 0; geni < VLEN64; geni = geni + 1) begin
+			assign vregs_v0_64[geni << 6 +: 64] = {64{vregs_v0[geni + (reg_index << VLEN64_LOG)]}};
+		end
+	endgenerate
+
+
 	integer loop_i;
 
 	wire [4:0] vregs_raddr1 = !instr_run					? vregs_waddr :
 							  instr_vload					? vregs_waddr :
-							  (instr_arith && arith_done) || (instr_vmove && reg_index != reg_index_q)   ? vregs_waddr + 1 : // arith op with LMUL > 1
+							  (instr_arith && arith_done) || ((instr_vmove || instr_vmerge) && reg_index != reg_index_q)   ? vregs_waddr + 1 : // arith op with LMUL > 1
 							  (instr_arith || instr_mask)	? vs1 + reg_index :
 							  (instr_vstore && mem_sending)	? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
 							  0;
 
 	wire [4:0] vregs_raddr2 = instr_mem_indexed 			? vs2 + mem_indexed_reg_index :
-							  // instr_vmove					? vregs_waddr :
 							  (instr_arith || instr_mask)	? vs2 + reg_index :
 							  0;
 
@@ -246,6 +268,7 @@ module picorv32_pcpi_rvv #(
 		instr_vfirst = 0;
 
 		instr_vmove = 0;
+		instr_vmerge = 0;
 
 		// config
 		if (resetn && pcpi_insn[14:12] == 3'b111 && pcpi_insn[6:0] == 7'b1010111) begin
@@ -309,6 +332,7 @@ module picorv32_pcpi_rvv #(
 		if (resetn && pcpi_insn[6:0] == 7'b1010111 && (pcpi_insn[14:12] == 3'b000 || pcpi_insn[14:12] == 3'b011 || pcpi_insn[14:12] == 3'b100)) begin
 			instr_arith = 1;
 			instr_vmove = pcpi_insn[31:26] == 6'b010111 && vm == 1;
+			instr_vmerge = pcpi_insn[31:26] == 6'b010111 && vm == 0;
 			case (pcpi_insn[14:12])
 				3'b000: arith_vv = 1;
 				3'b011: arith_vi = 1;
@@ -339,7 +363,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// if (!instr_run || (instr_arith && arith_remaining <= 1 << NB_LANES && ((instr_arith || instr_mask) ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)))
-		if (!instr_run || (instr_arith && arith_done) || (instr_vmove && reg_index != reg_index_q))
+		if (!instr_run || (instr_arith && arith_done) || ((instr_vmove || instr_vmerge) && reg_index != reg_index_q))
 			vregs_wdata_acc <= vregs_rdata1;
 
 		vregs_wen <= 0;
@@ -729,26 +753,36 @@ module picorv32_pcpi_rvv #(
 								pcpi_wait <= 1;
 							end
 						end
-					end else if (instr_vmove) begin
+					end else if (instr_vmove || instr_vmerge) begin
 						if (reg_index_q == reg_index) begin
 							if (arith_remaining > 0) begin
 								if (arith_vv)
-									// vregs_wdata <= (vregs_rdata2 & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
-									vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
+									if (instr_vmove)
+										vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
+									else // vmerge
+										case (vsew)
+											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask & vregs_v0_8)  | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_8);
+											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask & vregs_v0_16) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_16);
+											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask & vregs_v0_32) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_32);
+											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask & vregs_v0_64) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_64);
+										endcase
+										// vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
 								else begin
-									/* case (vsew)
-										3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-										3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-										3'b010: tmp_vregs_wdata = ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-										3'b011: tmp_vregs_wdata = ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-									endcase */
-									case (vsew)
-										3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
-										3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
-										3'b010: tmp_vregs_wdata = ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
-										3'b011: tmp_vregs_wdata = ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
-									endcase
-									vregs_wdata <= tmp_vregs_wdata;
+									if (instr_vmove)
+										case (vsew)
+											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask);
+											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask);
+											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask);
+											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask);
+										endcase
+									else // vmerge
+										case (vsew)
+											3'b000: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask & vregs_v0_8) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_8);
+											3'b001: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask & vregs_v0_16) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_16);
+											3'b010: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask & vregs_v0_32) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_32);
+											3'b011: vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask & vregs_v0_64) | (vregs_rdata2 & arith_remaining_mask & ~vregs_v0_64);
+										endcase
+									// vregs_wdata <= tmp_vregs_wdata;
 								end
 								vregs_wen <= 1;
 							end

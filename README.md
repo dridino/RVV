@@ -34,6 +34,7 @@ Les opérations arithmético-logiques (`vv` / `vi` / `vx`) supportées sont :
 - `vsrl`
 - `vsra`
 - `vmv`
+- `vmerge`
 
 ### Masques
 
