@@ -201,6 +201,62 @@ RVTEST_CODE_BEGIN */
   addi x22, x22, 0x0b
   bne t0,x22,.trap
   nop
+  
+  // =================================================
+  // = SEW = 16b | LMUL=1/2 (keep others)
+  // =================================================
+
+  vsetvli t0, x0, e16, mf2
+  addi t0, x0, 0xc
+  vmv.v.x v2, t0
+  vse16.v v2, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0c
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0c
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 1, t0, 0x122b566f)
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0c
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0c
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 2, t0, 0x005c4318)
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0b
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0b
+  bne t0,x22,.trap
+  nop
+  // TEST_CASE( 3, t0, 0x00c4abc4)
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0b
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x0b
+  bne t0,x22,.trap
+  nop
 
    // =================================================
   // = SEW = 32b | LMUL = 2

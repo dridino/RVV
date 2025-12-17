@@ -98,7 +98,7 @@ module picorv32_pcpi_rvv #(
 	reg [31:0] avl;
 
 	reg [16:0]  byte_index; // index in the vector register, same size as VLEN parameter
-	reg [4:0]  reg_index; // index of the vector register
+	reg [4:0]  reg_index, reg_index_q; // index of the vector register
 
 	// LOAD-STORE
 	reg instr_vload, instr_vstore;
@@ -175,13 +175,13 @@ module picorv32_pcpi_rvv #(
 
 	wire [4:0] vregs_raddr1 = !instr_run					? vregs_waddr :
 							  instr_vload					? vregs_waddr :
-							  (instr_arith && arith_done)   ? vregs_waddr + 1 : // arith op with LMUL > 1
+							  (instr_arith && arith_done) || (instr_vmove && reg_index != reg_index_q)   ? vregs_waddr + 1 : // arith op with LMUL > 1
 							  (instr_arith || instr_mask)	? vs1 + reg_index :
 							  (instr_vstore && mem_sending)	? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
 							  0;
 
 	wire [4:0] vregs_raddr2 = instr_mem_indexed 			? vs2 + mem_indexed_reg_index :
-							  instr_vmove					? vregs_waddr :
+							  // instr_vmove					? vregs_waddr :
 							  (instr_arith || instr_mask)	? vs2 + reg_index :
 							  0;
 
@@ -339,7 +339,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// if (!instr_run || (instr_arith && arith_remaining <= 1 << NB_LANES && ((instr_arith || instr_mask) ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)))
-		if (!instr_run || (instr_arith && arith_done))
+		if (!instr_run || (instr_arith && arith_done) || (instr_vmove && reg_index != reg_index_q))
 			vregs_wdata_acc <= vregs_rdata1;
 
 		vregs_wen <= 0;
@@ -365,6 +365,7 @@ module picorv32_pcpi_rvv #(
 			// mem
 			byte_index = 0;
 			reg_index <= 0;
+			reg_index_q <= 0;
 			mem_indexed_byte_index <= 0;
 			mem_indexed_reg_index <= 0;
 			mem_sending = 1;
@@ -384,6 +385,7 @@ module picorv32_pcpi_rvv #(
 			arith_step <= 0;
 			vregs_wdata_acc <= 0;
 		end else begin
+			reg_index_q <= reg_index;
 			/* if (should_trap)
 				pcpi_trap_out <= 1; */
 			
@@ -728,37 +730,49 @@ module picorv32_pcpi_rvv #(
 							end
 						end
 					end else if (instr_vmove) begin
-						if (arith_remaining > 0) begin
-							if (arith_vv)
-								vregs_wdata <= (vregs_rdata2 & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
-							else begin
-								case (vsew)
-									3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-									3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-									3'b010: tmp_vregs_wdata = ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-									3'b011: tmp_vregs_wdata = ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
-								endcase
-								vregs_wdata <= tmp_vregs_wdata;
+						if (reg_index_q == reg_index) begin
+							if (arith_remaining > 0) begin
+								if (arith_vv)
+									// vregs_wdata <= (vregs_rdata2 & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
+									vregs_wdata <= (vregs_wdata_acc & ~arith_remaining_mask) | (vregs_rdata1 & arith_remaining_mask);
+								else begin
+									/* case (vsew)
+										3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
+										3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
+										3'b010: tmp_vregs_wdata = ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
+										3'b011: tmp_vregs_wdata = ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask) | (vregs_rdata2 & ~arith_remaining_mask);
+									endcase */
+									case (vsew)
+										3'b000: tmp_vregs_wdata = ({VLEN8{arith_vi ? {3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:8]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
+										3'b001: tmp_vregs_wdata = ({VLEN16{arith_vi ? {8'h00, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:16]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
+										3'b010: tmp_vregs_wdata = ({VLEN32{arith_vi ? {24'h000000, 3'b000, pcpi_insn[19:15]} : pcpi_rs1[0+:32]}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
+										3'b011: tmp_vregs_wdata = ({VLEN64{arith_vi ? {56'h00000000000000, 3'b000, pcpi_insn[19:15]} : {32'h00000000, pcpi_rs1[0+:8]}}} & arith_remaining_mask) | (vregs_wdata_acc & ~arith_remaining_mask);
+									endcase
+									vregs_wdata <= tmp_vregs_wdata;
+								end
+								vregs_wen <= 1;
 							end
-							vregs_wen <= 1;
-						end
-						if (arith_init) begin
-							arith_remaining <= vl;
-							arith_init <= 0;
-							reg_index <= 0;
-						end else begin
-							if (arith_remaining <= (VLEN >> (vsew+3))) begin
-								arith_remaining <= 0;
-								arith_init <= 1;
-								pcpi_ready <= 1;
-								pcpi_wait <= 0;
+							if (arith_init) begin
+								arith_remaining <= vl;
+								arith_init <= 0;
 								reg_index <= 0;
 							end else begin
-								arith_remaining <= arith_remaining > (VLEN >> (vsew+3)) ? arith_remaining - (VLEN >> (vsew+3)) : 0;
-								pcpi_ready <= 0;
-								pcpi_wait <= 1;
-								reg_index <= reg_index + 1;
+								if (arith_remaining <= (VLEN >> (vsew+3))) begin
+									arith_remaining <= 0;
+									arith_init <= 1;
+									pcpi_ready <= 1;
+									pcpi_wait <= 0;
+									reg_index <= 0;
+								end else begin
+									arith_remaining <= arith_remaining > (VLEN >> (vsew+3)) ? arith_remaining - (VLEN >> (vsew+3)) : 0;
+									pcpi_ready <= 0;
+									pcpi_wait <= 1;
+									reg_index <= reg_index + 1;
+								end
 							end
+						end else begin
+							pcpi_wait <= 1;
+							pcpi_ready <= 0;
 						end
 					end else if (instr_arith || instr_mask) begin
 						alu_run <= !arith_done && (arith_init || (arith_remaining >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
