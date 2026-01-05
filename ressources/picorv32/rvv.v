@@ -76,7 +76,7 @@ module picorv32_pcpi_rvv #(
 	wire 	   vma   = vtype[7];
 	wire 	   vta   = vtype[6];
 	// wire [2:0] vsew  = instr_mask_unmaskable ? LANE_WIDTH-3 : vtype[5:3];
-	wire [2:0] vsew  = instr_mask && !(pcpi_insn[31:26] == 6'b010100 && vs1 == 5'b10000) ? LANE_WIDTH-3 : vtype[5:3];
+	wire [2:0] vsew  = instr_mask && !instr_viota ? LANE_WIDTH-3 : vtype[5:3];
 	wire [2:0] vlmul = vtype[2:0];
 
 	wire [4:0] vs1 = pcpi_insn[19:15];
@@ -170,9 +170,10 @@ module picorv32_pcpi_rvv #(
 	wire instr_mask_unmaskable = instr_mask && pcpi_insn[31:29] == 3'b011;
 
 	reg mask_vv, mask_vx;
-	reg instr_vcpop, instr_vfirst, instr_viota;
+	reg instr_vcpop, instr_vfirst, instr_viota, instr_vid;
 	wire [VLEN-1:0] vl_mask = {VLEN{1'b1}} >> (VLEN - vl);
-	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? vregs_rdata2 & vl_mask & vregs_v0 : vregs_rdata2 & vl_mask) : vregs_rdata2;
+	wire [VLEN-1:0] alu_vs2_tmp = instr_vid ? {VLEN{1'b1}} : vregs_rdata2;
+	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? alu_vs2_tmp & vl_mask & vregs_v0 : alu_vs2_tmp & vl_mask) : alu_vs2_tmp;
 
 	reg instr_vmove, instr_vmerge;
 	wire [VLEN-1:0] arith_remaining_mask = {VLEN{1'b1}} >> (VLEN > (arith_remaining << (vsew+3)) ? VLEN - (arith_remaining << (vsew+3)) : 0);
@@ -270,6 +271,7 @@ module picorv32_pcpi_rvv #(
 		instr_vcpop = 0;
 		instr_vfirst = 0;
 		instr_viota = 0;
+		instr_vid = 0;
 
 		instr_vmove = 0;
 		instr_vmerge = 0;
@@ -349,7 +351,8 @@ module picorv32_pcpi_rvv #(
 			instr_mask = 1;
 			instr_vcpop = pcpi_insn[31:26] == 6'b010000 && vs1 == 5'b10000;
 			instr_vfirst = pcpi_insn[31:26] == 6'b010000 && vs1 == 5'b10001;
-			instr_viota = pcpi_insn[31:26] == 6'b010100 && vs1 == 5'b10000;
+			instr_viota = pcpi_insn[31:26] == 6'b010100 && vs1[4:1] == 4'b1000;
+			instr_vid = pcpi_insn[31:26] == 6'b010100 && vs1 == 5'b10001;
 			mask_vv = pcpi_insn[14:12] == 3'b010;
 			mask_vx = pcpi_insn[14:12] == 3'b110;
 		end
@@ -887,7 +890,7 @@ module picorv32_pcpi_rvv #(
 							if (arith_init) begin
 								// arith_remaining <= instr_mask_unmaskable ? (VLEN >> (vsew+3)) : vl; // whole reg mask op
 								// arith_remaining <= instr_mask ? (VLEN >> (vsew+3)) : vl; // whole reg mask op
-								arith_remaining <= instr_mask && !(pcpi_insn[31:26] == 6'b010100 && vs1 == 5'b10000) ? vl >> (vsew+3) : vl; // whole reg mask op
+								arith_remaining <= instr_mask && !instr_viota ? vl >> (vsew+3) : vl; // whole reg mask op
 								arith_step <= 0;
 								arith_init <= 0;
 							end else if (alu_run)

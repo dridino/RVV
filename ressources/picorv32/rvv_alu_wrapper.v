@@ -51,7 +51,7 @@ module rvv_alu_wrapper #(
 
     reg [VLEN_SIZE-1:0] viota_acc, viota_acc_tmp, viota_acc_tmp_assign;
 
-    // todo : enlever in_reg_offset pour viota, ecrire tout l'element d'un coup
+    wire instr_viota = (opcode == 6'b010100 && vs1_index[4:1] == 4'b1000); // viota | vid
 
     integer loopi;
     genvar loop_i;
@@ -64,7 +64,7 @@ module rvv_alu_wrapper #(
                                            (opcode == 6'b010100 && vs1_index == 5'b00001) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
                                            (opcode == 6'b010100 && vs1_index == 5'b00011) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? vds[(64*loop_i) +: 64] : 0)) :
                                            (opcode == 6'b010100 && vs1_index == 5'b00010) ? (loop_i == 0 ? vds[(64*loop_i) +: 64] : (mask_couts[loop_i-1] ? 0 : vds[(64*loop_i) +: 64])) :
-                                           (opcode == 6'b010100 && vs1_index == 5'b10000) ? (viota_acc_fn(vds, loop_i, viota_acc)) :
+                                           instr_viota                                    ? (viota_acc_fn(vds, loop_i, viota_acc)) : // viota | vid
                                                                                             vds[(64*loop_i) +: 64];
         end
     endgenerate
@@ -102,7 +102,7 @@ module rvv_alu_wrapper #(
 	    viota_incr <= 0;
         end else if (run) begin
             if (!done) begin
-            if (opcode == 6'b010100 && vs1_index == 5'b10000) begin
+            if (instr_viota) begin // viota | vid
                 viota_acc_tmp = viota_acc;
                 for (loopi = 0; loopi < SHIFTED_NB_LANES; loopi = loopi + 1)
 		            if (runs[loopi])
@@ -110,12 +110,12 @@ module rvv_alu_wrapper #(
 		        viota_acc <= viota_acc_tmp;
             end
                 if (vsew+3 <= LANE_WIDTH) begin
-                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask && !(opcode == 6'b010100 && vs1_index == 5'b10000) ? vl : `min(vl, (VLEN >> (vsew + 3))));
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask && !(instr_viota) ? vl : `min(vl, (VLEN >> (vsew + 3))));
                 end else begin
-                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask && !(opcode == 6'b010100 && vs1_index == 5'b10000) ? vl : `min(vl, (VLEN >> (vsew + 3)))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 1);
+                    done <= byte_i + (1 << (nb_lanes)) >= (instr_mask && !(instr_viota) ? vl : `min(vl, (VLEN >> (vsew + 3)))) && in_reg_offset == ((1 << (vsew+3-LANE_WIDTH)) - 1);
                 end
 
-                if (vsew + 3 <= LANE_WIDTH || in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1) || (opcode == 6'b010100 && vs1_index == 5'b10000)) begin
+                if (vsew + 3 <= LANE_WIDTH || in_reg_offset == (vsew + 3 <= LANE_WIDTH ? 0 : (1 << (vsew+3-LANE_WIDTH)) - 1) || (instr_viota)) begin
                     in_reg_offset <= 0;
                     byte_i <= byte_i + (1<<nb_lanes);
                 end else
