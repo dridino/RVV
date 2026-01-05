@@ -23,15 +23,261 @@ RVTEST_CODE_BEGIN */
   vle8.v v2, (x18)
   vle8.v v8, (x18)
   vle8.v v9, (x18)
-  vle8.v v10, (x18)
   vle8.v v0, (x18)
 
   la    x18, tdat1
-  la    x19, tdat7
+  la    x19, tdat6
   la    x20, result
 
   vle8.v v1, (x18) // 2C
   vle8.v v3, (x19)
+
+  // =================================================
+  // = SEW = 8b | vmv.x.s
+  // =================================================
+
+  vsetvli t0, x0, e8, mf2
+  vmv.x.s t0, v1
+  addi x22, x0, 0x78
+  bne t0, x22, .trap
+  nop
+  
+  // =================================================
+  // = SEW = 8b | vmv.x.s | sign-extension
+  // =================================================
+
+  vsetvli t0, x0, e8, mf2
+  vmv.x.s t0, v3
+  addi x22, x0, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xa0
+  bne t0, x22, .trap
+  nop
+
+  // =================================================
+  // = SEW = 16b | vmv.x.s
+  // =================================================
+
+  vsetvli t0, x0, e16, m8
+  vmv.x.s t0, v1
+  addi x22, x0, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0x78
+  bne t0, x22, .trap
+  nop
+  
+  // =================================================
+  // = SEW = 32b | vmv.x.s
+  // =================================================
+
+  vsetvli t0, x0, e32, m8
+  vmv.x.s t0, v1
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0x78
+  bne t0, x22, .trap
+  nop
+
+  // =================================================
+  // = SEW = 64b | vmv.x.s
+  // =================================================
+
+  vsetvli t0, x0, e64, m1
+  vmv.x.s t0, v1
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0x78
+  bne t0, x22, .trap
+  nop
+  
+  // =================================================
+  // = SEW = 32b | vmv.x.s | vl = 0
+  // =================================================
+
+  addi t1, x0, 0
+  vsetvli t0, t1, e32, m1
+  vmv.x.s t0, v1
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0x78
+  bne t0, x22, .trap
+  nop
+
+  // =================================================
+  // = SEW = 8b | vmv.s.x
+  // =================================================
+
+  vsetvli t0, x0, e8, m1
+  vmv.v.i v16, 0
+  vse8.v v16, (x20)
+  vsetvli t0, x0, e8, mf2
+  vmv.v.v v16, v1
+  lw t1, (x19)
+  vmv.s.x v16, t1
+  vse8.v v16, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0xa0
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0x87
+  slli x22, x22, 8
+  addi x22, x22, 0x65
+  slli x22, x22, 8
+  addi x22, x22, 0x43
+  slli x22, x22, 8
+  addi x22, x22, 0x21
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0x0
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0x0
+  bne t0, x22, .trap
+  nop
+
+  // =================================================
+  // = SEW = 64b | vmv.s.x | sign-extension
+  // =================================================
+
+  vsetvli t0, x0, e8, m1
+  vmv.v.i v16, 0
+  vse8.v v16, (x20)
+  vsetvli t0, x0, e64, m1
+  vmv.v.v v16, v1
+  addi t1, x0, 0xa0
+  slli t1, t1, 24
+  vmv.s.x v16, t1
+  vse64.v v16, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0xa0
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  slli x22, x22, 8
+  addi x22, x22, 0x00
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 4(x20)
+  addi x22, x0, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  slli x22, x22, 8
+  addi x22, x22, 0xff
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  slli x22, x22, 8
+  addi x22, x22, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  slli x22, x22, 8
+  addi x22, x22, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  bne t0, x22, .trap
+  nop
+  
+  // =================================================
+  // = SEW = 32b | vmv.s.x | vl = 0
+  // =================================================
+
+  vsetvli t0, x0, e32, m1
+  vmv.v.v v16, v1
+
+  addi t1, x0, 0
+  vsetvli t0, t1, e32, m1
+  vmv.s.x v16, t0
+  vsetvli t0, x0, e32, m1
+  vse32.v v16, (x20)
+
+  lw t0, (x20)
+  addi x22, x0, 0x12
+  slli x22, x22, 8
+  addi x22, x22, 0x34
+  slli x22, x22, 8
+  addi x22, x22, 0x56
+  slli x22, x22, 8
+  addi x22, x22, 0x78
+  bne t0, x22, .trap
+  nop
+
+  lw t0, 4(x20)
+  addi x22, x0, 0x87
+  slli x22, x22, 8
+  addi x22, x22, 0x65
+  slli x22, x22, 8
+  addi x22, x22, 0x43
+  slli x22, x22, 8
+  addi x22, x22, 0x21
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 8(x20)
+  addi x22, x0, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  slli x22, x22, 8
+  addi x22, x22, 0xab
+  slli x22, x22, 8
+  addi x22, x22, 0xcd
+  bne t0, x22, .trap
+  nop
+  
+  lw t0, 12(x20)
+  addi x22, x0, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  slli x22, x22, 8
+  addi x22, x22, 0xbe
+  slli x22, x22, 8
+  addi x22, x22, 0xef
+  bne t0, x22, .trap
+  nop
 
   // =================================================
   // = SEW = 8b | LMUL = 1/2 |
@@ -479,7 +725,10 @@ RVTEST_CODE_BEGIN */
   
   lw t0, 12(x20)
   lw t1, 12(x18)
-  beq t0,t1,.start
+  bne t0,t1,.trap
+  nop
+
+  j .start
   nop
 
 .trap:

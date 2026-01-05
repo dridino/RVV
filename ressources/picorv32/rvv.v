@@ -65,7 +65,7 @@ module picorv32_pcpi_rvv #(
 	localparam integer SHIFTED_LANE_WIDTHB = SHIFTED_LANE_WIDTH >> 3;
 
 	assign pcpi_is_rvv_insn = |{instr_cfg, instr_mem, instr_arith, instr_mask};
-	assign pcpi_mem_init = instr_mem && !pcpi_mem_op && byte_index == 0 && reg_index == 0 && mem_sending && !pcpi_ready && !pcpi_mem_trans_done;
+	assign pcpi_mem_init = vl > 0 && instr_mem && !pcpi_mem_op && byte_index == 0 && reg_index == 0 && mem_sending && !pcpi_ready && !pcpi_mem_trans_done;
 
 	wire instr_run = pcpi_valid && !pcpi_ready; // 1 if should execute instruction
 
@@ -76,7 +76,7 @@ module picorv32_pcpi_rvv #(
 	wire 	   vma   = vtype[7];
 	wire 	   vta   = vtype[6];
 	// wire [2:0] vsew  = instr_mask_unmaskable ? LANE_WIDTH-3 : vtype[5:3];
-	wire [2:0] vsew  = instr_mask && !instr_viota ? LANE_WIDTH-3 : vtype[5:3];
+	wire [2:0] vsew  = instr_mask && !instr_viota && !(instr_vmv_sx || instr_vmv_xs) ? LANE_WIDTH-3 : vtype[5:3];
 	wire [2:0] vlmul = vtype[2:0];
 
 	wire [4:0] vs1 = pcpi_insn[19:15];
@@ -176,6 +176,7 @@ module picorv32_pcpi_rvv #(
 	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? alu_vs2_tmp & vl_mask & vregs_v0 : alu_vs2_tmp & vl_mask) : alu_vs2_tmp;
 
 	reg instr_vmove, instr_vmerge;
+	reg instr_vmv_xs, instr_vmv_sx;
 	wire [VLEN-1:0] arith_remaining_mask = {VLEN{1'b1}} >> (VLEN > (arith_remaining << (vsew+3)) ? VLEN - (arith_remaining << (vsew+3)) : 0);
 	wire [VLEN-1:0] vregs_v0_8, vregs_v0_16, vregs_v0_32, vregs_v0_64;
 	
@@ -274,6 +275,8 @@ module picorv32_pcpi_rvv #(
 		instr_vid = 0;
 
 		instr_vmove = 0;
+		instr_vmv_xs = 0;
+		instr_vmv_sx = 0;
 		instr_vmerge = 0;
 
 		// config
@@ -355,6 +358,8 @@ module picorv32_pcpi_rvv #(
 			instr_vid = pcpi_insn[31:26] == 6'b010100 && vs1 == 5'b10001;
 			mask_vv = pcpi_insn[14:12] == 3'b010;
 			mask_vx = pcpi_insn[14:12] == 3'b110;
+			instr_vmv_xs = pcpi_insn[31:26] == 6'b010000 && vm == 1 && vs1 == 5'b00000;
+			instr_vmv_sx = pcpi_insn[31:26] == 6'b010000 && vm == 1 && vs2 == 5'b00000;
 		end
 	end
 
@@ -371,7 +376,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// if (!instr_run || (instr_arith && arith_remaining <= 1 << NB_LANES && ((instr_arith || instr_mask) ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)))
-		if (!instr_run || ((instr_arith || instr_viota) && arith_done) || ((instr_vmove || instr_vmerge) && reg_index != reg_index_q))
+		if (!instr_run || ((instr_arith || instr_viota) && arith_done) || ((instr_vmove || instr_vmerge || instr_vmv_xs || instr_vmv_sx) && reg_index != reg_index_q))
 			vregs_wdata_acc <= vregs_rdata1;
 
 		vregs_wen <= 0;
@@ -488,6 +493,11 @@ module picorv32_pcpi_rvv #(
 						pcpi_wait <= 0;
 						pcpi_ready <= 1;
 					end else if (instr_mem) begin
+						if (vl == 0) begin
+							$display("vl = 0");
+							pcpi_ready <= 1;
+							pcpi_wait <= 0;
+						end else begin
 						pcpi_mem_op <= 1;
 						pcpi_rd <= 0;
 						pcpi_wait <= 1;
@@ -766,8 +776,31 @@ module picorv32_pcpi_rvv #(
 								pcpi_wait <= 1;
 							end
 						end
-					end else if (instr_vmove || instr_vmerge) begin
-						if (reg_index_q == reg_index) begin
+						end
+					end else if (instr_vmove || instr_vmerge || instr_vmv_xs || instr_vmv_sx) begin
+						if (instr_vmv_xs) begin
+							case (vsew)
+								3'b000: pcpi_rd <= {{24{vregs_rdata2[7]}}, vregs_rdata2[0 +: 8]};
+								3'b001: pcpi_rd <= {{16{vregs_rdata2[15]}}, vregs_rdata2[0 +: 16]};
+								3'b010: pcpi_rd <= vregs_rdata2[0 +: 32];
+								3'b011: pcpi_rd <= vregs_rdata2[0 +: 32];
+							endcase
+							pcpi_wr <= 1;
+							pcpi_ready <= 1;
+							pcpi_wait <= 0;
+						end else if (instr_vmv_sx) begin
+							if (vl > 0) begin
+								case (vsew)
+									3'b000: vregs_wdata <= {vregs_wdata_acc[VLEN-1 :  8], pcpi_rs1[0 +: 8]};
+									3'b001: vregs_wdata <= {vregs_wdata_acc[VLEN-1 : 16], pcpi_rs1[0 +: 16]};
+									3'b010: vregs_wdata <= {vregs_wdata_acc[VLEN-1 : 32], pcpi_rs1};
+									3'b011: vregs_wdata <= {vregs_wdata_acc[VLEN-1 : 64], {32{pcpi_rs1[31]}}, pcpi_rs1};
+								endcase
+								vregs_wen <= 1;
+							end
+							pcpi_ready <= 1;
+							pcpi_wait <= 0;
+						end else if (reg_index_q == reg_index) begin
 							if (arith_remaining > 0) begin
 								if (arith_vv)
 									if (instr_vmove)
