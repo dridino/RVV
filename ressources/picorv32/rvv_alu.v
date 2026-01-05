@@ -49,7 +49,8 @@ module rvv_alu #(
         (opcode == 6'b011011) | (opcode == 6'b011010) | (opcode == 6'b011110) |
         (opcode == 6'b011100) | (opcode == 6'b011111) | (opcode == 6'b010000 && vs1_index == 5'b10000) |
         (opcode == 6'b010000 && vs1_index == 5'b10001) | (opcode == 6'b010100 && vs1_index == 5'b00001) |
-        (opcode == 6'b010100 && vs1_index == 5'b00011) | (opcode == 6'b010100 && vs1_index == 5'b00010);
+        (opcode == 6'b010100 && vs1_index == 5'b00011) | (opcode == 6'b010100 && vs1_index == 5'b00010) |
+        (opcode == 6'b010100 && vs1_index == 5'b10000);
 
     assign vd = temp_vreg[0 +: 64];
     assign mask_cout = (vs1_index == 5'b00010) ? |temp_vreg[0 +: SHIFTED_LANE_WIDTH] :
@@ -58,6 +59,12 @@ module rvv_alu #(
     
     wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
     wire [16:0] index =
+	(opcode == 6'b010100 && vs1_index == 5'b10000) ?
+	  (vsew == 3'b000 ? base_index[0 +: VLEN_SIZE] :
+  	   vsew == 3'b001 ? base_index[0 +: VLEN_SIZE] :
+   	   vsew == 3'b010 ? base_index[0 +: VLEN_SIZE] :
+   	   base_index[0 +: VLEN_SIZE])
+	:
         (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
         base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
@@ -127,7 +134,9 @@ module rvv_alu #(
     reg [16:0] shift_index_base;
     wire [16:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
     reg mask_acc;
-    
+
+    wire tmp = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+
     always @* begin
         if (!resetn) begin
             temp_vreg = {65{1'b0}};
@@ -289,6 +298,20 @@ module rvv_alu #(
                                                                                 (1 << vfirst8(vs2[15:8])) :
                                                                               (1 << vfirst8(vs2[7:0]))) : 0;
                             endcase
+                        else if (vs1_index == 5'b10000) // viota
+                        begin
+			    // $display("vs2_in[%d] = %d", (LANE_I + byte_i), vs2_in[LANE_I+byte_i]);
+                            case (`min(vsew+3, LANE_WIDTH))
+                                // 8b
+                                3'b011 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+                                // 16b
+                                3'b100 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+                                // 32b
+                                3'b101 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+                                // 64b
+                                3'b110 : temp_vreg[0 +: SHIFTED_LANE_WIDTH] = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+                            endcase
+                        end
                     default: temp_vreg = 0;
                 endcase
             else
