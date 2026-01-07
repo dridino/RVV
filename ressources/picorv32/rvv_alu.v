@@ -37,7 +37,7 @@ module rvv_alu #(
     assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
     assign instr_signed = !((opcode == 6'b000100) | (opcode == 6'b000110));
 
-    wire arith_instr_vmset = (opcode == 6'b011000);
+    wire arith_instr_vmset = (opcode == 6'b011000) | (opcode == 6'b011001);
 
     wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
@@ -134,7 +134,7 @@ module rvv_alu #(
     reg mask_acc;
 
     reg vmset_q;
-    wire vmset_acc = in_reg_offset == 0 ? 1 : vmset_q;
+    wire vmset_acc = in_reg_offset == 0 ? opcode == 6'b011000 : vmset_q;
 
     always @* begin
         if (!resetn) begin
@@ -393,9 +393,9 @@ module rvv_alu #(
                             temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
                     end
                     // vmseq
-                    6'b011000: begin
-                        temp_vreg[0] = vmset_acc && vs1 == vs2;
-                    end
+                    6'b011000: temp_vreg[0] = vmset_acc & vs1 == vs2;
+                    // vmsne
+                    6'b011001: temp_vreg[0] = vmset_acc | vs1 != vs2;
                     // default
                     default: temp_vreg = 0;
                 endcase
@@ -412,7 +412,7 @@ module rvv_alu #(
             shift_rem_base <= 0;
             shift_rem_q <= 0;
             mask_acc <= 1;
-            vmset_q <= 1;
+            vmset_q <= opcode == 6'b011000;
         end else begin
             mask_acc <= run ? mask_cout : 1;
             vmset_q <= temp_vreg[0];

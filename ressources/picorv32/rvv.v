@@ -379,7 +379,7 @@ module picorv32_pcpi_rvv #(
 		pcpi_trap_out <= 0;
 		
 		// if (!instr_run || (instr_arith && arith_remaining <= 1 << NB_LANES && ((instr_arith || instr_mask) ? (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1)) : 1)))
-		if (!instr_run || ((instr_arith || instr_viota) && arith_done) || ((instr_vmove || instr_vmerge || instr_vmv_xs || instr_vmv_sx) && reg_index != reg_index_q))
+		if (!instr_run || ((instr_arith || instr_viota) && arith_done && !instr_vmset) || ((instr_vmove || instr_vmerge || instr_vmv_xs || instr_vmv_sx) && reg_index != reg_index_q))
 			vregs_wdata_acc <= vregs_rdata1;
 
 		vregs_wen <= 0;
@@ -873,7 +873,7 @@ module picorv32_pcpi_rvv #(
 									end
 								end
 								if (!arith_done) vregs_wdata_acc <= tmp_vregs_wdata;
-								vregs_wdata <= tmp_vregs_wdata;
+								if (!arith_done) vregs_wdata <= tmp_vregs_wdata;
 								vregs_wen <= !arith_done;
 								pcpi_rd <= 0;
 							end else begin
@@ -942,7 +942,7 @@ module picorv32_pcpi_rvv #(
 								if (instr_viota ? !arith_done : (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin
 									arith_step <= 0;
 									arith_remaining <= arith_remaining - (1 << nb_lanes);
-								end else begin
+								end else if (!arith_done) begin
 									arith_step <= arith_step + 1;
 									arith_remaining <= arith_remaining;
 								end

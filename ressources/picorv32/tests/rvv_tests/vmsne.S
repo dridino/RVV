@@ -1,10 +1,10 @@
 # See LICENSE for license details.
 
 #*****************************************************************************
-# vmseq.S
+# vmsne.S
 #-----------------------------------------------------------------------------
 #
-# Test vmseq instruction
+# Test vmsne instruction
 #
 
 // #include "riscv_test.h"
@@ -37,12 +37,12 @@ RVTEST_CODE_BEGIN */
 
   vsetvli t0, x0, e8, mf2
   
-  vmseq.vv v16, v1, v1
+  vmsne.vv v16, v1, v1
   vsetvli t0, x0, e8, m1
   vse8.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xff
+  addi x22, x0, 0x00
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -64,13 +64,13 @@ RVTEST_CODE_BEGIN */
   vsetvli t0, x0, e8, m1
   
   vle8.v v3, (x18), v0.t
-  vmseq.vv v16, v1, v3
+  vmsne.vv v16, v1, v3
   vse8.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x55
+  addi x22, x0, 0xaa
   slli x22, x22, 8
-  addi x22, x22, 0x55
+  addi x22, x22, 0xaa
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -93,13 +93,13 @@ RVTEST_CODE_BEGIN */
   
   vle8.v v3, (x18), v0.t
   addi t1, x0, 0x00
-  vmseq.vx v16, v3, t1
+  vmsne.vx v16, v3, t1
   vse8.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xaa
+  addi x22, x0, 0x55
   slli x22, x22, 8
-  addi x22, x22, 0xaa
+  addi x22, x22, 0x55
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -122,13 +122,13 @@ RVTEST_CODE_BEGIN */
   
   vmv.v.i v16, 0
   vle8.v v3, (x18), v0.t
-  vmseq.vi v16, v3, 0
+  vmsne.vi v16, v3, 0
   vse8.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0xaa
+  addi x22, x0, 0x55
   slli x22, x22, 8
-  addi x22, x22, 0xaa
+  addi x22, x22, 0x55
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -150,11 +150,11 @@ RVTEST_CODE_BEGIN */
   vsetvli t0, x0, e16, m1
   
   vmv.v.i v16, 0
-  vmseq.vv v16, v1, v3
+  vmsne.vv v16, v1, v3
   vse16.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0xff
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -178,11 +178,11 @@ RVTEST_CODE_BEGIN */
   vmv.v.i v16, 0
   vle16.v v0, (x19)
   vle16.v v3, (x18), v0.t
-  vmseq.vv v16, v1, v3
+  vmsne.vv v16, v1, v3
   vse16.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x55
+  addi x22, x0, 0xaa
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -204,11 +204,11 @@ RVTEST_CODE_BEGIN */
   vsetvli t0, x0, e32, m1
   
   vmv.v.i v16, 0
-  vmseq.vv v16, v1, v3
+  vmsne.vv v16, v1, v3
   vse32.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x00
+  addi x22, x0, 0x0f
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -231,16 +231,19 @@ RVTEST_CODE_BEGIN */
   
   vle16.v v1, (x18)
   vmv.v.i v3, 0
-  vle16.v v3, (x18), v0.t
+
+  vsetvli t0, x0, e8, m2
+  vle8.v v3, (x18), v0.t
+  vsetvli t0, x0, e16, m2
   
   vmv.v.i v16, 0
-  vmseq.vv v16, v1, v3
+  vmsne.vv v16, v1, v3
   vse16.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x55
+  addi x22, x0, 0xff
   slli x22, x22, 8
-  addi x22, x22, 0x55
+  addi x22, x22, 0xff
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
@@ -279,12 +282,12 @@ RVTEST_CODE_BEGIN */
   vsetvli t0, x0, e16, m1
   
   vmv.v.i v16, 0
-  vmseq.vv v16, v1, v1, v0.t
+  vmsne.vv v16, v1, v1, v0.t
   vsetvli t0, x0, e8, m1
   vse16.v v16, (x20)
 
   lw t0, (x20)
-  addi x22, x0, 0x55
+  addi x22, x0, 0x00
   bne  t0, x22, .trap
   
   lw t0, 4(x20)
