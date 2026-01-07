@@ -23,7 +23,7 @@ module rvv_alu #(
 
     output [63:0] vd,
     output mask_cout,
-    output [16:0]  index,
+    output [16:0]  out_index,
     output        instr_valid,
     output        instr_signed
 );
@@ -37,12 +37,14 @@ module rvv_alu #(
     assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
     assign instr_signed = !((opcode == 6'b000100) | (opcode == 6'b000110));
 
+    wire arith_instr_vmset = (opcode == 6'b011000);
+
     wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
         (opcode == 6'b000000) | (opcode == 6'b000010) | (opcode == 6'b000011) |
         (opcode == 6'b000100) | (opcode == 6'b000101) | (opcode == 6'b000110) |
         (opcode == 6'b000111) | (opcode == 6'b100101) | (opcode == 6'b101000) |
-        (opcode == 6'b101001);
+        (opcode == 6'b101001) | arith_instr_vmset;
 
     wire mask_instr_valid =
         (opcode == 6'b011001) | (opcode == 6'b011101) | (opcode == 6'b011000) |
@@ -58,15 +60,11 @@ module rvv_alu #(
     reg [64:0] temp_vreg; // 64 + 1 for carry out
     
     wire [16:0] base_index = ((LANE_I + byte_i) << (vsew + 3));
+    assign out_index = (arith_instr_vmset) ? (LANE_I + byte_i) : index;
     wire [16:0] index =
-	(opcode == 6'b010100 && vs1_index[4:1] == 4'b1000) ?
-	  (vsew == 3'b000 ? base_index[0 +: VLEN_SIZE] :
-  	   vsew == 3'b001 ? base_index[0 +: VLEN_SIZE] :
-   	   vsew == 3'b010 ? base_index[0 +: VLEN_SIZE] :
-   	   base_index[0 +: VLEN_SIZE])
-	:
-        (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
-        base_index + (in_reg_offset << LANE_WIDTH); // classic op index
+	(opcode == 6'b010100 && vs1_index[4:1] == 4'b1000) ? base_index[0 +: VLEN_SIZE] :
+	(opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
+    base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
     // set to 0 when computing a new element of the vector
     // set to 1 if it's a sub operation
@@ -135,7 +133,8 @@ module rvv_alu #(
     wire [16:0] shift_index = (in_reg_offset == 0) ? base_index + (1 << (vsew+3)) - SHIFTED_LANE_WIDTH : shift_index_base;
     reg mask_acc;
 
-    wire tmp = in_reg_offset == 0 ? vs2_in[(LANE_I + byte_i)] : 0;
+    reg vmset_q;
+    wire vmset_acc = in_reg_offset == 0 ? 1 : vmset_q;
 
     always @* begin
         if (!resetn) begin
@@ -393,6 +392,10 @@ module rvv_alu #(
                         else // only vs2
                             temp_vreg[0 +: SHIFTED_LANE_WIDTH] = vs2_in[shift_index +: SHIFTED_LANE_WIDTH];
                     end
+                    // vmseq
+                    6'b011000: begin
+                        temp_vreg[0] = vmset_acc && vs1 == vs2;
+                    end
                     // default
                     default: temp_vreg = 0;
                 endcase
@@ -409,8 +412,10 @@ module rvv_alu #(
             shift_rem_base <= 0;
             shift_rem_q <= 0;
             mask_acc <= 1;
+            vmset_q <= 1;
         end else begin
             mask_acc <= run ? mask_cout : 1;
+            vmset_q <= temp_vreg[0];
             cout_q <= cout;
             shift_reg_q <= shift_reg;
             shift_rem_base <= (shift_rem > `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH) ? (shift_rem - `min((1 << (vsew+3)), SHIFTED_LANE_WIDTH)) : shift_rem);

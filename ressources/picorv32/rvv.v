@@ -89,7 +89,7 @@ module picorv32_pcpi_rvv #(
 	wire alu_vi = arith_vi;
 	wire arith_instr_signed;
 
-	wire [VLEN-1:0] arith_vs1 = alu_vv ? vregs_rdata1 :
+	wire [VLEN-1:0] alu_vs1 = alu_vv ? vregs_rdata1 :
 							alu_vi ? {arith_instr_signed ? {VLEN_ARITH_IMM{pcpi_insn[19]}} : {VLEN_ARITH_IMM{1'b0}},pcpi_insn[19:15]} :
 							alu_vx ? {arith_instr_signed ? {VLEN_ARITH_RS{pcpi_rs1[31]}} : {VLEN_ARITH_RS{1'b0}} ,pcpi_rs1} :
 							0;
@@ -179,6 +179,8 @@ module picorv32_pcpi_rvv #(
 	reg instr_vmv_xs, instr_vmv_sx;
 	wire [VLEN-1:0] arith_remaining_mask = {VLEN{1'b1}} >> (VLEN > (arith_remaining << (vsew+3)) ? VLEN - (arith_remaining << (vsew+3)) : 0);
 	wire [VLEN-1:0] vregs_v0_8, vregs_v0_16, vregs_v0_32, vregs_v0_64;
+
+	wire instr_vmset = instr_arith && pcpi_insn[31:29] == 3'b011;
 	
 	genvar geni;
 	generate
@@ -202,7 +204,7 @@ module picorv32_pcpi_rvv #(
 	wire [4:0] vregs_raddr1 = !instr_run					? vregs_waddr :
 							  instr_vload					? vregs_waddr :
 							  instr_viota					? vs1 :
-							  ((instr_arith || instr_viota) && arith_done) || ((instr_vmove || instr_vmerge) && reg_index != reg_index_q)   ? vregs_waddr + 1 : // arith op with LMUL > 1
+							  ((instr_arith || instr_viota) && arith_done) || ((instr_vmove || instr_vmerge) && reg_index != reg_index_q)   ? vregs_waddr + (!instr_vmset) : // arith op with LMUL > 1
 							  (instr_arith || instr_mask)	? vs1 + reg_index :
 							  (instr_vstore && mem_sending)	? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
 							  0;
@@ -214,6 +216,7 @@ module picorv32_pcpi_rvv #(
 
 	reg  [4:0] vregs_waddr_q;
 	wire [4:0] vregs_waddr = (instr_vload) 					? pcpi_insn[11:7] + reg_index + (mem_seg_i << (vtype[2] ? 0 : vtype[2:0])) :
+							 (instr_vmset)					? vd :
 							 (instr_arith | instr_viota)	? vd + reg_index :
 							 (instr_mask)				 	? vd :
 							 0;
@@ -494,7 +497,6 @@ module picorv32_pcpi_rvv #(
 						pcpi_ready <= 1;
 					end else if (instr_mem) begin
 						if (vl == 0) begin
-							$display("vl = 0");
 							pcpi_ready <= 1;
 							pcpi_wait <= 0;
 						end else begin
@@ -857,19 +859,29 @@ module picorv32_pcpi_rvv #(
 					end else if (instr_arith || instr_mask) begin
 						alu_run <= !arith_done && (arith_init || (arith_remaining >= 1 << NB_LANES) || arith_step != ((1 << (vsew+3-LANE_WIDTH)) - 1));
 						if (alu_run && arith_instr_valid) begin
+							tmp_vregs_wdata = vregs_wdata_acc;
 							if (instr_vcpop) begin
 								if (arith_res[0])
 									pcpi_rd <= pcpi_rd + arith_vd[0 +: 32];
 							end else if (instr_vfirst) begin
 								if (arith_res[0])
 									pcpi_rd <= &pcpi_rd ? arith_vd[0 +: 32] : pcpi_rd;
+							end else if (instr_vmset) begin
+								for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
+									if (arith_res[lane_num] && arith_remaining > lane_num && (vm || vregs_v0[arith_regi[lane_num*17 +: 17]])) begin
+										tmp_vregs_wdata[arith_regi[lane_num*17 +: 17]] = arith_vd[lane_num<<6];
+									end
+								end
+								if (!arith_done) vregs_wdata_acc <= tmp_vregs_wdata;
+								vregs_wdata <= tmp_vregs_wdata;
+								vregs_wen <= !arith_done;
+								pcpi_rd <= 0;
 							end else begin
-								tmp_vregs_wdata = vregs_wdata_acc;
 								if (vsew + 3 < LANE_WIDTH || instr_viota) begin // lane larger than vsew (if arith instr, else always true)
 									for (lane_num = 0; lane_num < (1 << NB_LANES); lane_num = lane_num + 1) begin
 										if (arith_res[lane_num] && arith_remaining > lane_num && (vm || vregs_v0[(arith_regi[lane_num*17 +: 17] >> (vsew+3)) + (VLEN >> (vsew+3)) * reg_index])) begin
-											if (instr_viota)
-												$display("vregs[%d:8] = %h", arith_regi[lane_num*17 +: 17], arith_vd[lane_num << 6 +: (1 << (0+3))]);
+											/* if (instr_viota)
+												$display("vregs[%d:8] = %h", arith_regi[lane_num*17 +: 17], arith_vd[lane_num << 6 +: (1 << (0+3))]); */
 											case (vsew)
 												3'b000: begin
 													tmp_vregs_wdata[arith_regi[lane_num*17 +: 17] +: (1 << (0+3))] = arith_vd[lane_num << 6 +: (1 << (0+3))];
@@ -961,7 +973,7 @@ module picorv32_pcpi_rvv #(
 		.instr_mask(instr_mask),
 		.run(alu_run),
 		.vs1_index(vs1),
-		.vs1(arith_vs1),
+		.vs1(alu_vs1),
 		.vs2(alu_vs2),
 		.vsew(vsew),
 		.op_type({alu_vi,alu_vx,alu_vv}),

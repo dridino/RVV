@@ -157,7 +157,7 @@ module rvv_alu_wrapper #(
                 .in_reg_offset(in_reg_offset),
                 .vd(vds[(64*loop_i) +: 64]),
                 .mask_cout(mask_couts[loop_i]),
-                .index(index[(17*loop_i) +: 17]),
+                .out_index(index[(17*loop_i) +: 17]),
                 .instr_valid(instr_valids[loop_i]),
                 .instr_signed(arith_instr_signed_v[loop_i])
             );
