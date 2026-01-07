@@ -32,7 +32,6 @@ RVTEST_CODE_BEGIN */
 
   addi t0, x0, 0x4b
   vmaxu.vx v2, v1, t0
-  vmaxu.vx v2, v1, t0
   vse8.v v2, (x20)
 
   lw t0, (x20)

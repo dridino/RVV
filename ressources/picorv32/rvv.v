@@ -149,12 +149,24 @@ module picorv32_pcpi_rvv #(
 	reg arith_init;
 	reg [2:0] arith_step;
 
-	// TODO : idem que alu
-	wire [3:0] tmp_nb_lanes = `min(VLEN>>(vsew+3), 1 << NB_LANES);
-    wire [1:0] nb_lanes = tmp_nb_lanes[3] ? 2'b11 :
-                          tmp_nb_lanes[2] ? 2'b10 :
-                          tmp_nb_lanes[1] ? 2'b01 :
-                          2'b00;
+    wire [16:0] tmp_nb_lanes = `min(vl, SHIFTED_NB_LANES);
+    wire [4:0] nb_lanes = tmp_nb_lanes[16] ? 5'b10000 :
+                          tmp_nb_lanes[15] ? 5'b01111 :
+                          tmp_nb_lanes[14] ? 5'b01110 :
+                          tmp_nb_lanes[13] ? 5'b01101 :
+                          tmp_nb_lanes[12] ? 5'b01100 :
+                          tmp_nb_lanes[11] ? 5'b01011 :
+                          tmp_nb_lanes[10] ? 5'b01010 :
+                          tmp_nb_lanes[9]  ? 5'b01001 :
+                          tmp_nb_lanes[8]  ? 5'b01000 :
+                          tmp_nb_lanes[7]  ? 5'b00111 :
+                          tmp_nb_lanes[6]  ? 5'b00110 :
+                          tmp_nb_lanes[5]  ? 5'b00101 :
+                          tmp_nb_lanes[4]  ? 5'b00100 :
+                          tmp_nb_lanes[3]  ? 5'b00011 :
+                          tmp_nb_lanes[2]  ? 5'b00010 :
+                          tmp_nb_lanes[1]  ? 5'b00001 :
+                                             5'b00000;
 
 	integer lane_num;
 
@@ -939,13 +951,14 @@ module picorv32_pcpi_rvv #(
 								arith_step <= 0;
 								arith_init <= 0;
 							end else if (alu_run)
-								if (instr_viota ? !arith_done : (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin
-									arith_step <= 0;
-									arith_remaining <= arith_remaining - (1 << nb_lanes);
-								end else if (!arith_done) begin
-									arith_step <= arith_step + 1;
-									arith_remaining <= arith_remaining;
-								end
+								if (!arith_done)
+									if (instr_viota || (vsew+3 <= LANE_WIDTH || arith_step == ((1 << (vsew+3-LANE_WIDTH)) - 1))) begin
+										arith_step <= 0;
+										arith_remaining <= arith_remaining - (1 << nb_lanes);
+									end else /* if (!arith_done) */ begin
+										arith_step <= arith_step + 1;
+										arith_remaining <= arith_remaining;
+									end
 						end
 					end
 				end
