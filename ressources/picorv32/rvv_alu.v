@@ -47,7 +47,7 @@ module rvv_alu #(
     assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
     assign instr_signed = !(!instr_mask && ((opcode == 6'b000100) | (opcode == 6'b000110) | (opcode == 6'b100101) | (opcode == 6'b101000) | (opcode == 6'b101001) | (opcode == 6'b011010) | (opcode == 6'b011100) | (opcode == 6'b011110)));
 
-    wire arith_instr_vmset = (opcode == 6'b011000) | (opcode == 6'b011001) | (opcode == 6'b011010) | (opcode == 6'b011011) | (opcode == 6'b011100) | (opcode == 6'b011101) | (opcode == 6'b011110);
+    wire arith_instr_vmset = (opcode == 6'b011000) | (opcode == 6'b011001) | (opcode == 6'b011010) | (opcode == 6'b011011) | (opcode == 6'b011100) | (opcode == 6'b011101) | (opcode == 6'b011110) | (opcode == 6'b011111);
 
     wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
@@ -477,6 +477,8 @@ module rvv_alu #(
                     6'b011101: temp_vreg[0] = cmp_c_q[2] | (((in_reg_offset == 0 ? lt : ltu) | eq) & cmp_c_q[0]);
                     // vmsgtu
                     6'b011110: temp_vreg[0] = cmp_c_q[1] | (!ltu & !eq & cmp_c_q[0]);
+                    // vmsgt
+                    6'b011111: temp_vreg[0] = cmp_c_q[1] | (!(in_reg_offset == 0 ? lt : ltu) & !eq & cmp_c_q[0]);
                     // default
                     default: temp_vreg = 0;
                 endcase
@@ -503,6 +505,8 @@ module rvv_alu #(
                     3'b001: cmp_c_q <= eq ? 3'b001 : (((instr_signed && in_reg_offset == 0 ? lt : ltu) & !(vs2_neg & in_reg_offset != 0)) ? 3'b100 : 3'b010);
                     default: cmp_c_q <= cmp_c_q;
                 endcase
+            else
+                cmp_c_q <= 3'b001;
             
             mask_acc <= run ? mask_cout : 1;
             vmset_q <= temp_vreg[0];
