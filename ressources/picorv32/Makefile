@@ -12,7 +12,7 @@ IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
 # TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-TEST_OBJS = tests/rvv_tests/vmsne.o
+TEST_OBJS = tests/rvv_tests/vmsltu.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
 ADDED_FIRMWARE_OBJS = firmware/rvv.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings

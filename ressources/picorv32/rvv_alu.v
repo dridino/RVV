@@ -44,9 +44,9 @@ module rvv_alu #(
 	localparam [2:0] VI = 3'b100;
 
     assign instr_valid = instr_mask ? mask_instr_valid : arith_instr_valid;
-    assign instr_signed = !(!instr_mask && ((opcode == 6'b000100) | (opcode == 6'b000110) | (opcode == 6'b100101) | (opcode == 6'b101000) | (opcode == 6'b101001)));
+    assign instr_signed = !(!instr_mask && ((opcode == 6'b000100) | (opcode == 6'b000110) | (opcode == 6'b100101) | (opcode == 6'b101000) | (opcode == 6'b101001) | (opcode == 6'b011010)));
 
-    wire arith_instr_vmset = (opcode == 6'b011000) | (opcode == 6'b011001);
+    wire arith_instr_vmset = (opcode == 6'b011000) | (opcode == 6'b011001) | (opcode == 6'b011010);
 
     wire arith_instr_valid =
         (opcode == 6'b001001) | (opcode == 6'b001010) | (opcode == 6'b001011) |
@@ -72,7 +72,7 @@ module rvv_alu #(
     assign out_index = (arith_instr_vmset) ? (LANE_I + byte_i) : index;
     wire [16:0] index =
 	(opcode == 6'b010100 && vs1_index[4:1] == 4'b1000) ? base_index[0 +: VLEN_SIZE] :
-	(opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << `max($signed(vsew+3-LANE_WIDTH), $signed(0))) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
+	(opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) || (arith_instr_vmset && opcode == 6'b011010) ? base_index + (((1 << `max($signed(vsew+3-LANE_WIDTH), $signed(0))) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
 	// (opcode[5:2] == 4'b0001) || (opcode[5:1] == 5'b10100) ? base_index + (((1 << (vsew+3-LANE_WIDTH)) - 1) << LANE_WIDTH) - (in_reg_offset << LANE_WIDTH) : // min / max / right shift : reversed index
     base_index + (in_reg_offset << LANE_WIDTH); // classic op index
     
@@ -88,10 +88,10 @@ module rvv_alu #(
     wire [2:0] cmp_c =
         (in_reg_offset == 0) ? 3'b001 : // reset when new element
         (!cmp_c[0]) ? cmp_c : // keep its state for the whole element
-        (opcode[5:2] == 4'b0001 && !opcode[0] && !cmp_c[1] && ltu) ? 3'b100 :  // unsigned && vs2 <  vs1
-        (opcode[5:2] == 4'b0001 && !opcode[0] && !cmp_c[2] && !ltu) ? 3'b010 : // unsigned && vs2 >= vs1
-        (opcode[5:2] == 6'b0001 && opcode[0] && !cmp_c[1] && lt) ? 3'b100 :    //  signed  && vs2 <  vs1
-        (opcode[5:2] == 6'b0001 && opcode[0] && !cmp_c[2] && !lt) ? 3'b010 :   //  signed  && vs2 >= vs1
+        (((opcode[5:2] == 4'b0001 && !opcode[0]) || (opcode == 6'b011010)) && !cmp_c[1] && ltu) ? 3'b100 :  // unsigned && vs2 <  vs1
+        (((opcode[5:2] == 4'b0001 && !opcode[0])) && !cmp_c[2] && !ltu) ? 3'b010 : // unsigned && vs2 >= vs1
+        (((opcode[5:2] == 4'b0001 && opcode[0])) && !cmp_c[1] && lt) ? 3'b100 :    //  signed  && vs2 <  vs1
+        (((opcode[5:2] == 4'b0001 && opcode[0])) && !cmp_c[2] && !lt) ? 3'b010 :   //  signed  && vs2 >= vs1
         3'b001;
 
     wire [63:0] signed_vs1_sub =
@@ -456,6 +456,8 @@ module rvv_alu #(
                     6'b011000: temp_vreg[0] = vmset_acc & vs1_clean == vs2_clean;
                     // vmsne
                     6'b011001: temp_vreg[0] = vmset_acc | vs1_clean != vs2_clean;
+                    // vmsltu
+                    6'b011010: temp_vreg[0] = cmp_c[2] | ltu;
                     // default
                     default: temp_vreg = 0;
                 endcase
