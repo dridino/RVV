@@ -151,7 +151,6 @@ module rvv_alu #(
     wire ltu = $unsigned(vs2_cmp) < $unsigned(vs1_cmp);
     wire lt = $signed(vs2_cmp) < $signed(vs1_cmp);
 
-    wire [31:0] tmp = (base_index + (((1 << `max($signed(vsew+3-LANE_WIDTH), $signed(0))) - 1) << LANE_WIDTH) + SHIFTED_LANE_WIDTH - 1);
     wire vs2_neg = vs2_in[(base_index + (((1 << `max($signed(vsew+3-LANE_WIDTH), $signed(0))) - 1) << LANE_WIDTH) + SHIFTED_LANE_WIDTH - 1) & MASK_VLEN_SIZE];
 
     // shifts

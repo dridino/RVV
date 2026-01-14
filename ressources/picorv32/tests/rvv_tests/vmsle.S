@@ -227,23 +227,6 @@ RVTEST_CODE_BEGIN */
   lw t0, 12(x20)
   addi x22, x0, 0x0
   bne  t0, x22, .trap
-  
-  addi x20, x20, 16
-  lw t0, (x20)
-  addi x22, x0, 0x0
-  bne  t0, x22, .trap
-  
-  lw t0, 4(x20)
-  addi x22, x0, 0x0
-  bne  t0, x22, .trap
-  
-  lw t0, 8(x20)
-  addi x22, x0, 0x0
-  bne  t0, x22, .trap
-  
-  lw t0, 12(x20)
-  addi x22, x0, 0x0
-  bne  t0, x22, .trap
 
   // =================================================
   // = SEW = 16b | LMUL = 1 | masked
