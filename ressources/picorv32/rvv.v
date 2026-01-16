@@ -187,10 +187,11 @@ module picorv32_pcpi_rvv #(
 	wire [VLEN-1:0] alu_vs2_tmp = instr_vid ? {VLEN{1'b1}} : vregs_rdata2;
 	wire [VLEN-1:0] alu_vs2 = (instr_mask) ? (!vm ? alu_vs2_tmp & vl_mask & vregs_v0 : alu_vs2_tmp & vl_mask) : alu_vs2_tmp;
 
-	reg instr_vmove, instr_vmerge;
+	reg instr_vmove, instr_vmerge, instr_vmv_nr;
 	reg instr_vmv_xs, instr_vmv_sx;
 	wire [VLEN-1:0] arith_remaining_mask = {VLEN{1'b1}} >> (VLEN > (arith_remaining << (vsew+3)) ? VLEN - (arith_remaining << (vsew+3)) : 0);
 	wire [VLEN-1:0] vregs_v0_8, vregs_v0_16, vregs_v0_32, vregs_v0_64;
+	reg [2:0] vmv_nr_acc;
 
 	wire instr_vmset = instr_arith && pcpi_insn[31:29] == 3'b011;
 	
@@ -290,6 +291,7 @@ module picorv32_pcpi_rvv #(
 		instr_vid = 0;
 
 		instr_vmove = 0;
+		instr_vmv_nr = 0;
 		instr_vmv_xs = 0;
 		instr_vmv_sx = 0;
 		instr_vmerge = 0;
@@ -362,6 +364,7 @@ module picorv32_pcpi_rvv #(
 				3'b011: arith_vi = 1;
 				3'b100: arith_vx = 1;
 			endcase
+			instr_vmv_nr = pcpi_insn[31:26] == 6'b100111 && vm == 1 && arith_vi == 1;
 		end
 
 		// mask
@@ -436,6 +439,7 @@ module picorv32_pcpi_rvv #(
 			arith_init <= 1;
 			arith_step <= 0;
 			vregs_wdata_acc <= 0;
+			vmv_nr_acc <= 0;
 		end else begin
 			reg_index_q <= reg_index;
 			/* if (should_trap)
@@ -790,6 +794,20 @@ module picorv32_pcpi_rvv #(
 								pcpi_wait <= 1;
 							end
 						end
+						end
+					end else if (instr_vmv_nr) begin
+						if (vmv_nr_acc == pcpi_insn[17:15]) begin
+							vmv_nr_acc <= 0;
+							vregs_wdata <= vregs_rdata2;
+							vregs_wen <= 1;
+							pcpi_ready <= 1;
+							pcpi_wait <= 0;
+						end else begin
+							vmv_nr_acc <= vmv_nr_acc + 1;
+							vregs_wdata <= vregs_rdata2;
+							vregs_wen <= 1;
+							pcpi_ready <= 0;
+							pcpi_wait <= 1;
 						end
 					end else if (instr_vmove || instr_vmerge || instr_vmv_xs || instr_vmv_sx) begin
 						if (instr_vmv_xs) begin

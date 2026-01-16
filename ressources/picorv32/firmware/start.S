@@ -28,6 +28,7 @@
 	.global irq
 	.global hello
 	.global rvv
+	.global rvv_fractal
 	.global sieve
 	.global multest
 	.global hard_mul
@@ -382,8 +383,8 @@ start:
 	/* set stack pointer */
 	lui sp,(128*1024)>>12
 
-	/* call rvv C code */
-	jal ra,rvv
+	/* call rvv_fractal C code */
+	jal ra,rvv_fractal
 #endif
 
 #ifdef ENABLE_HELLO

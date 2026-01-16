@@ -28,7 +28,7 @@ module testbench #(
 			$dumpfile("testbench.vcd");
 			$dumpvars(0, testbench);
 		end
-		repeat (1000000) @(posedge clk);
+		repeat (100000000) @(posedge clk);
 		$display("TIMEOUT");
 		$finish;
 	end
@@ -176,8 +176,8 @@ module picorv32_wrapper #(
 		// RVV
 		.ENABLE_RVV(1),
 		.VLEN(128),
-		.NB_LANES(0),
-		.LANE_WIDTH(3)
+		.NB_LANES(3),
+		.LANE_WIDTH(5)
 `endif
 	) uut (
 		.clk            (clk            ),
