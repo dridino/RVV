@@ -1,4 +1,4 @@
-# Risc-V Vector Extension RTL implementation (RVV)
+# RISC-V Vector Extension RTL implementation (RVV)
 
 ## Global parameters
 
