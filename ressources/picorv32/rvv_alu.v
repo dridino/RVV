@@ -117,15 +117,15 @@ module rvv_alu #(
         : vs2_in[index[VLEN_SIZE-1:0] +: SHIFTED_LANE_WIDTH];
 
     wire [SHIFTED_LANE_WIDTH-1:0] vs1_clean =
-        (vsew == 3'b000) ? {{SHIFTED_LANE_WIDTH_M8{(opcode == 6'b101001) && vs1[7]}}, vs1[0 +: 8]} :
-        (vsew == 3'b001) ? {{SHIFTED_LANE_WIDTH_M16{(opcode == 6'b101001) && vs1[15]}}, vs1[0 +: 16]} :
-        (vsew == 3'b010) ? {{SHIFTED_LANE_WIDTH_M32{(opcode == 6'b101001) && vs1[31]}}, vs1[0 +: 32]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b000) ? {{SHIFTED_LANE_WIDTH_M8{(opcode == 6'b101001) && vs1[7]}}, vs1[0 +: 8]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b001) ? {{SHIFTED_LANE_WIDTH_M16{(opcode == 6'b101001) && vs1[15]}}, vs1[0 +: 16]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b010) ? {{SHIFTED_LANE_WIDTH_M32{(opcode == 6'b101001) && vs1[31]}}, vs1[0 +: 32]} :
         vs1[0 +: 64];
     
     wire [SHIFTED_LANE_WIDTH-1:0] vs2_clean =
-        (vsew == 3'b000) ? {{SHIFTED_LANE_WIDTH_M8{(opcode == 6'b101001) && vs2[7]}}, vs2[0 +: 8]} :
-        (vsew == 3'b001) ? {{SHIFTED_LANE_WIDTH_M16{(opcode == 6'b101001) && vs2[15]}}, vs2[0 +: 16]} :
-        (vsew == 3'b010) ? {{SHIFTED_LANE_WIDTH_M32{(opcode == 6'b101001) && vs2[31]}}, vs2[0 +: 32]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b000) ? {{SHIFTED_LANE_WIDTH_M8{(opcode == 6'b101001) && vs2[7]}}, vs2[0 +: 8]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b001) ? {{SHIFTED_LANE_WIDTH_M16{(opcode == 6'b101001) && vs2[15]}}, vs2[0 +: 16]} :
+        (`min(SHIFTED_LANE_WIDTH, vsew) == 3'b010) ? {{SHIFTED_LANE_WIDTH_M32{(opcode == 6'b101001) && vs2[31]}}, vs2[0 +: 32]} :
         vs2[0 +: 64];
 
     // Reverse the iteration order for comparison operations

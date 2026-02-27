@@ -1,0 +1,320 @@
+iverilog -o testbench.vvp  testbench.v picorv32.v rvv.v rvv_alu_wrapper.v rvv_alu.v
+chmod -x testbench.vvp
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o firmware/start.o firmware/start.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/irq.o firmware/irq.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/print.o firmware/print.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/hello.o firmware/hello.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/sieve.o firmware/sieve.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/multest.o firmware/multest.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/stats.o firmware/stats.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/rvv.o firmware/rvv.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/rvv_fractal.o firmware/rvv_fractal.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -O3 -ftree-vectorize --std=c99 -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic  -ffreestanding -nostdlib -o firmware/rvv_rgb2gray.o firmware/rvv_rgb2gray.c
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/add.o -DTEST_FUNC_NAME=add \
+	-DTEST_FUNC_TXT='"add"' -DTEST_FUNC_RET=add_ret tests/add.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/addi.o -DTEST_FUNC_NAME=addi \
+	-DTEST_FUNC_TXT='"addi"' -DTEST_FUNC_RET=addi_ret tests/addi.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/and.o -DTEST_FUNC_NAME=and \
+	-DTEST_FUNC_TXT='"and"' -DTEST_FUNC_RET=and_ret tests/and.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/andi.o -DTEST_FUNC_NAME=andi \
+	-DTEST_FUNC_TXT='"andi"' -DTEST_FUNC_RET=andi_ret tests/andi.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/auipc.o -DTEST_FUNC_NAME=auipc \
+	-DTEST_FUNC_TXT='"auipc"' -DTEST_FUNC_RET=auipc_ret tests/auipc.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/beq.o -DTEST_FUNC_NAME=beq \
+	-DTEST_FUNC_TXT='"beq"' -DTEST_FUNC_RET=beq_ret tests/beq.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/bge.o -DTEST_FUNC_NAME=bge \
+	-DTEST_FUNC_TXT='"bge"' -DTEST_FUNC_RET=bge_ret tests/bge.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/bgeu.o -DTEST_FUNC_NAME=bgeu \
+	-DTEST_FUNC_TXT='"bgeu"' -DTEST_FUNC_RET=bgeu_ret tests/bgeu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/blt.o -DTEST_FUNC_NAME=blt \
+	-DTEST_FUNC_TXT='"blt"' -DTEST_FUNC_RET=blt_ret tests/blt.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/bltu.o -DTEST_FUNC_NAME=bltu \
+	-DTEST_FUNC_TXT='"bltu"' -DTEST_FUNC_RET=bltu_ret tests/bltu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/bne.o -DTEST_FUNC_NAME=bne \
+	-DTEST_FUNC_TXT='"bne"' -DTEST_FUNC_RET=bne_ret tests/bne.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/div.o -DTEST_FUNC_NAME=div \
+	-DTEST_FUNC_TXT='"div"' -DTEST_FUNC_RET=div_ret tests/div.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/divu.o -DTEST_FUNC_NAME=divu \
+	-DTEST_FUNC_TXT='"divu"' -DTEST_FUNC_RET=divu_ret tests/divu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/j.o -DTEST_FUNC_NAME=j \
+	-DTEST_FUNC_TXT='"j"' -DTEST_FUNC_RET=j_ret tests/j.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/jal.o -DTEST_FUNC_NAME=jal \
+	-DTEST_FUNC_TXT='"jal"' -DTEST_FUNC_RET=jal_ret tests/jal.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/jalr.o -DTEST_FUNC_NAME=jalr \
+	-DTEST_FUNC_TXT='"jalr"' -DTEST_FUNC_RET=jalr_ret tests/jalr.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lb.o -DTEST_FUNC_NAME=lb \
+	-DTEST_FUNC_TXT='"lb"' -DTEST_FUNC_RET=lb_ret tests/lb.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lbu.o -DTEST_FUNC_NAME=lbu \
+	-DTEST_FUNC_TXT='"lbu"' -DTEST_FUNC_RET=lbu_ret tests/lbu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lh.o -DTEST_FUNC_NAME=lh \
+	-DTEST_FUNC_TXT='"lh"' -DTEST_FUNC_RET=lh_ret tests/lh.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lhu.o -DTEST_FUNC_NAME=lhu \
+	-DTEST_FUNC_TXT='"lhu"' -DTEST_FUNC_RET=lhu_ret tests/lhu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lui.o -DTEST_FUNC_NAME=lui \
+	-DTEST_FUNC_TXT='"lui"' -DTEST_FUNC_RET=lui_ret tests/lui.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/lw.o -DTEST_FUNC_NAME=lw \
+	-DTEST_FUNC_TXT='"lw"' -DTEST_FUNC_RET=lw_ret tests/lw.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/mul.o -DTEST_FUNC_NAME=mul \
+	-DTEST_FUNC_TXT='"mul"' -DTEST_FUNC_RET=mul_ret tests/mul.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/mulh.o -DTEST_FUNC_NAME=mulh \
+	-DTEST_FUNC_TXT='"mulh"' -DTEST_FUNC_RET=mulh_ret tests/mulh.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/mulhsu.o -DTEST_FUNC_NAME=mulhsu \
+	-DTEST_FUNC_TXT='"mulhsu"' -DTEST_FUNC_RET=mulhsu_ret tests/mulhsu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/mulhu.o -DTEST_FUNC_NAME=mulhu \
+	-DTEST_FUNC_TXT='"mulhu"' -DTEST_FUNC_RET=mulhu_ret tests/mulhu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/or.o -DTEST_FUNC_NAME=or \
+	-DTEST_FUNC_TXT='"or"' -DTEST_FUNC_RET=or_ret tests/or.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/ori.o -DTEST_FUNC_NAME=ori \
+	-DTEST_FUNC_TXT='"ori"' -DTEST_FUNC_RET=ori_ret tests/ori.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/rem.o -DTEST_FUNC_NAME=rem \
+	-DTEST_FUNC_TXT='"rem"' -DTEST_FUNC_RET=rem_ret tests/rem.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/remu.o -DTEST_FUNC_NAME=remu \
+	-DTEST_FUNC_TXT='"remu"' -DTEST_FUNC_RET=remu_ret tests/remu.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sb.o -DTEST_FUNC_NAME=sb \
+	-DTEST_FUNC_TXT='"sb"' -DTEST_FUNC_RET=sb_ret tests/sb.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sh.o -DTEST_FUNC_NAME=sh \
+	-DTEST_FUNC_TXT='"sh"' -DTEST_FUNC_RET=sh_ret tests/sh.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/simple.o -DTEST_FUNC_NAME=simple \
+	-DTEST_FUNC_TXT='"simple"' -DTEST_FUNC_RET=simple_ret tests/simple.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sll.o -DTEST_FUNC_NAME=sll \
+	-DTEST_FUNC_TXT='"sll"' -DTEST_FUNC_RET=sll_ret tests/sll.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/slli.o -DTEST_FUNC_NAME=slli \
+	-DTEST_FUNC_TXT='"slli"' -DTEST_FUNC_RET=slli_ret tests/slli.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/slt.o -DTEST_FUNC_NAME=slt \
+	-DTEST_FUNC_TXT='"slt"' -DTEST_FUNC_RET=slt_ret tests/slt.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/slti.o -DTEST_FUNC_NAME=slti \
+	-DTEST_FUNC_TXT='"slti"' -DTEST_FUNC_RET=slti_ret tests/slti.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sra.o -DTEST_FUNC_NAME=sra \
+	-DTEST_FUNC_TXT='"sra"' -DTEST_FUNC_RET=sra_ret tests/sra.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/srai.o -DTEST_FUNC_NAME=srai \
+	-DTEST_FUNC_TXT='"srai"' -DTEST_FUNC_RET=srai_ret tests/srai.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/srl.o -DTEST_FUNC_NAME=srl \
+	-DTEST_FUNC_TXT='"srl"' -DTEST_FUNC_RET=srl_ret tests/srl.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/srli.o -DTEST_FUNC_NAME=srli \
+	-DTEST_FUNC_TXT='"srli"' -DTEST_FUNC_RET=srli_ret tests/srli.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sub.o -DTEST_FUNC_NAME=sub \
+	-DTEST_FUNC_TXT='"sub"' -DTEST_FUNC_RET=sub_ret tests/sub.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/sw.o -DTEST_FUNC_NAME=sw \
+	-DTEST_FUNC_TXT='"sw"' -DTEST_FUNC_RET=sw_ret tests/sw.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/xor.o -DTEST_FUNC_NAME=xor \
+	-DTEST_FUNC_TXT='"xor"' -DTEST_FUNC_RET=xor_ret tests/xor.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -c -mabi=ilp32 -march=rv32imv -o tests/xori.o -DTEST_FUNC_NAME=xori \
+	-DTEST_FUNC_TXT='"xori"' -DTEST_FUNC_RET=xori_ret tests/xori.S
+~/rvv32/bin/riscv32-unknown-elf-gcc -O3 -mabi=ilp32 -march=rv32imv -ffreestanding -nostdlib -o firmware/firmware.elf \
+	-Wl,--build-id=none,-Bstatic,-T,firmware/sections.lds,-Map,firmware/firmware.map,--strip-debug \
+ 		firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o firmware/rvv.o firmware/rvv_fractal.o firmware/rvv_rgb2gray.o tests/add.o tests/addi.o tests/and.o tests/andi.o tests/auipc.o tests/beq.o tests/bge.o tests/bgeu.o tests/blt.o tests/bltu.o tests/bne.o tests/div.o tests/divu.o tests/j.o tests/jal.o tests/jalr.o tests/lb.o tests/lbu.o tests/lh.o tests/lhu.o tests/lui.o tests/lw.o tests/mul.o tests/mulh.o tests/mulhsu.o tests/mulhu.o tests/or.o tests/ori.o tests/rem.o tests/remu.o tests/sb.o tests/sh.o tests/simple.o tests/sll.o tests/slli.o tests/slt.o tests/slti.o tests/sra.o tests/srai.o tests/srl.o tests/srli.o tests/sub.o tests/sw.o tests/xor.o tests/xori.o -lgcc
+chmod -x firmware/firmware.elf
+~/rvv32/bin/riscv32-unknown-elf-objcopy -O binary firmware/firmware.elf firmware/firmware.bin
+chmod -x firmware/firmware.bin
+python3 firmware/makehex.py firmware/firmware.bin 32768 > firmware/firmware.hex
+vvp -N testbench.vvp
+computation took : 149571 cycles
+P2
+32 32
+255
+152 149 155 138 100 102 107 118 127 127 127 127 127 127 127 127 127 122 122 113 126 147 150 149 149 180 158 113 119 121 119 99
+150 150 154 133 95 96 103 114 121 122 122 124 121 119 121 122 122 119 119 113 116 144 150 149 144 155 180 131 113 116 84 57
+154 154 154 131 93 96 103 113 119 121 121 121 122 124 126 126 121 119 119 114 113 138 149 147 144 141 171 166 113 84 54 51
+154 137 149 133 89 96 103 113 116 119 122 124 137 150 168 168 150 121 116 110 110 133 141 144 141 133 144 186 108 49 49 49
+138 110 149 131 87 93 99 110 116 116 113 119 130 144 170 183 189 170 124 102 107 137 133 131 137 134 137 130 67 49 51 64
+102 102 149 131 87 93 99 110 113 110 113 119 131 137 162 183 195 205 187 109 100 137 122 100 134 137 127 64 49 49 72 119
+87 102 149 131 87 93 99 110 114 104 113 124 131 137 168 187 195 199 205 176 109 137 121 66 119 141 86 49 49 60 115 150
+87 102 149 131 87 93 99 116 116 104 116 124 131 156 174 183 189 195 199 205 156 138 121 86 163 183 77 49 51 97 145 155
+95 104 149 133 87 92 99 126 116 103 114 124 142 162 170 174 180 187 189 195 189 161 155 180 205 195 80 49 72 136 151 151
+95 107 154 138 87 92 96 132 127 103 118 131 137 152 162 168 168 174 180 176 180 187 195 199 189 163 60 54 115 152 151 152
+93 107 154 138 87 92 92 137 144 114 124 131 137 137 136 145 145 145 156 174 187 195 199 183 152 111 49 84 142 151 151 151
+96 110 154 141 87 92 92 137 155 118 121 124 124 108 93 102 88 93 156 187 189 187 163 136 119 67 54 115 155 151 150 150
+100 110 154 141 87 89 92 121 162 124 119 119 95 74 66 76 94 152 176 180 176 126 130 125 72 49 72 141 157 155 150 150
+100 104 154 141 87 92 96 107 152 121 113 86 66 70 62 80 143 174 170 184 184 108 105 72 51 51 102 147 157 155 152 150
+96 103 154 144 89 93 99 110 126 113 84 60 56 66 86 145 163 162 168 191 201 127 84 67 54 64 130 152 150 147 147 147
+95 102 154 144 89 93 99 118 109 95 70 62 56 67 133 162 130 119 153 180 168 108 77 77 51 84 144 152 152 147 143 140
+93 96 154 144 89 92 109 131 84 76 76 56 56 105 168 112 86 108 127 162 108 70 72 84 54 108 147 147 147 144 140 140
+89 89 154 149 96 102 105 93 76 80 86 49 67 145 137 127 137 145 131 168 131 82 72 86 64 127 147 145 144 140 155 171
+76 82 152 147 96 108 94 86 70 62 86 64 111 119 113 148 161 151 132 168 151 93 72 84 81 141 145 141 140 157 186 190
+73 76 147 147 100 102 86 93 70 60 81 86 111 70 113 140 155 143 122 161 148 82 67 91 102 147 145 140 144 180 194 199
+73 82 150 149 96 91 80 93 93 67 86 111 72 70 113 132 143 140 131 157 131 64 64 97 127 147 144 140 157 190 199 204
+66 90 155 149 100 91 70 86 101 104 130 81 54 70 108 130 131 131 143 153 95 57 64 102 142 144 141 136 166 199 204 205
+58 90 155 152 99 80 70 101 101 133 108 54 54 64 93 122 130 122 132 121 64 58 66 108 147 147 143 136 173 204 204 204
+51 90 154 149 94 74 70 101 113 117 67 51 51 58 66 96 124 143 151 99 51 58 73 108 144 143 143 133 184 205 199 173
+64 76 147 152 97 66 66 93 113 113 80 57 51 54 64 95 122 140 155 145 97 67 77 108 127 122 122 126 186 194 133 81
+117 91 141 155 91 56 70 76 93 113 102 64 54 57 70 104 131 134 155 180 186 134 72 112 140 126 112 127 190 147 84 84
+117 111 141 155 81 51 66 62 76 113 113 74 54 64 82 108 130 134 151 168 191 201 105 112 141 133 130 166 190 113 94 99
+97 117 141 155 77 51 66 56 66 104 113 80 57 73 96 113 130 132 143 161 184 201 156 125 140 133 141 194 162 100 94 95
+88 117 141 155 81 51 56 56 66 93 93 60 58 89 100 124 132 132 137 155 175 201 189 125 122 130 142 180 132 87 90 91
+93 134 141 155 81 51 56 56 62 93 74 49 66 93 104 130 134 132 134 144 168 191 201 126 86 81 145 158 90 84 91 81
+104 143 147 152 72 51 62 66 66 86 66 49 76 96 119 130 134 134 134 137 157 180 201 152 95 91 130 99 76 86 91 72
+86 156 152 147 67 62 70 80 80 76 74 73 103 119 124 130 134 137 137 141 155 175 201 170 102 113 113 94 84 97 86 67
+lui..OK
+auipc..OK
+j..OK
+jal..OK
+jalr..OK
+beq..OK
+bne..OK
+blt..OK
+bge..OK
+bltu..OK
+bgeu..OK
+lb..OK
+lh..OK
+lw..OK
+lbu..OK
+lhu..OK
+sb..OK
+sh..OK
+sw..OK
+addi..OK
+slti..OK
+xori..OK
+ori..OK
+andi..OK
+slli..OK
+srli..OK
+srai..OK
+add..OK
+sub..OK
+sll..OK
+slt..OK
+xor..OK
+srl..OK
+sra..OK
+or..OK
+and..OK
+mulh..OK
+mulhsu..OK
+mulhu..OK
+mul..OK
+div..OK
+divu..OK
+rem..OK
+remu..OK
+simple..OK
+ 1st prime is 2.
+ 2nd prime is 3.
+ 3rd prime is 5.
+ 4th prime is 7.
+ 5th prime is 11.
+ 6th prime is 13.
+ 7th prime is 17.
+ 8th prime is 19.
+ 9th prime is 23.
+10th prime is 29.
+11th prime is 31.
+12th prime is 37.
+13th prime is 41.
+14th prime is 43.
+15th prime is 47.
+16th prime is 53.
+17th prime is 59.
+18th prime is 61.
+19th prime is 67.
+20th prime is 71.
+21st prime is 73.
+22nd prime is 79.
+23rd prime is 83.
+24th prime is 89.
+25th prime is 97.
+26th prime is 101.
+27th prime is 103.
+28th prime is 107.
+29th prime is 109.
+30th prime is 113.
+31st prime is 127.
+checksum: 1772A48F OK
+input     [FFFFFFFF] 80000000 [FFFFFFFF] FFFFFFFF
+hard mul   80000000  00000000  80000000  7FFFFFFF
+soft mul   80000000  00000000  80000000  7FFFFFFF   OK
+hard div   80000000  00000000  00000000  80000000
+soft div   80000000  00000000  00000000  80000000   OK
+input     [00000000] 00000000 [00000000] 00000000
+hard mul   00000000  00000000  00000000  00000000
+soft mul   00000000  00000000  00000000  00000000   OK
+hard div   FFFFFFFF  FFFFFFFF  00000000  00000000
+soft div   FFFFFFFF  FFFFFFFF  00000000  00000000   OK
+input     [FFFFFFFF] 8B578493 [00000000] 00000000
+hard mul   00000000  00000000  00000000  00000000
+soft mul   00000000  00000000  00000000  00000000   OK
+hard div   FFFFFFFF  FFFFFFFF  8B578493  8B578493
+soft div   FFFFFFFF  FFFFFFFF  8B578493  8B578493   OK
+input     [00000000] 6F038AFB [00000000] 00000000
+hard mul   00000000  00000000  00000000  00000000
+soft mul   00000000  00000000  00000000  00000000   OK
+hard div   FFFFFFFF  FFFFFFFF  6F038AFB  6F038AFB
+soft div   FFFFFFFF  FFFFFFFF  6F038AFB  6F038AFB   OK
+input     [00000000] 1BFC9C22 [FFFFFFFF] 876B9BDE
+hard mul   67CDFB7C  F2D15DD3  0ECDF9F5  0ECDF9F5
+soft mul   67CDFB7C  F2D15DD3  0ECDF9F5  0ECDF9F5   OK
+hard div   00000000  00000000  1BFC9C22  1BFC9C22
+soft div   00000000  00000000  1BFC9C22  1BFC9C22   OK
+input     [00000000] 76141B16 [00000000] 5BA2940D
+hard mul   949A181E  2A4422A3  2A4422A3  2A4422A3
+soft mul   949A181E  2A4422A3  2A4422A3  2A4422A3   OK
+hard div   00000001  00000001  1A718709  1A718709
+soft div   00000001  00000001  1A718709  1A718709   OK
+input     [00000000] 2D45231C [FFFFFFFF] ADFA166F
+hard mul   C756A124  F17ECF19  1EC3F235  1EC3F235
+soft mul   C756A124  F17ECF19  1EC3F235  1EC3F235   OK
+hard div   00000000  00000000  2D45231C  2D45231C
+soft div   00000000  00000000  2D45231C  2D45231C   OK
+input     [00000000] 09C7BF74 [00000000] 3B014C60
+hard mul   73323B80  024115D2  024115D2  024115D2
+soft mul   73323B80  024115D2  024115D2  024115D2   OK
+hard div   00000000  00000000  09C7BF74  09C7BF74
+soft div   00000000  00000000  09C7BF74  09C7BF74   OK
+input     [00000000] 4325E1E6 [00000000] 1C32932A
+hard mul   0BDA21BC  076568B5  076568B5  076568B5
+soft mul   0BDA21BC  076568B5  076568B5  076568B5   OK
+hard div   00000002  00000002  0AC0BB92  0AC0BB92
+soft div   00000002  00000002  0AC0BB92  0AC0BB92   OK
+input     [FFFFFFFF] 84A97421 [FFFFFFFF] EF8D27D7
+hard mul   002E8EB7  07ECBD6D  8C96318E  7C235965
+soft mul   002E8EB7  07ECBD6D  8C96318E  7C235965   OK
+hard div   00000007  00000000  F7CD5D40  84A97421
+soft div   00000007  00000000  F7CD5D40  84A97421   OK
+input     [00000000] 258BAFEC [00000000] 5EB6FD37
+hard mul   D7A707B4  0DE4210A  0DE4210A  0DE4210A
+soft mul   D7A707B4  0DE4210A  0DE4210A  0DE4210A   OK
+hard div   00000000  00000000  258BAFEC  258BAFEC
+soft div   00000000  00000000  258BAFEC  258BAFEC   OK
+input     [FFFFFFFF] A31BEA5F [00000000] 145CCB97
+hard mul   FE749309  F89C8277  F89C8277  0CF94E0E
+soft mul   FE749309  F89C8277  F89C8277  0CF94E0E   OK
+hard div   FFFFFFFC  00000008  F48F18BB  00358DA7
+soft div   FFFFFFFC  00000008  F48F18BB  00358DA7   OK
+input     [00000000] 28E3CD00 [00000000] 793F5181
+hard mul   21A74D00  135DC8F9  135DC8F9  135DC8F9
+soft mul   21A74D00  135DC8F9  135DC8F9  135DC8F9   OK
+hard div   00000000  00000000  28E3CD00  28E3CD00
+soft div   00000000  00000000  28E3CD00  28E3CD00   OK
+input     [FFFFFFFF] F2E838C6 [00000000] 4BE0C5FE
+hard mul   6558B274  FC1E89B3  FC1E89B3  47FF4FB1
+soft mul   6558B274  FC1E89B3  FC1E89B3  47FF4FB1   OK
+hard div   00000000  00000003  F2E838C6  0F45E6CC
+soft div   00000000  00000003  F2E838C6  0F45E6CC   OK
+input     [00000000] 38BAA671 [FFFFFFFF] E2E2B92B
+hard mul   1B639DFB  F98C5E4E  324704BF  324704BF
+soft mul   1B639DFB  F98C5E4E  324704BF  324704BF   OK
+hard div   FFFFFFFF  00000000  1B9D5F9C  38BAA671
+soft div   FFFFFFFF  00000000  1B9D5F9C  38BAA671   OK
+Cycle counter ......... 967344
+Instruction counter ... 161837
+CPI: 5.97
+DONE
+
+------------------------------------------------------------
+EBREAK instruction at 0x00000778
+pc  0000077C    x8  00000000    x16 00000001    x24 00000000
+x1  0000073C    x9  00000000    x17 00000000    x25 00000000
+x2  00020000    x10 20000000    x18 00000000    x26 00000000
+x3  DEADBEEF    x11 075BCD15    x19 00005F00    x27 00000000
+x4  DEADBEEF    x12 0000004F    x20 00000000    x28 000036A8
+x5  00000002    x13 0000004E    x21 00000000    x29 0000001D
+x6  0000B92B    x14 00000045    x22 00000000    x30 0000F9E0
+x7  00000000    x15 0000000A    x23 00000000    x31 00000000
+------------------------------------------------------------
+Number of fast external IRQs counted: 118
+Number of slow external IRQs counted: 14
+Number of timer IRQs counted: 21
+TRAP
+TRAP after 993820 clock cycles
+ALL TESTS PASSED.

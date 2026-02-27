@@ -10,7 +10,7 @@
 `ifndef VERILATOR
 module testbench #(
 	parameter AXI_TEST = 0,
-	parameter VERBOSE = 1
+	parameter VERBOSE = 0
 );
 	reg clk = 1;
 	reg resetn = 0;
@@ -28,7 +28,7 @@ module testbench #(
 			$dumpfile("testbench.vcd");
 			$dumpvars(0, testbench);
 		end
-		repeat (100000000) @(posedge clk);
+		repeat (100000000000) @(posedge clk);
 		$display("TIMEOUT");
 		$finish;
 	end
@@ -175,9 +175,9 @@ module picorv32_wrapper #(
 		.ENABLE_TRACE(1),
 		// RVV
 		.ENABLE_RVV(1),
-		.VLEN(128),
-		.NB_LANES(3),
-		.LANE_WIDTH(5)
+		.VLEN(512),
+		.NB_LANES(6),
+		.LANE_WIDTH(3)
 `endif
 	) uut (
 		.clk            (clk            ),

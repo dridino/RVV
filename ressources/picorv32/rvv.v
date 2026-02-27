@@ -501,7 +501,7 @@ module picorv32_pcpi_rvv #(
 								else if (pcpi_insn[11:7] != 0)
 									avl = 32'hFFFF_FFFF;
 								else
-									avl = vl;
+									avl = vlmax;
 							end else if (instr_vsetivli)
 								avl = {{27{1'b0}}, pcpi_insn[19:15]};
 							

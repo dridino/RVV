@@ -17,6 +17,9 @@ void rvv(void);
 // rvv_fractal.c
 void rvv_fractal(void);
 
+// rvv_rgb2gray.c
+void rvv_rgb2gray(void);
+
 // irq.c
 uint32_t* irq(uint32_t* regs, uint32_t irqs);
 
