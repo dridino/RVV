@@ -1,24 +1,21 @@
-# Extension RVV sur base de PicoRV32
+# Risc-V Vector Extension RTL implementation (RVV)
 
-## État d'avancement
+## Global parameters
 
-### Architecture globale
+The vector size (`VLEN`), the number of lanes (`NB_LANES`) and their width (`LANE_WIDTH`) are parameters of the top module.
 
-La taille des vecteurs est définie par un paramètre de l'architecture. De même pour le nombre et la largeur des *lanes* de l'ALU vectorielle.
+## Supported instructions
 
-### Accès mémoire
+### Memory instructions
 
-Les lectures et écritures vectorielles fonctionnent avec les modes d'adressage suivants :
+- `vle` / `vse`
+- `vluxei` / `vsuxei`
+- `vlse` / `vsse`
+- `vloxei` / `vsoxei`
+- `vlseg` / `vsseg`
+- `vl*re` / `vs*r`
 
-- *unit-stride* : accède à la mémoire de manière contigüe
-- *strided* : accède à la mémoire suivant un incrément constant (négatif, nul ou positif)
-- *unordered-indexed* & *ordered-indexed* : accède à la mémoire à partir d'une adresse de base, à laquelle sont ajoutés des indices contenus dans un (ou plusieurs) vecteurs
-- *whole-reg* : transfert des groupes de registres complets
-- *segment* : transfert les champs d'une structure dans des vecteurs contigus
-
-### Opérations arithmético-logiques
-
-Les opérations arithmético-logiques (`vv` / `vi` / `vx`) supportées sont :
+### Arithmetic logic instructions
 
 - `vand`
 - `vor`
@@ -36,9 +33,9 @@ Les opérations arithmético-logiques (`vv` / `vi` / `vx`) supportées sont :
 - `vmv`
 - `vmerge`
 
-### Masques
+### Mask instructions
 
-Toutes les instructions le supportant peuvent être masquées par `v0`. Les instructions sur les masques implémentées sont :
+Every instruction supporting it can be masked using `v0`.
 
 - `vmand`
 - `vmnand`
@@ -49,15 +46,29 @@ Toutes les instructions le supportant peuvent être masquées par `v0`. Les inst
 - `vmorn`
 - `vmxnor`
 - `vcpop`
-- `vmsof`
-- `vmsif`
-- `vmsbf`
 - `vfirst`
+- `vmsbf`
+- `vmsif`
+- `vmsof`
+- `viota`
+- `vid`
+- `vmseq`
+- `vmsne`
+- `vmsltu`
+- `vmslt`
+- `vmsleu`
+- `vmsle`
+- `vmsgtu`
+- `vmsgt`
 
 ## Simulation
 
-Pour simuler l'exécution de code assembleur riscv sur le processeur, lancer la commande `make test` (ou `make test_vcd` pour générer un fichier `testbench.vcd` visualisable dans gtkwave) depuis le dossier `ressources/picorv32/`. Le fichier contenant le code assembleur est à rentrer dans la constante `TEST_OBJS` du Makefile. La structure des fichiers assembleur pour tester les instructions vectorielles diffère de celle des autres afin de pouvoir être exécutés sur le FPGA (sans affichage donc). Si l'exécution ne s'arrête pas, le test est passé, si elle s'arrête, le test n'est pas passé (format nécessaire pour exécution sur FPGA).
+To launch the tests on the PicorRV32, navigate to `ressources/picorv32/` folder and run `make test` (or `make test_vcd` if you want a vcd output). Currently the format of the RVV tests is made to be executed on an FPGA, and therefore the tests run forever. If the test stops, there's an error, if the test run forever or reach a timeout, it passed. This behaviour may change in the future.
 
-## Implémentation sur DE10-Lite
+## Implementation on an Altera DE10-Lite
 
-Créer un nouveau projet Quartus avec les fichiers `picorv32/picorv32.v`, `picorv32/rvv.v`, `picorv32/rvv_alu_wrapper.v`, `picorv32/rvv_alu.v` et ceux contenus dans le dossier `quartus_files`, qui contient les descriptions de la mémoire et le fichier *top*. Les fichiers `picorv32/firmware/firmware[0-3].mif` sont les fichiers d'initialisation des blocs mémoire (des blocs de 1 octet chacun, pour permettre la modification d'un seul octet à la fois) générés à partir du fichier `firmware.hex` via le script python `firmware_split.py`.
+To implement the extension and the PicoRV32 on a DE10-Lite, you'll need the following files :
+
+- Top: `quartus_files/top.v`
+- Sources: `picorv32/picorv32.v`, `rvv.v`, `rvv_alu_wrapper.v`, `rvv_alu.v`
+- Memory initialisation files: `picorv32/firmware/firmware[0-3].mif` files, generated from `firmware.hex` using the `firmware_split.py` script

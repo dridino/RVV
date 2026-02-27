@@ -364,7 +364,7 @@ module axi_to_ram (
     assign ram_wren    = s_axi_awvalid && s_axi_wvalid;
 	assign ram_wstrb   = s_axi_wstrb;
 	 
-	always @(negedge clk) begin
+	/* always @(negedge clk) begin
 		if (!resetn) begin
 			s_axi_awready <= 0;
 			s_axi_wready <= 0;
@@ -378,7 +378,7 @@ module axi_to_ram (
 			s_axi_arready <= !ar_ready && s_axi_arvalid;
 			s_axi_rvalid  <= r_valid;
 		end
-	end
+	end */
 
 	always @(posedge clk) begin
 		if (!resetn) begin
