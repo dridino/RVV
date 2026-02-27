@@ -11,10 +11,10 @@ ICARUS_SUFFIX =
 IVERILOG = iverilog$(ICARUS_SUFFIX)
 VVP = vvp$(ICARUS_SUFFIX)
 
-TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S)))
-#TEST_OBJS = tests/rvv_tests/vmsgt.o
+TEST_OBJS = $(addsuffix .o,$(basename $(wildcard tests/*.S))) tests/rvv_tests/vsetvl.o
+# TEST_OBJS = tests/rvv_tests/vsetvl.o
 FIRMWARE_OBJS = firmware/start.o firmware/irq.o firmware/print.o firmware/hello.o firmware/sieve.o firmware/multest.o firmware/stats.o
-ADDED_FIRMWARE_OBJS = firmware/rvv.o firmware/rvv_fractal.o firmware/rvv_rgb2gray.o
+ADDED_FIRMWARE_OBJS = firmware/rvv.o firmware/rvv_fractal.o # firmware/rvv_rgb2gray.o
 GCC_WARNS  = -Werror -Wall -Wextra -Wshadow -Wundef -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
 GCC_WARNS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes -pedantic # -Wconversion
 TOOLCHAIN_PREFIX = ~/rvv32/bin/riscv32-unknown-elf-
@@ -23,10 +23,10 @@ COMPRESSED_ISA =
 # Add things like "export http_proxy=... https_proxy=..." here
 GIT_ENV = true
 
-test_rvv_alu: testbench_rvv_alu.vvp
+test_rvv_alu: ../testbench_rvv_alu.vvp
 	$(VVP) -N $<
 	
-test_rvv_alu_vcd: testbench_rvv_alu.vvp
+test_rvv_alu_vcd: ../testbench_rvv_alu.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
 test_rvv_alu_synth: testbench_rvv_alu_synth.vvp
@@ -35,14 +35,14 @@ test_rvv_alu_synth: testbench_rvv_alu_synth.vvp
 test_rvv_alu_synth_vcd: testbench_rvv_alu_synth.vvp
 	$(VVP) -N $< +vcd +trace +noerror
 
-testbench_rvv_alu_synth.vvp: testbench_rvv_vregs.v
+testbench_rvv_alu_synth.vvp: ../testbench_rvv_vregs.v
 	$(IVERILOG) -o $@ -DSYNTH_TEST $^
 	chmod -x $@
 
-rvv_alu_wrapper_synth.v: rvv_alu_wrapper.v scripts/yosys/alu_synth_sim.ys rvv_alu.v
+rvv_alu_wrapper_synth.v: ../rvv_alu_wrapper.v scripts/yosys/alu_synth_sim.ys ../rvv_alu.v
 	yosys -qv3 -l synth.log scripts/yosys/alu_synth_sim.ys
 
-testbench_rvv_alu.vvp: testbench_rvv_vregs.v
+../testbench_rvv_alu.vvp: ../testbench_rvv_vregs.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -79,7 +79,7 @@ test_synth: testbench_synth.vvp firmware/firmware.hex
 test_verilator: testbench_verilator firmware/firmware.hex
 	./testbench_verilator
 
-testbench.vvp: testbench.v picorv32.v rvv.v rvv_alu_wrapper.v rvv_alu.v
+testbench.vvp: testbench.v picorv32.v ../rvv.v ../rvv_alu_wrapper.v ../rvv_alu.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
@@ -121,7 +121,7 @@ check.smt2: picorv32.v
 		  -p 'assertpmux -noinit; opt -fast; dffunmap' \
 		  -p 'write_smt2 -wires check.smt2'
 
-synth.v: rvv_alu.v rvv_alu_wrapper.v rvv.v picorv32.v scripts/yosys/synth_sim.ys
+synth.v: ../rvv_alu.v ../rvv_alu_wrapper.v ../rvv.v picorv32.v scripts/yosys/synth_sim.ys
 	yosys -qv3 -l synth.log scripts/yosys/synth_sim.ys
 
 firmware/firmware.hex: firmware/firmware.bin firmware/makehex.py

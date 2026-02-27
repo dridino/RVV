@@ -63,7 +63,7 @@ Every instruction supporting it can be masked using `v0`.
 
 ## Simulation
 
-To launch the tests on the PicorRV32, navigate to `ressources/picorv32/` folder and run `make test` (or `make test_vcd` if you want a vcd output). Currently the format of the RVV tests is made to be executed on an FPGA, and therefore the tests run forever. If the test stops, there's an error, if the test run forever or reach a timeout, it passed. This behaviour may change in the future.
+To launch the tests on the PicorRV32, navigate to `picorv32/` folder and run `make test` (or `make test_vcd` if you want a vcd output). Currently the format of the RVV tests is made to be executed on an FPGA, and therefore the tests run forever. If the test stops, there's an error, if the test run forever or reach a timeout, it passed. This behaviour may change in the future.
 
 ## Implementation on an Altera DE10-Lite
 

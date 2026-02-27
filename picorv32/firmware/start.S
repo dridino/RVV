@@ -385,7 +385,7 @@ start:
 	lui sp,(128*1024)>>12
 
 	/* call rvv_rgb2gray C code */
-	jal ra,rvv_rgb2gray
+	// jal ra,rvv_rgb2gray
 #endif
 
 #ifdef ENABLE_HELLO
@@ -413,8 +413,8 @@ start:
 #endif
 
 	// RVV
-	/* TEST(vsetvl)
-	TEST(vload_vstore)
+	TEST(vsetvl)
+	/* TEST(vload_vstore)
 	TEST(vand) */
 
 	TEST(lui)
