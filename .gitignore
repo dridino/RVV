@@ -3,3 +3,5 @@ ressources/RenduHARGE_Kristian
 ressources/picorv32/out
 ressources/picorv32/out1
 ressources/picorv32/tests/rvv_tests/*.o
+notes.md
+ressources/md_ressources/*
